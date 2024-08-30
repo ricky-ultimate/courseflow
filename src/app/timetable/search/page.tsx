@@ -1,37 +1,35 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Timetable from '@/components/Timetable';
-import { dummyTimetableData } from '@/data/dummyData';
+import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 
 const SearchPage = () => {
-  const searchParams = useSearchParams();  // Access query parameters
-  const query = searchParams.get('query') || '';  // Get the 'query' parameter from the URL
-  const [results, setResults] = useState(dummyTimetableData);  // Initialize with dummy data
+  const [query, setQuery] = useState('');
+  const router = useRouter();
 
-  useEffect(() => {
-    // Filter the timetable data based on the search query
-    const filteredResults = dummyTimetableData.map((day) => ({
-      ...day,
-      courses: day.courses.filter(
-        (course) =>
-          course.name.toLowerCase().includes(query.toLowerCase()) ||
-          course.code.toLowerCase().includes(query.toLowerCase())
-      ),
-    })).filter(day => day.courses.length > 0);
-
-    setResults(filteredResults);
-  }, [query]);
+  const handleSearch = () => {
+    if (query.toLowerCase() === 'cyber security') {
+      router.push('/timetable/department/cyber-security');
+    } else if (query.toLowerCase() === 'food science and technology') {
+      router.push('/timetable/department/food-science-and-technology');
+    } else if (query.toLowerCase() === 'biochemistry') {
+      router.push('/timetable/department/biochemistry');
+    } else {
+      alert('Department not found!');
+    }
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Search Results for "{query}"</h2>
-      {results.length > 0 ? (
-        <Timetable data={results} />
-      ) : (
-        <p>No results found for "{query}".</p>
-      )}
+    <div className="bg-white shadow-lg rounded-lg p-6">
+      <h2 className="text-2xl font-bold mb-4">Search Timetable</h2>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Enter department name..."
+        className="border p-2 rounded w-full mb-4"
+      />
+      <button onClick={handleSearch} className="bg-blue-500 text-white p-2 rounded">
+        Search
+      </button>
     </div>
   );
 };
