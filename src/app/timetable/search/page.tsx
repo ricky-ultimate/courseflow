@@ -1,5 +1,7 @@
+"use client";  // Mark this as a Client Component
+
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';  // Use `next/navigation` for App Router
 
 const SearchPage = () => {
   const [query, setQuery] = useState('');
