@@ -1,23 +1,37 @@
-"use client"; // This marks the file as a Client Component
+"use client";
 
-import React, { useState } from 'react';
-import SearchBar from '@/components/SearchBar';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Timetable from '@/components/Timetable';
+import { dummyTimetableData } from '@/data/dummyData';
 
 const SearchPage = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
+  const searchParams = useSearchParams();  // Access query parameters
+  const query = searchParams.get('query') || '';  // Get the 'query' parameter from the URL
+  const [results, setResults] = useState(dummyTimetableData);  // Initialize with dummy data
 
-  // Logic to handle the search and display results
-  const handleSearch = (searchTerm: string) => {
-    setQuery(searchTerm);
-    // Implement the search logic here and update `results`
-  };
+  useEffect(() => {
+    // Filter the timetable data based on the search query
+    const filteredResults = dummyTimetableData.map((day) => ({
+      ...day,
+      courses: day.courses.filter(
+        (course) =>
+          course.name.toLowerCase().includes(query.toLowerCase()) ||
+          course.code.toLowerCase().includes(query.toLowerCase())
+      ),
+    })).filter(day => day.courses.length > 0);
+
+    setResults(filteredResults);
+  }, [query]);
 
   return (
     <div className="container mx-auto p-4">
-      <SearchBar onSearch={handleSearch} />
-      <Timetable data={results} />
+      <h2 className="text-2xl font-bold mb-4">Search Results for "{query}"</h2>
+      {results.length > 0 ? (
+        <Timetable data={results} />
+      ) : (
+        <p>No results found for "{query}".</p>
+      )}
     </div>
   );
 };
