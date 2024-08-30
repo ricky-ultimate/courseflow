@@ -3,8 +3,8 @@ import React from 'react';
 interface TimetableProps {
   data: {
     day: string;
-    time: string;
     courses: {
+      time: string;  // Add the missing `time` property
       code: string;
       name: string;
       venue: string;
@@ -22,7 +22,7 @@ const Timetable: React.FC<TimetableProps> = ({ data }) => {
             <h3 className="text-xl font-semibold mb-2">{daySchedule.day}</h3>
             {daySchedule.courses.map((course, idx) => (
               <div key={idx} className="mb-2">
-                <p className="font-medium">{course.time}</p>
+                <p className="font-medium">{course.time}</p> {/* time property used here */}
                 <p>{course.code}: {course.name}</p>
                 <p className="text-sm text-gray-600">{course.venue}</p>
               </div>
