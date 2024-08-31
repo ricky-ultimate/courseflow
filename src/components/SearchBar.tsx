@@ -17,7 +17,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     <div className="flex items-center">
       <input
         type="text"
-        className="border border-gray-300 rounded-l-lg p-4 w-full text-black text-lg"
+        className="border border-[#575268] rounded-l-lg p-4 w-full text-[#F5E0DC] bg-[#302D41] text-lg placeholder-[#988BA2]"
         placeholder="Search for a course or department..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -25,7 +25,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       />
       <button
         onClick={handleSearch}
-        className="bg-blue-500 text-white p-4 rounded-r-lg hover:bg-blue-600 text-lg"
+        className="bg-[#F38BA8] text-[#1E1E2E] p-4 rounded-r-lg hover:bg-[#E58C98] text-lg"
       >
         Search
       </button>
