@@ -17,7 +17,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     <div className="flex items-center">
       <input
         type="text"
-        className="border border-gray-300 rounded-lg p-2 w-full"
+        className="border border-gray-300 rounded-lg p-2 w-full text-black"  // Set text color to black
         placeholder="Search for a course or department..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
