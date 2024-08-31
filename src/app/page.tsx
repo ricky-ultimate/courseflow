@@ -1,24 +1,15 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import SearchBar from '@/components/SearchBar';
-import Timetable from '@/components/Timetable';
-import { dummyTimetableData } from '@/data/dummyData';
 
 const HomePage = () => {
-  const router = useRouter();  // Use Next.js router for navigation
-
-  const handleSearch = (searchTerm: string) => {
-    // Redirect the user to the /search page with the search term as a query parameter
-    router.push(`/search?query=${searchTerm}`);
-  };
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-center mb-6">CourseFlow - University Timetable</h1>
-      <SearchBar onSearch={handleSearch} />
-      <Timetable data={dummyTimetableData} />
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">
+        <h1 className="text-4xl font-bold text-center text-black mb-6">Search for a Course or Department</h1>
+        <SearchBar onSearch={(query) => { /* Handle search action here */ }} />
+      </div>
     </div>
   );
 };
