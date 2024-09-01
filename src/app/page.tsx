@@ -7,10 +7,10 @@ const SearchPage = () => {
   const [query, setQuery] = useState('');
   const router = useRouter();
 
-    const departmentUrl = departmentMap[normalizedQuery];
-
-    if (departmentUrl) {
-      router.push(departmentUrl);
+  const handleSearch = () => {
+    if (query.toLowerCase() === 'cyber security') {
+      router.push('/timetable/department/cyber-security');
+    } else if (query.toLowerCase() === 'food science and technology') {
       router.push('/timetable/department/food-science-and-technology');
     } else if (query.toLowerCase() === 'biochemistry') {
       router.push('/timetable/department/biochemistry');
