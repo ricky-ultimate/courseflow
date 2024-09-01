@@ -23,7 +23,7 @@ const SearchPage = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e] text-[#f5e0dc]">
       <h1 className="text-4xl font-bold mb-6 text-[#f38ba8]">CourseFlow</h1> {/* CourseFlow Title */}
       <div className="bg-[#2e2e48] shadow-lg rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Search Timetable</h2>
+        <h2 className="text-2xl font-bold mb-4">Search</h2>
         <input
           type="text"
           value={query}
