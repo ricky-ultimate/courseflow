@@ -26,7 +26,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
 
   const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
 
-  // Directly use the properties of the Course object in the transformation
+  // Transform the data to match the expected structure
   const transformedTimetableData = department.timetable[level].map(course => ({
     day: "Unknown", // Assuming you don't have day data yet
     courses: [{
@@ -53,7 +53,8 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
           <option value="500lvl">500lvl</option>
         </select>
       </div>
-      <Timetable data={transformedTimetableData} />
+      {/* Pass both department and transformedTimetableData as props */}
+      <Timetable department={department} data={transformedTimetableData} />
     </div>
   );
 };
