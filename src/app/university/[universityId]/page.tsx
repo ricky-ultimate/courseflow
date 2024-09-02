@@ -4,7 +4,17 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import universities from '@/data/universities';
 
-const UniversityPage = ({ params }) => {
+// Define the type for params
+interface UniversityPageParams {
+  universityId: string;
+}
+
+// Define the component props type
+interface UniversityPageProps {
+  params: UniversityPageParams;
+}
+
+const UniversityPage: React.FC<UniversityPageProps> = ({ params }) => {
   const router = useRouter();
   const universityId = params.universityId;
   const university = universities.find(uni => uni.id === universityId);
