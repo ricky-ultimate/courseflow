@@ -16,21 +16,23 @@ interface TimetableProps {
 
 const Timetable: React.FC<TimetableProps> = ({ department, data }) => {
   return (
-    <div>
+    <div className="bg-white shadow-lg rounded-lg p-6">
       <h2>{department.name} Timetable</h2>
-      <ul>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {data.map((item, index) => (
-          <li key={index}>
-            <h3>{item.day}</h3>
-            <ul>
+          <div key={index} className="border p-4 rounded-lg">
+            <h3 className="text-xl font-semibold mb-2 text-black">{item.day}</h3>
               {item.courses.map((course, courseIndex) => (
-                <li key={courseIndex}>{`${course.time} - ${course.code}: ${course.name} at ${course.venue}`}</li>
+                <div key={courseIndex} className="mb-2">
+                <p className="font-medium text-black">{course.time}</p>
+                <p className="text-black">{course.code}: {course.name}</p>
+                <p className="text-sm text-gray-600">{course.venue}</p>
+                </div>
               ))}
-            </ul>
-          </li>
+              </div>
         ))}
-      </ul>
-    </div>
+        </div>
+        </div>
   );
 };
 
