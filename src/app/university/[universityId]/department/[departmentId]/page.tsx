@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { departments, Department } from '@/data/universities/[universityId]/departments';
+import { departments, Department } from '@/data/universities/[universityId]/departments'; // Adjust the path
 import Timetable from '@/components/Timetable';
 
 interface DepartmentPageParams {
@@ -11,12 +11,21 @@ interface DepartmentPageParams {
 
 const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
   const { universityId, departmentId } = params;
-  const department = departments[universityId]?.find((dept: Department) => dept.id === departmentId);
-  const [level, setLevel] = useState('100lvl');
+
+  // Ensure TypeScript knows departments[universityId] is an array of Department objects
+  const universityDepartments = departments[universityId] as Department[] | undefined;
+
+  if (!universityDepartments) {
+    return <div>University not found</div>;
+  }
+
+  const department = universityDepartments.find((dept) => dept.id === departmentId);
 
   if (!department) {
     return <div>Department not found</div>;
   }
+
+  const [level, setLevel] = useState('100lvl');
 
   return (
     <div className="min-h-screen p-8 bg-black text-mocha">
