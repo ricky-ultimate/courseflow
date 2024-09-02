@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { departments, Department } from '@/data/universities/[universityId]/departments';
+import { departments, Department, DaySchedule } from '@/data/universities/[universityId]/departments';
 import Timetable from '@/components/Timetable';
 
 interface DepartmentPageParams {
@@ -26,16 +26,8 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
 
   const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
 
-  // Transform the data to match the expected structure
-  const transformedTimetableData = department.timetable[level].map(course => ({
-    day: "Unknown", // Assuming you don't have day data yet
-    courses: [{
-      time: course.time, // Correctly assign the time
-      code: course.code, // Correctly assign the code
-      name: course.name, // Correctly assign the name
-      venue: course.venue, // Correctly assign the venue
-    }]
-  }));
+  // No need to transform data anymore, directly use the new structure
+  const timetableData: DaySchedule[] = department.timetable[level];
 
   return (
     <div className="min-h-screen p-8 bg-black text-mocha">
@@ -53,8 +45,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
           <option value="500lvl">500lvl</option>
         </select>
       </div>
-      {/* Pass both department and transformedTimetableData as props */}
-      <Timetable department={department} data={transformedTimetableData} />
+      <Timetable department={department} data={timetableData} /> {/* Pass both department and timetableData */}
     </div>
   );
 };
