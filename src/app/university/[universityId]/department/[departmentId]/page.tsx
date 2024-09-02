@@ -1,3 +1,4 @@
+"use client"
 import React, { useState } from 'react';
 import departments from '@/data/departments'; // Updated data structure
 
