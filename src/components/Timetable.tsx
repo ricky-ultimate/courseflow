@@ -9,7 +9,6 @@ interface TimetableProps {
 const Timetable: React.FC<TimetableProps> = ({ department, data }) => {
   return (
     <div className="bg-white shadow-lg rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-4 text-black">{department.name} Timetable</h2> {/* Ensure the header is prominent */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {data.map((item, index) => (
           <div key={index} className="border p-4 rounded-lg">
