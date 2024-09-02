@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { departments, Department } from '@/data/universities/[universityId]/departments'; // Adjust the path
+import { departments, Department } from '@/data/universities/[universityId]/departments';
 import Timetable from '@/components/Timetable';
 
 interface DepartmentPageParams {
@@ -12,7 +12,6 @@ interface DepartmentPageParams {
 const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
   const { universityId, departmentId } = params;
 
-  // Ensure TypeScript knows departments[universityId] is an array of Department objects
   const universityDepartments = departments[universityId] as Department[] | undefined;
 
   if (!universityDepartments) {
@@ -43,7 +42,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
           <option value="500lvl">500lvl</option>
         </select>
       </div>
-      <Timetable data={department.timetable[level]} />
+      <Timetable department={department} data={department.timetable[level as keyof typeof department.timetable]} />
     </div>
   );
 };
