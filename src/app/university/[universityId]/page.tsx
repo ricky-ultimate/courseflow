@@ -33,7 +33,7 @@ const UniversityPage: React.FC<UniversityPageProps> = ({ params }) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (filteredDepartments.length === 1) {
-      router.push(`/university/${filteredDepartments[0].id}`);
+      router.push(`/university/${universityId}/department/${filteredDepartments[0].id}`);
     }
   };
 
