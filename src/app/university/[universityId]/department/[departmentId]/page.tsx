@@ -24,16 +24,16 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
     return <div>Department not found</div>;
   }
 
-  const [level, setLevel] = useState('100lvl');
+  const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
 
-  // Transform the data to match the expected structure
-  const transformedTimetableData = department.timetable[level as keyof typeof department.timetable].map(course => ({
-    day: "Unknown", // Replace this with the actual day if available in your data structure
+  // Directly use the properties of the Course object in the transformation
+  const transformedTimetableData = department.timetable[level].map(course => ({
+    day: "Unknown", // Assuming you don't have day data yet
     courses: [{
-      time: "Unknown", // Replace this with the actual time if available in your data structure
-      code: course, // Assuming the course array contains course codes as strings
-      name: "Unknown", // Replace this with the actual course name if available
-      venue: "Unknown", // Replace this with the actual venue if available
+      time: course.time, // Correctly assign the time
+      code: course.code, // Correctly assign the code
+      name: course.name, // Correctly assign the name
+      venue: course.venue, // Correctly assign the venue
     }]
   }));
 
@@ -43,7 +43,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
       <div className="mb-6">
         <select
           value={level}
-          onChange={(e) => setLevel(e.target.value)}
+          onChange={(e) => setLevel(e.target.value as '100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl')}
           className="p-4 rounded-lg text-black"
         >
           <option value="100lvl">100lvl</option>
@@ -53,7 +53,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
           <option value="500lvl">500lvl</option>
         </select>
       </div>
-      <Timetable department={department} data={transformedTimetableData} />
+      <Timetable data={transformedTimetableData} />
     </div>
   );
 };
