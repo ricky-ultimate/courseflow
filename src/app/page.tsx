@@ -1,42 +1,48 @@
-"use client";  // Ensure this component is a Client Component
-
+"use client"
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import universities from '@/data/universities';
 
-const SearchPage = () => {
-  const [query, setQuery] = useState('');
+const HomePage = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
-  const handleSearch = () => {
-    if (query.toLowerCase() === 'cyber security') {
-      router.push('/timetable/department/cyber-security');
-    } else if (query.toLowerCase() === 'food science and technology') {
-      router.push('/timetable/department/food-science-and-technology');
-    } else if (query.toLowerCase() === 'biochemistry') {
-      router.push('/timetable/department/biochemistry');
-    } else {
-      alert('Department not found!');
+  const filteredUniversities = universities.filter(uni =>
+    uni.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (filteredUniversities.length === 1) {
+      router.push(`/university/${filteredUniversities[0].id}`);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e] text-[#f5e0dc]">
-      <h1 className="text-4xl font-bold mb-6 text-[#f38ba8]">CourseFlow</h1> {/* CourseFlow Title */}
-      <div className="bg-[#2e2e48] shadow-lg rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Search</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-mocha">
+      <h1 className="text-4xl font-bold mb-6">Find Your University</h1>
+      <form onSubmit={handleSearch} className="w-full max-w-md">
         <input
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Enter department name..."
-          className="border border-[#585b70] p-2 rounded w-full mb-4 bg-[#2e2e48] text-[#f5e0dc]"
+          placeholder="Search University"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-4 rounded-lg text-black"
         />
-        <button onClick={handleSearch} className="bg-[#f38ba8] text-[#1e1e2e] p-2 rounded w-full hover:bg-[#e5c3cf]">
-          Search
-        </button>
-      </div>
+        <ul className="mt-4">
+          {filteredUniversities.map((uni) => (
+            <li
+              key={uni.id}
+              onClick={() => router.push(`/university/${uni.id}`)}
+              className="cursor-pointer p-2 bg-mocha text-white rounded-md mb-2"
+            >
+              {uni.name}
+            </li>
+          ))}
+        </ul>
+      </form>
     </div>
   );
 };
 
-export default SearchPage;
+export default HomePage;
