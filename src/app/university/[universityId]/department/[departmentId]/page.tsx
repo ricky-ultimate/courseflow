@@ -1,10 +1,17 @@
-"use client"
-import React, { useState } from 'react';
-import departments from '@/data/departments'; // Updated data structure
+"use client";
 
-const DepartmentPage = ({ params }) => {
+import React, { useState } from 'react';
+import { departments, Department } from '@/data/universities/[universityId]/departments';
+import Timetable from '@/components/Timetable';
+
+interface DepartmentPageParams {
+  universityId: string;
+  departmentId: string;
+}
+
+const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
   const { universityId, departmentId } = params;
-  const department = departments[universityId]?.find(dept => dept.id === departmentId);
+  const department = departments[universityId]?.find((dept: Department) => dept.id === departmentId);
   const [level, setLevel] = useState('100lvl');
 
   if (!department) {
@@ -27,7 +34,6 @@ const DepartmentPage = ({ params }) => {
           <option value="500lvl">500lvl</option>
         </select>
       </div>
-      {/* Assuming TimeTable component now accepts level as prop */}
       <Timetable data={department.timetable[level]} />
     </div>
   );

@@ -1,3 +1,9 @@
+export interface Department {
+    id: string;
+    name: string;
+    courses: string[];
+  }
+
 export const departments = [
     {
       id: 'cs',
