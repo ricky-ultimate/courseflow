@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
-import { departments, Department, DaySchedule } from '@/data/universities/[universityId]/departments';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Timetable from '@/components/Timetable';
+import { Department } from '@/data/universities/types';
 
 interface DepartmentPageParams {
   universityId: string;
@@ -10,44 +11,50 @@ interface DepartmentPageParams {
 }
 
 const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
-  const { universityId, departmentId } = params;
+    const { universityId, departmentId } = params;
+    const [department, setDepartment] = useState<Department | null>(null);
+    const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
+    const router = useRouter();
 
-  const universityDepartments = departments[universityId] as Department[] | undefined;
+    useEffect(() => {
+      const loadDepartmentData = async () => {
+        try {
+          const departmentModule = await import(`@/data/universities/${universityId}/${departmentId}`);
+          setDepartment(departmentModule.default);
+        } catch (error) {
+          console.error("Error loading department data:", error);
+          router.push(`/university/${universityId}`);
+        }
+      };
 
-  if (!universityDepartments) {
-    return <div>University not found</div>;
-  }
+      loadDepartmentData();
+    }, [universityId, departmentId, router]);
 
-  const department = universityDepartments.find((dept) => dept.id === departmentId);
+    if (!department) {
+      return <div>Loading...</div>;
+    }
 
-  if (!department) {
-    return <div>Department not found</div>;
-  }
+    const timetableData = department.timetable[level];
 
-  const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
-
-  // No need to transform data anymore, directly use the new structure
-  const timetableData: DaySchedule[] = department.timetable[level];
-
-  return (
-    <div className="min-h-screen p-8 bg-black text-mocha">
-      <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
-      <div className="mb-6">
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value as '100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl')}
-          className="p-4 rounded-lg text-black"
-        >
-          <option value="100lvl">100lvl</option>
-          <option value="200lvl">200lvl</option>
-          <option value="300lvl">300lvl</option>
-          <option value="400lvl">400lvl</option>
-          <option value="500lvl">500lvl</option>
-        </select>
+    return (
+      <div className="min-h-screen p-8 bg-black text-mocha">
+        <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
+        <div className="mb-6">
+          <select
+            value={level}
+            onChange={(e) => setLevel(e.target.value as '100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl')}
+            className="p-4 rounded-lg text-black"
+          >
+            <option value="100lvl">100lvl</option>
+            <option value="200lvl">200lvl</option>
+            <option value="300lvl">300lvl</option>
+            <option value="400lvl">400lvl</option>
+            <option value="500lvl">500lvl</option>
+          </select>
+        </div>
+        <Timetable department={department} data={timetableData} />
       </div>
-      <Timetable department={department} data={timetableData} /> {/* Pass both department and timetableData */}
-    </div>
-  );
-};
+    );
+  };
 
-export default DepartmentPage;
+  export default DepartmentPage;
