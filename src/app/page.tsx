@@ -1,7 +1,7 @@
-"use client"
+"use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import universities from '@/data/universities';
+import universities from '@/data/universities/index';
 
 const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');

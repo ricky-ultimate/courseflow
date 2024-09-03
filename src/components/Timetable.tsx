@@ -1,5 +1,5 @@
 import React from 'react';
-import { Department, DaySchedule } from '@/data/universities/[universityId]/departments';
+import { Department, DaySchedule } from '@/data/universities/types';
 
 interface TimetableProps {
   department: Department;
@@ -12,7 +12,7 @@ const Timetable: React.FC<TimetableProps> = ({ department, data }) => {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {data.map((item, index) => (
           <div key={index} className="border p-4 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2 text-black">{item.day}</h3> {/* Display day */}
+            <h3 className="text-xl font-semibold mb-2 text-black">{item.day}</h3>
             {item.courses.map((course, courseIndex) => (
               <div key={courseIndex} className="mb-2">
                 <p className="font-medium text-black">{course.time}</p>

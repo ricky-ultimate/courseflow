@@ -33,3 +33,5 @@ export const cs: Department = {
     '500lvl': [],
   },
 };
+
+export default cs;
