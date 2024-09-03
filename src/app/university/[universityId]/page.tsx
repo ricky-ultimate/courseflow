@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import universities from '@/data/universities';
+import universities from '@/data/universities/index';
 
 interface UniversityPageParams {
   universityId: string;
