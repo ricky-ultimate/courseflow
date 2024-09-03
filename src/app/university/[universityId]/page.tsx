@@ -1,15 +1,13 @@
-"use client"
+"use client";
 
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import universities from '@/data/universities';
 
-// Define the type for params
 interface UniversityPageParams {
   universityId: string;
 }
 
-// Define the component props type
 interface UniversityPageProps {
   params: UniversityPageParams;
 }
@@ -40,24 +38,26 @@ const UniversityPage: React.FC<UniversityPageProps> = ({ params }) => {
   return (
     <div className="min-h-screen p-8 bg-black text-mocha">
       <h1 className="text-3xl font-bold mb-6">{university.name}</h1>
-      <input
-        type="text"
-        placeholder="Search Department"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full p-4 rounded-lg text-black mb-6"
-      />
-      <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {filteredDepartments.map((dept) => (
-          <li
-            key={dept.id}
-            onClick={() => router.push(`/university/${universityId}/department/${dept.id}`)}
-            className="cursor-pointer p-4 bg-mocha text-white rounded-md"
-          >
-            {dept.name}
-          </li>
-        ))}
-      </ul>
+      <form onSubmit={handleSearch}>
+        <input
+          type="text"
+          placeholder="Search Department"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-4 rounded-lg text-black mb-6"
+        />
+        <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {filteredDepartments.map((dept) => (
+            <li
+              key={dept.id}
+              onClick={() => router.push(`/university/${universityId}/department/${dept.id}`)}
+              className="cursor-pointer p-4 bg-mocha text-white rounded-md"
+            >
+              {dept.name}
+            </li>
+          ))}
+        </ul>
+      </form>
     </div>
   );
 };
