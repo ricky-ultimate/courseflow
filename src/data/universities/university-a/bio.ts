@@ -33,3 +33,5 @@ export const bio: Department = {
     '500lvl': [],
   },
 };
+
+export default bio;
