@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# CourseFlow
 
-## Getting Started
+CourseFlow is an open-source project designed to help universities manage and display departmental course timetables in a centralized and easy-to-navigate web application. This application allows users to search for their university, select their department, and view the relevant timetables.
 
-First, run the development server:
+## 🚀 Getting Started
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Prerequisites
+
+Ensure you have the following installed:
+
+- [Node.js](https://nodejs.org/) (version 14.x or higher)
+- [npm](https://www.npmjs.com/)
+
+### Installation
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/ricky-ultimate/courseflow.git
+    cd courseflow
+    ```
+
+2. **Install dependencies:**
+
+    ```
+    npm install
+    ```
+
+3. **Run the development server:**
+
+    ```
+    npm run dev
+    ```
+
+
+    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+<br />
+
+## 🏫 Adding Your University Data
+
+If you'd like to contribute by adding your university's timetable data to CourseFlow, please follow the steps below.
+
+### 1. **Create a New Folder**
+
+Navigate to the `src/data/universities/` directory and create a new folder named after your university. The folder name should be lowercase, and spaces should be replaced with hyphens (`-`). For example:
+
+```
+src/data/universities/university-of-xyz/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. **Create Department Files**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Inside your university folder, create separate `.ts` files for each department. Each file should export a `Department` object. The file name should be lowercase and match the department's `id` field.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Example:
 
-## Learn More
+```
+src/data/universities/university-of-xyz/cs.ts
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. **Department File Format**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Each department file should follow this structure:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```
+import { Department } from '@/data/universities/types';
 
-## Deploy on Vercel
+export const cs: Department = {
+  id: 'cs',
+  name: 'Computer Science',
+  timetable: {
+    '100lvl': [
+      {
+        day: 'Monday',
+        courses: [
+          { time: '09:00 - 10:00', code: 'CS101', name: 'Introduction to Computer Science', venue: 'Room 101' },
+          { time: '11:00 - 12:00', code: 'CS102', name: 'Data Structures', venue: 'Room 102' },
+        ],
+      },
+      // Add more day schedules as needed
+    ],
+    '200lvl': [
+      // Add timetable data for 200 level courses
+    ],
+    '300lvl': [],
+    '400lvl': [],
+    '500lvl': [],
+  },
+};
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+export default cs;
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```
+
+### 4. **Importance of `index.ts`**
+
+To ensure your university data is recognized by the application, create or update the `index.ts` file in the `src/data/universities/` directory. This file centralizes all university data for easy access across the application.
+
+Add your university to the `index.ts` file:
+
+```
+import { University } from '@/data/universities/types';
+import { cs } from './university-of-xyz/cs';
+// Import other departments as needed
+
+export const universityXYZ: University = {
+  id: 'university-of-xyz',
+  name: 'University of XYZ',
+  departments: [cs /* Add other departments here */],
+};
+
+const universities: University[] = [universityXYZ /* Add other universities here */];
+
+export default universities;
+
+```
+
+### 5. **Test Your Changes**
+
+After adding your university and department data, run the development server to ensure everything is working correctly:
+
+```
+npm run dev
+```
+
+
+## 🤝 Contributing
+
+We welcome contributions to CourseFlow! If you have any ideas, suggestions, or improvements, feel free to open an issue or submit a pull request.
+
+### How to contribute
+
+- Fork the repository
+- Create a new branch: `git checkout -b feature/your-feature-name`
+- Commit your changes: `git commit -m 'Add some feature'`
+- Push to the branch: `git push origin feature/your-feature-name`
+- Open a pull request
+
+<br />
+
+## 🧑‍💻 Maintainers
+
+[Ricky Ultimate](https://github.com/ricky-ultimate)
