@@ -93,27 +93,37 @@ export default cs;
 
 ```
 
-### 4. **Importance of `index.ts`**
+### 4. **Create an `index.ts` in the University Folder**
+
+Within the university folder, create an `index.ts` file that exports all departments. This file is essential for aggregating all department data and making it available for import in other parts of the application.
+
+```
+// src/data/universities/university-of-xyz/index.ts
+
+import cs from './cs';
+import bio from './bio';
+// Import other departments as needed
+
+export const universityxyz = {
+  id: 'university-of-xyz',
+  name: 'University of XYZ',
+  departments: [cs, bio],  // Include all departments for the university
+};
+
+```
+
+### 5. **Importance of `index.ts`**
 
 To ensure your university data is recognized by the application, create or update the `index.ts` file in the `src/data/universities/` directory. This file centralizes all university data for easy access across the application.
 
 Add your university to the `index.ts` file:
 
 ```
-import { University } from '@/data/universities/types';
-import { cs } from './university-of-xyz/cs';
-// Import other departments as needed
+import { universityxyz } from './university-of-xyz';
 
-export const universityXYZ: University = {
-  id: 'university-of-xyz',
-  name: 'University of XYZ',
-  departments: [cs /* Add other departments here */],
-};
-
-const universities: University[] = [universityXYZ /* Add other universities here */];
+const universities = [universityxyz]; // Combine all university data
 
 export default universities;
-
 ```
 
 ### 5. **Test Your Changes**
@@ -124,6 +134,17 @@ After adding your university and department data, run the development server to 
 npm run dev
 ```
 
+
+## 🛠️ Project Structure
+
+Here's an overview of the key directories and files in the project:
+
+- `src/app/`: Contains the Next.js pages for different routes in the application.
+- `src/components/`: Contains reusable React components used throughout the application.
+- `src/data/universities/`: Contains the data for each university, including department timetables.
+- `src/data/universities/types.ts`: Defines TypeScript types for university and department data structures.
+- `src/data/universities/<university-name>/index.ts`: Centralizes all university department data.
+- `src/data/universities/index.ts`: Centralizes all university data for the application.
 
 ## 🤝 Contributing
 
