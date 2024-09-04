@@ -1,3 +1,5 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/6e8bc606-d3f6-438a-98f8-4329d29a1651/deploy-status)](https://app.netlify.com/sites/courseflowxi/deploys)
+
 # CourseFlow
 
 CourseFlow is an open-source project designed to help universities manage and display departmental course timetables in a centralized and easy-to-navigate web application. This application allows users to search for their university, select their department, and view the relevant timetables.
