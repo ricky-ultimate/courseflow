@@ -126,7 +126,7 @@ const universities = [universityxyz]; // Combine all university data
 export default universities;
 ```
 
-### 5. **Test Your Changes**
+### 6. **Test Your Changes**
 
 After adding your university and department data, run the development server to ensure everything is working correctly:
 
