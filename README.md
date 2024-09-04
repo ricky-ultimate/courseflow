@@ -1,4 +1,4 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/6e8bc606-d3f6-438a-98f8-4329d29a1651/deploy-status)](https://app.netlify.com/sites/courseflowxi/deploys)
+![](https://img.shields.io/github/deployments/ricky-ultimate/courseflow/production?style=for-the-badge&logo=vercel&label=DEPLOYMENT&labelColor=%23131820&color=%2364fab6)
 
 # CourseFlow
 
