@@ -52,7 +52,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
             <option value="500lvl">500lvl</option>
           </select>
         </div>
-        <Timetable department={department} data={timetableData} />
+        <Timetable department={department} data={timetableData} level={level} />
       </div>
     );
   };
