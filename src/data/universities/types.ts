@@ -14,11 +14,11 @@ export interface Course {
     id: string;
     name: string;
     timetable: {
-      '100lvl': DaySchedule[];
-      '200lvl': DaySchedule[];
-      '300lvl': DaySchedule[];
-      '400lvl': DaySchedule[];
-      '500lvl': DaySchedule[];
+      '100 Level': DaySchedule[];
+      '200 Level': DaySchedule[];
+      '300 Level': DaySchedule[];
+      '400 Level': DaySchedule[];
+      '500 Level': DaySchedule[];
     };
   }
 

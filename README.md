@@ -72,7 +72,7 @@ export const cs: Department = {
   id: 'cs',
   name: 'Computer Science',
   timetable: {
-    '100lvl': [
+    '100 Level': [
       {
         day: 'Monday',
         courses: [
@@ -82,11 +82,11 @@ export const cs: Department = {
       },
       // Add more day schedules as needed
     ],
-    '200lvl': [
+    '200 Level': [
       // Add timetable data for 200 level courses
     ],
-    '300lvl': [],
-    '400lvl': [],
+    '300 Level': [],
+    '400 Level': [],
     '500lvl': [],
   },
 };

@@ -13,7 +13,7 @@ interface DepartmentPageParams {
 const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
     const { universityId, departmentId } = params;
     const [department, setDepartment] = useState<Department | null>(null);
-    const [level, setLevel] = useState<'100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl'>('100lvl');
+    const [level, setLevel] = useState<'100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level'>('100 Level');
     const router = useRouter();
 
     useEffect(() => {
@@ -42,14 +42,14 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
         <div className="mb-6">
           <select
             value={level}
-            onChange={(e) => setLevel(e.target.value as '100lvl' | '200lvl' | '300lvl' | '400lvl' | '500lvl')}
+            onChange={(e) => setLevel(e.target.value as '100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level')}
             className="p-4 rounded-lg text-black"
           >
-            <option value="100lvl">100lvl</option>
-            <option value="200lvl">200lvl</option>
-            <option value="300lvl">300lvl</option>
-            <option value="400lvl">400lvl</option>
-            <option value="500lvl">500lvl</option>
+            <option value="100 Level">100 Level</option>
+            <option value="200 Level">200 Level</option>
+            <option value="300 Level">300 Level</option>
+            <option value="400 Level">400 Level</option>
+            <option value="500 Level">500 Level</option>
           </select>
         </div>
         <Timetable department={department} data={timetableData} level={level} />
