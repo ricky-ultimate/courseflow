@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../../../prisma/prisma';
+import { Pool } from '@neondatabase/serverless';
 
 export async function POST(req: NextRequest) {
   try {
+    const neon = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
     const { name, department, email, message } = await req.json();
 
     const complaint = await prisma.complaint.create({
@@ -18,6 +20,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const neon = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
     const complaints = await prisma.complaint.findMany();
     return NextResponse.json(complaints, { status: 200 });
   } catch (error) {

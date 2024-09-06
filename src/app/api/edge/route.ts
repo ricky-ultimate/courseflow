@@ -9,7 +9,7 @@ export const runtime = 'edge';
 export async function GET(request: Request) {
   try {
     const neon = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
-    const adapter = new PrismaNeon(neon);
+    //const adapter = new PrismaNeon(neon);
    // const prisma = new PrismaClient({ adapter });
 
     const complaints = await prisma.complaint.findMany();
