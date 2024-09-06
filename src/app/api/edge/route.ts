@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const adapter = new PrismaNeon(neon)
   const prisma = new PrismaClient({ adapter })
 
-  const users = await prisma.complaint.findMany()
+  const complaints = await prisma.complaint.findMany()
 
-  return NextResponse.json(users, { status: 200 })
+  return NextResponse.json(complaints, { status: 200 })
 }
