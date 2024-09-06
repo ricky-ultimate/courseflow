@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+//import { PrismaClient } from '@prisma/client';
+import prisma from '../../../../prisma/prisma';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool } from '@neondatabase/serverless';
 
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const neon = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
     const adapter = new PrismaNeon(neon);
-    const prisma = new PrismaClient({ adapter });
+   // const prisma = new PrismaClient({ adapter });
 
     const complaints = await prisma.complaint.findMany();
     return NextResponse.json(complaints, { status: 200 });
