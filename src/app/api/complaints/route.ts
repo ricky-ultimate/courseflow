@@ -18,12 +18,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const complaints = await prisma.complaint.findMany();
-    return NextResponse.json(complaints, { status: 200 });
-  } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch complaints' }, { status: 500 });
+export async function GET() {
+    const complaints = await prisma.complaint.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(complaints);
   }
-}
