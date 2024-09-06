@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link'; // Use Link instead of useRouter
 import { Department, DaySchedule } from '@/data/universities/types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'; // Import the plugin
@@ -46,12 +47,19 @@ const Timetable: React.FC<TimetableProps> = ({ department, data, level }) => {
     <div className="bg-white shadow-lg rounded-lg p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">{department.name} Timetable - {level}</h2>
-        <button
-          onClick={generatePDF}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-        >
-          Save as PDF
-        </button>
+        <div className="flex space-x-4">
+          <button
+            onClick={generatePDF}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Save as PDF
+          </button>
+          <Link href="/complaints" passHref>
+            <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+              Report Complaint
+            </button>
+          </Link>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {data.map((item, index) => (
