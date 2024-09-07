@@ -50,22 +50,26 @@ export default function AdminComplaintsPage() {
   return (
     <div className="p-8 bg-black text-white min-h-screen">
       <h1 className="text-4xl font-bold mb-6">User Complaints</h1>
-      {complaints.length === 0 ? (
-        <p>No complaints available.</p>
-      ) : (
-        <div className="overflow-x-auto bg-gray-900 shadow-md rounded-lg">
-          <table className="min-w-full table-auto">
-            <thead>
-              <tr className="bg-gray-800 text-white text-left">
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Department</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Message</th>
-                <th className="px-6 py-4">Submitted At</th>
+      <div className="overflow-x-auto bg-gray-900 shadow-md rounded-lg">
+        <table className="min-w-full table-auto">
+          <thead>
+            <tr className="bg-gray-800 text-white text-left">
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Department</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Message</th>
+              <th className="px-6 py-4">Submitted At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {complaints.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4">
+                  No complaints available.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {complaints.map((complaint) => (
+            ) : (
+              complaints.map((complaint) => (
                 <tr key={complaint.id} className="border-b border-gray-700 hover:bg-gray-800">
                   <td className="px-6 py-4">{complaint.name}</td>
                   <td className="px-6 py-4">{complaint.department}</td>
@@ -77,11 +81,11 @@ export default function AdminComplaintsPage() {
                     {new Date(complaint.createdAt).toLocaleString()}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
