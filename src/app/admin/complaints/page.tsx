@@ -99,7 +99,9 @@ export default function AdminComplaintsPage() {
             ) : (
               complaints.map((complaint) => (
                 <tr key={complaint.id} className="border-b border-gray-700 hover:bg-gray-800">
-                  <td className="px-6 py-4">{complaint.name}</td>
+                  <td className="px-6 py-4" title={`Submitted on: ${new Date(complaint.createdAt).toLocaleString()}`}>
+                    {complaint.name}
+                  </td>
                   <td className="px-6 py-4">{complaint.department}</td>
                   <td className="px-6 py-4">{complaint.email}</td>
                   <td className="px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis whitespace-pre-wrap">
@@ -112,7 +114,7 @@ export default function AdminComplaintsPage() {
                         onClick={() => resolveComplaint(complaint.id)}
                         className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
                       >
-                        Mark as Resolved
+                        Resolved
                       </button>
                     )}
                     <button
