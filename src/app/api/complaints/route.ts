@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { name, department, email, message, status } = await req.json();
 
     const complaint = await prisma.complaint.create({
-      data: { name, department, email, message, status: "unresolved", },
+      data: { name, department, email, message, status: "unresolved" },
     });
 
     return NextResponse.json(complaint, { status: 201 });
