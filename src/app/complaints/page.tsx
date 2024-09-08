@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import './ComplaintForm.css'
 
 interface ComplaintFormInput {
@@ -15,9 +16,11 @@ export default function ComplaintForm() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<ComplaintFormInput>();
   const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   const onSubmit = async (data: ComplaintFormInput) => {
     const response = await fetch('/api/complaints', {
@@ -30,6 +33,10 @@ export default function ComplaintForm() {
 
     if (response.ok) {
       setSuccess(true);
+      reset();  // Clear form data after successful submission
+      setTimeout(() => {
+        router.push('/');  // Redirect to home page after successful submission
+      }, 2000);  // Delay to allow users to see success message
     } else {
       setSuccess(false);
     }
@@ -38,7 +45,7 @@ export default function ComplaintForm() {
   return (
     <div className="complaint-form-container">
       <h1 className="form-title">Submit a Complaint</h1>
-      {success && <p className="success-message">Your complaint has been submitted!</p>}
+      {success && <p className="success-message">Your complaint has been submitted! Redirecting...</p>}
       <form onSubmit={handleSubmit(onSubmit)} className="complaint-form">
         <div className="form-group">
           <label className="form-label">Name</label>
