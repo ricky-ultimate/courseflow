@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, department, email, message } = await req.json();
+    const { name, department, email, message, status } = await req.json();
 
     const complaint = await prisma.complaint.create({
-      data: { name, department, email, message },
+      data: { name, department, email, message, status: "unresolved" },
     });
 
     return NextResponse.json(complaint, { status: 201 });

@@ -8,6 +8,7 @@ interface Complaint {
   department: string;
   email: string;
   message: string;
+  status: string;
   createdAt: string;
 }
 
@@ -39,6 +40,32 @@ export default function AdminComplaintsPage() {
     fetchComplaints();
   }, []);
 
+  const resolveComplaint = async (id: number) => {
+    try {
+      await fetch(`/api/complaints/${id}/resolve`, {
+        method: 'PUT',
+      });
+      setComplaints((prev) =>
+        prev.map((complaint) =>
+          complaint.id === id ? { ...complaint, status: 'resolved' } : complaint
+        )
+      );
+    } catch (err) {
+      console.error('Failed to resolve complaint', err);
+    }
+  };
+
+  const deleteComplaint = async (id: number) => {
+    try {
+      await fetch(`/api/complaints/${id}`, {
+        method: 'DELETE',
+      });
+      setComplaints((prev) => prev.filter((complaint) => complaint.id !== id));
+    } catch (err) {
+      console.error('Failed to delete complaint', err);
+    }
+  };
+
   if (loading) {
     return <p className="text-white">Loading complaints...</p>;
   }
@@ -58,13 +85,14 @@ export default function AdminComplaintsPage() {
               <th className="px-6 py-4">Department</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Message</th>
-              <th className="px-6 py-4">Submitted At</th>
+              <th className="px-6 py-4">Status</th>  {/* New column for status */}
+              <th className="px-6 py-4">Actions</th>  {/* New column for actions */}
             </tr>
           </thead>
           <tbody>
             {complaints.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-4">
+                <td colSpan={6} className="text-center py-4">
                   No complaints available.
                 </td>
               </tr>
@@ -77,8 +105,22 @@ export default function AdminComplaintsPage() {
                   <td className="px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis whitespace-pre-wrap">
                     {complaint.message}
                   </td>
-                  <td className="px-6 py-4">
-                    {new Date(complaint.createdAt).toLocaleString()}
+                  <td className="px-6 py-4">{complaint.status}</td>  {/* Display complaint status */}
+                  <td className="px-6 py-4 flex space-x-2">
+                    {complaint.status === 'unresolved' && (
+                      <button
+                        onClick={() => resolveComplaint(complaint.id)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                      >
+                        Mark as Resolved
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteComplaint(complaint.id)}
+                      className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))
