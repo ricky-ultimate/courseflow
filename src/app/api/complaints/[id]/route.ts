@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import {prisma} from '@/prisma';
 
-const prisma = new PrismaClient();
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const complaintId = parseInt(params.id, 10);
