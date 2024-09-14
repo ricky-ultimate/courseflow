@@ -67,7 +67,7 @@ export default function AdminComplaintsPage() {
   };
 
   if (loading) {
-    return <p className="text-white">Loading complaints...</p>;
+    return <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto my-20"></div>;
   }
 
   if (error) {

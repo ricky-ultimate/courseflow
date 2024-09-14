@@ -31,7 +31,7 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
     }, [universityId, departmentId, router]);
 
     if (!department) {
-      return <div>Loading...</div>;
+      return <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto my-20"></div>;
     }
 
     const timetableData = department.timetable[level];
