@@ -38,6 +38,14 @@ const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) =>
 
     return (
       <div className="min-h-screen p-8 bg-black text-mocha">
+        <div className="mb-6">
+        <button
+          onClick={() => router.push(`/university/${universityId}`)}
+          className="bg-mocha text-white border border-white p-4 rounded-lg"
+        >
+          Back to Department List
+        </button>
+      </div>
         <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
         <div className="mb-6">
           <select
