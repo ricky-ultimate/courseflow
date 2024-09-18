@@ -8,13 +8,13 @@ generator client {
 }
 
 model Complaint {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   name          String
   department    String
   email         String
   message       String
-  createdAt     DateTime @default(now())
-  status        String   @default("unresolved")
+  createdAt     DateTime    @default(now())
+  status        String      @default("unresolved")
 }
 
 model User {
@@ -22,14 +22,17 @@ model User {
   name          String?
   email         String          @unique
   emailVerified DateTime?
+  role          Role    @default(USER)
   image         String?
   accounts      Account[]
   sessions      Session[]
-  // Optional for WebAuthn support
-  Authenticator Authenticator[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  USER
+  ADMIN
 }
 
 model Account {
@@ -45,10 +48,10 @@ model Account {
   id_token          String?
   session_state     String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -59,8 +62,8 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -69,20 +72,4 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
-}
-
-// Optional for WebAuthn support
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, credentialID])
 }
