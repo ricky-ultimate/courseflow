@@ -37,6 +37,14 @@ const DepartmentListPage: React.FC<DepartmentListPageProps> = ({ params }) => {
 
   return (
     <div className="min-h-screen p-8 bg-black text-mocha">
+        <div className="mb-6">
+        <button
+          onClick={() => router.push('/')}
+          className="bg-mocha text-white border border-white p-4 rounded-lg"
+        >
+          Back to University List
+        </button>
+      </div>
       <h1 className="text-3xl font-bold mb-6">{university.name}</h1>
       <form onSubmit={handleSearch}>
         <input
