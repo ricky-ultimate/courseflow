@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Timetable from '@/components/Timetable';
 import { Department } from '@/data/universities/types';
 
-interface DepartmentPageParams {
+interface TimeTablePageParams {
   universityId: string;
   departmentId: string;
 }
 
-const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) => {
+const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) => {
     const { universityId, departmentId } = params;
     const [department, setDepartment] = useState<Department | null>(null);
     const [level, setLevel] = useState<'100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level'>('100 Level');
@@ -57,4 +57,4 @@ const DepartmentPage: React.FC<{ params: DepartmentPageParams }> = ({ params }) 
     );
   };
 
-  export default DepartmentPage;
+  export default TimeTablePage;
