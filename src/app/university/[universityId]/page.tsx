@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import universities from '@/data/universities/index';
 
-interface UniversityPageParams {
+interface DepartmentListPageParams {
   universityId: string;
 }
 
-interface UniversityPageProps {
-  params: UniversityPageParams;
+interface DepartmentListPageProps {
+  params: DepartmentListPageParams;
 }
 
-const UniversityPage: React.FC<UniversityPageProps> = ({ params }) => {
+const DepartmentListPage: React.FC<DepartmentListPageProps> = ({ params }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
   const universityId = params.universityId;
@@ -62,4 +62,4 @@ const UniversityPage: React.FC<UniversityPageProps> = ({ params }) => {
   );
 };
 
-export default UniversityPage;
+export default DepartmentListPage;
