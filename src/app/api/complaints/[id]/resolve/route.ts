@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {prisma} from '@/app/lib/prisma';
+import {prisma} from '@/lib/prisma';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const complaintId = parseInt(params.id, 10);
