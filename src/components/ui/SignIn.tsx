@@ -10,7 +10,7 @@ export function SignIn() {
           <button
           type="submit"
           className="p-3 bg-white rounded-md text-black text-center"
-          onClick={() => signIn("google",{callbackUrl: "http://localhost3000/admin"})}>
+          onClick={() => signIn("google",{callbackUrl: "http://localhost:3000/admin"})}>
             Log In With Google
           </button>
         </form>
