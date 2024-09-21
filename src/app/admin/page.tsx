@@ -4,7 +4,7 @@ import { auth } from "../../../auth";
 export default async function Page() {
   const session = await auth();
 
-  if (session?.user?.role === "admin") {
+  if (session?.user?.role === "ADMIN") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <SignOut />
@@ -14,9 +14,12 @@ export default async function Page() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <p>You are not authorized to view this page!</p>
-    </div>
-  );
+  if (session?.user?.role){
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center">
+          <SignOut/>
+          <p>You are not authorized to view this page name: {session.user.name} role: {session.user.role}!</p>
+        </div>
+      );
+  }
 }
