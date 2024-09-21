@@ -15,7 +15,7 @@ const googleLogin = async () => {
   return (
     <div className="bg-black/95  h-screen flex items-center justify-center">
         <div className="flex flex-col mx-10 justify-center items-center w-full md:w-1/2 p-8 bg-green/30 rounded-md">
-        <h2 className="text-3xl mb-4 text-gray-200">Welcome Back!</h2>
+        <h2 className="text-3xl mb-4 text-gray-200">Admin access only!</h2>
         <button
           type="button"
           className="p-3 bg-white rounded-md text-black text-center"
