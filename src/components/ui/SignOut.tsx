@@ -1,7 +1,7 @@
 'use client'
 import { signOut } from "next-auth/react"
 
-export function SignIn() {
+export function SignOut() {
 
 const logout = async () => {
     console.log("Attempting to Logout...");
