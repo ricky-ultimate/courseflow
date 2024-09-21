@@ -1,26 +1,32 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import NextAuth from "next-auth"
+import Google from "next-auth/providers/google"
+import {prisma} from "@/lib/prisma"
+import { PrismaAdapter } from "@auth/prisma-adapter";
 
 export const { handlers, auth } = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     Google({
       profile(profile) {
-        return { role: profile.role ?? "user", ...profile }; // Complete the object spread
-      },
-    }),
+        //const role = profile.role === "admin" ? "ADMIN" : "USER";
+        const role = profile.email === "courseflow.team@gmail.com" ? "ADMIN" : "USER";
+        return {
+          email: profile.email,
+          name: profile.name,
+          image: profile.picture,
+          role,
+          emailVerified: profile.email_verified,
+        }
+      }
+    })
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user && typeof user.role === "string") {
-        token.role = user.role;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (token.role && typeof token.role === "string") {
-        session.user.role = token.role;
-      }
-      return session;
-    },
+  pages: {
+    signIn: "/auth/signin"
   },
-});
+  callbacks: {
+    async session({ session, user }) {
+      session.user.role = user.role
+      return session
+    }
+  }
+})
