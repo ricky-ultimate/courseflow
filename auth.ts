@@ -65,14 +65,6 @@ export const { handlers, auth } = NextAuth({
           });
         }
 
-        // 2. Update role if it's different (e.g., ADMIN to USER or vice versa)
-        if (linkedAccount.role === "USER" && user.role === "ADMIN") {
-          await prisma.user.update({
-            where: { id: linkedAccount.id },
-            data: { role: Role.ADMIN },
-          });
-        }
-
         // 3. Link the Google account to the existing user account
         if (account) {
           const googleAccountExists = linkedAccount.accounts.some(
