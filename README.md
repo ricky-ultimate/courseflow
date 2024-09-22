@@ -65,7 +65,7 @@ src/data/universities/university-of-xyz/cs.ts
 
 Each department file should follow this structure:
 
-```
+```typescript
 import { Department } from '@/data/universities/types';
 
 export const cs: Department = {
@@ -99,7 +99,7 @@ export default cs;
 
 Within the university folder, create an `index.ts` file that exports all departments. This file is essential for aggregating all department data and making it available for import in other parts of the application.
 
-```
+```typescript
 // src/data/universities/university-of-xyz/index.ts
 
 import cs from './cs';
@@ -120,7 +120,8 @@ To ensure your university data is recognized by the application, create or updat
 
 Add your university to the `index.ts` file:
 
-```
+```typescript
+src/data/universities/index.ts
 import { universityxyz } from './university-of-xyz';
 
 const universities = [universityxyz]; // Combine all university data
