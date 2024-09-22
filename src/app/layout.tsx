@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "next-auth/react";
 
 //Analytics
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,13 +12,12 @@ export const metadata: Metadata = {
   title: "CourseFlow",
   description: "Your academic rhythm, perfectly timed",
   openGraph: {
-    locale: 'en_US',
-    title: 'CourseFlow',
-    siteName: 'CourseFlow',
+    locale: "en_US",
+    title: "CourseFlow",
+    siteName: "CourseFlow",
     description: "Your academic rhythm, perfectly timed",
-    type: 'website',
-},
-
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -26,11 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <SessionProvider>
+      <html lang="en">
+        <body className={inter.className}>
+          {children}
+          <Analytics />
+        </body>
+      </html>
+    </SessionProvider>
   );
 }
