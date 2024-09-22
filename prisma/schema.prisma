@@ -1,75 +1,75 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 model Complaint {
-  id            Int         @id @default(autoincrement())
-  name          String
-  department    String
-  email         String
-  message       String
-  createdAt     DateTime    @default(now())
-  status        String      @default("unresolved")
+    id         Int      @id @default(autoincrement())
+    name       String
+    department String
+    email      String
+    message    String
+    createdAt  DateTime @default(now())
+    status     String   @default("unresolved")
 }
 
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  emailVerified DateTime?
-  role          Role    @default(USER)
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+    id            String    @id @default(cuid())
+    name          String?
+    email         String    @unique
+    emailVerified DateTime?
+    role          Role      @default(USER)
+    image         String?
+    accounts      Account[]
+    sessions      Session[]
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
 }
 
 enum Role {
-  USER
-  ADMIN
+    USER
+    ADMIN
 }
 
 model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String?
+    access_token      String?
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String?
+    session_state     String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
 
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([provider, providerAccountId])
+    @@id([provider, providerAccountId])
 }
 
 model Session {
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    sessionToken    String   @unique
+    userId          String
+    expires         DateTime
+    user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 }
 
 model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
+    identifier String
+    token      String
+    expires    DateTime
 
-  @@id([identifier, token])
+    @@id([identifier, token])
 }
