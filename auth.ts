@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { Role } from "@prisma/client";
+import { Role, Account } from "@prisma/client";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -43,22 +43,21 @@ export const { handlers, auth } = NextAuth({
       // Find the user by email in the database
       const linkedAccount = await prisma.user.findUnique({
         where: {
-          email: user.email,
+          email: user.email ?? undefined,
         },
-        include: { accounts: true },
+        include: {
+          accounts: true,
+        },
       });
 
       //console.log(linkedAccount, "linkedAccount");
 
-      // 3. Link the Google account to the existing user account
       if (linkedAccount && account) {
-        const googleAccountExists = linkedAccount.accounts.some(
-          (acc) =>
-            acc.provider === account.provider &&
-            acc.providerAccountId === account.providerAccountId
+        const googleAccountExists = linkedAccount.accounts.some((acc: Account) =>
+          acc.provider === account.provider &&
+          acc.providerAccountId === account.providerAccountId
         );
 
-        // If the Google account is not linked, create the account entry in Prisma
         if (!googleAccountExists) {
           await prisma.account.create({
             data: {
@@ -81,7 +80,7 @@ export const { handlers, auth } = NextAuth({
         }
       }
 
-      // Allow the sign-in to proceed
+      // Allow sign-in to proceed
       return true;
     },
   },
@@ -92,13 +91,12 @@ export const { handlers, auth } = NextAuth({
         throw new Error("User email is missing");
       }
 
-      // Check if the user is in the admin email list and assign role accordingly
       const isAdmin = adminEmails.includes(user.email);
       await prisma.user.update({
         where: { id: user.id },
         data: {
           role: isAdmin ? Role.ADMIN : Role.USER,
-          emailVerified: new Date(), // Update emailVerified when a new user is created
+          emailVerified: new Date(), // Update emailVerified for new users
         },
       });
 
