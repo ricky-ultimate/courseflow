@@ -15,14 +15,11 @@ export const { handlers, auth } = NextAuth({
   providers: [
     Google({
       profile(profile) {
-        const role =
-          profile.email === "courseflow.team@gmail.com" ? "ADMIN" : "USER";
         return {
           email: profile.email,
           name: profile.name,
           image: profile.picture,
           emailVerified: profile.email_verified,
-          role, // Assign the role based on the email
         };
       },
     }),
