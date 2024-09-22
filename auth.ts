@@ -3,6 +3,12 @@ import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { Role } from "@prisma/client";
+import dotenv from 'dotenv';
+
+
+dotenv.config();
+
+const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
 
 export const { handlers, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -109,11 +115,15 @@ export const { handlers, auth } = NextAuth({
 
   events: {
     async createUser({ user }) {
-      // Assign the first user as ADMIN role
-      const isFirstUser = (await prisma.user.count()) === 1;
+        if (!user.email){
+            throw new Error("");
+
+        }
+      // Check if the user is in the admin email list and assign role accordingly
+      const isAdmin = adminEmails.includes(user.email);
       await prisma.user.update({
         where: { id: user.id },
-        data: { role: isFirstUser ? Role.ADMIN : Role.USER },
+        data: { role: isAdmin ? Role.ADMIN : Role.USER },
       });
     },
   },
