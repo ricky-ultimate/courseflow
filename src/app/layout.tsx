@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CourseFlow",
   description: "Your academic rhythm, perfectly timed",
+  icons: {
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     locale: "en_US",
     title: "CourseFlow",
