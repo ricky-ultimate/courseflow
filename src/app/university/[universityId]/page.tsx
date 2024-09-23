@@ -41,7 +41,7 @@ const DepartmentListPage: React.FC<DepartmentListPageProps> = ({ params }) => {
   return (
     <>
       <NavBar />
-      <div className="min-h-screen p-8 pt-20 bg-black text-mocha">
+      <div className="min-h-screen p-8 pt-32 bg-black text-mocha">
         <div className="mb-6">
           <button
             onClick={() => router.push("/")}
