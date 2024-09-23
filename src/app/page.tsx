@@ -1,13 +1,14 @@
 "use client";
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import universities from '@/data/universities/index';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import universities from "@/data/universities/index";
+import Image from "next/image";
 
 const HomePage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
-  const filteredUniversities = universities.filter(uni =>
+  const filteredUniversities = universities.filter((uni) =>
     uni.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -20,7 +21,18 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-mocha">
-      <h1 className="text-4xl font-bold mb-6">Find Your University</h1>
+
+      <Image
+        src="/logo.svg"
+        alt="Logo"
+        width="160"
+        height="100"
+        className="select-none cursor-pointer"
+      />
+
+      <br />
+
+      {/* <h1 className="text-4xl font-bold mb-6">Find Your University</h1> */}
       <form onSubmit={handleSearch} className="w-full max-w-md">
         <input
           type="text"
