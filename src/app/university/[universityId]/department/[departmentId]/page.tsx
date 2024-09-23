@@ -41,7 +41,7 @@ const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) =>
         <div className="mb-6">
         <button
           onClick={() => router.push(`/university/${universityId}`)}
-          className="bg-mocha text-white border border-white p-4 rounded-lg"
+          className="p-3 bg-white rounded-md text-black text-center"
         >
           Back to Department List
         </button>

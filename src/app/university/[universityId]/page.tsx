@@ -40,7 +40,7 @@ const DepartmentListPage: React.FC<DepartmentListPageProps> = ({ params }) => {
         <div className="mb-6">
         <button
           onClick={() => router.push('/')}
-          className="bg-mocha text-white border border-white p-4 rounded-lg"
+          className="p-3 bg-white rounded-md text-black text-center"
         >
           Back to University List
         </button>

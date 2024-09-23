@@ -7,7 +7,7 @@ export default function BackToHomeButton() {
   return (
     <button
       onClick={() => router.push("/")}
-      className="bg-mocha text-white border border-white p-4 rounded-lg"
+      className="p-3 bg-white rounded-md text-black text-center"
     >
       Back to Home
     </button>
