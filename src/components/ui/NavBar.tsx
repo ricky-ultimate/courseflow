@@ -1,6 +1,11 @@
 import Image from "next/image";
+import { SignInButton } from "./SignInButton";
+import { SignOutButton } from "./SignOutButton";
+import { useSession } from "next-auth/react";
 
 export default function NavBar() {
+  const { data: session, status } = useSession();
+
   return (
     <>
       <div className="overflow-x-hidden z-[9999]">
@@ -17,9 +22,12 @@ export default function NavBar() {
                 className="select-none cursor-pointer"
               />
             </div>
-            <div
-              className={`space-x-4 md:flex md:flex-row md:items-center`}
-            >
+            <div className={`space-x-4 md:flex md:flex-row md:items-center`}>
+              {status === "authenticated" ? (
+                <SignOutButton />
+              ) : (
+                <SignInButton />
+              )}
             </div>
           </div>
         </header>
