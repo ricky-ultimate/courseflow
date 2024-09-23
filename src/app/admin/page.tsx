@@ -1,4 +1,4 @@
-import { SignOut } from "@/components/ui/SignOut";
+import { SignOutButton } from "@/components/ui/SignOutButton";
 import { auth } from "../../../auth";
 
 export default async function Page() {
@@ -7,7 +7,7 @@ export default async function Page() {
     if (session?.user?.role === "ADMIN") {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
-                <SignOut />
+                <SignOutButton />
                 <h1 className="text-3xl">Admin Dashboard</h1>
                 <p className="mt-4 text-lg">Welcome, {session.user.name}</p>
             </div>

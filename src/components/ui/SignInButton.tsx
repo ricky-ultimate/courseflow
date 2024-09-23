@@ -1,7 +1,7 @@
 "use client";
 import { signIn } from "next-auth/react";
 
-export function SignIn() {
+export function SignInButton() {
   const googleLogin = async () => {
     console.log("Attempting to sign in with Google...");
     try {
