@@ -1,5 +1,6 @@
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { auth } from "../../../auth";
+import NotAdmin from "@/components/NotAdmin";
 
 export default async function Page() {
     const session = await auth();
@@ -14,8 +15,6 @@ export default async function Page() {
         );
     }
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <p>Nice try but you're not authorized to view this page :3</p>
-        </div>
+        <NotAdmin />
     );
 }

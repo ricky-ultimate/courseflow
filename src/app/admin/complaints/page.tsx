@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import NotAdmin from "@/components/NotAdmin";
 
 interface Complaint {
   id: number;
@@ -148,8 +149,6 @@ export default function AdminComplaintsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <p>Nice try but you're not authorized to view this page :3</p>
-    </div>
+    <NotAdmin />
   );
 }
