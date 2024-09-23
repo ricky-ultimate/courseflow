@@ -41,20 +41,12 @@ const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) =>
       <>
         <NavBar />
         <div className="min-h-screen p-8 pt-32 bg-black text-mocha">
-          <div className="mb-6">
-            <button
-              onClick={() => router.push(`/university/${universityId}`)}
-              className="p-3 bg-white rounded-md text-black text-center"
-            >
-              Back to Department List
-            </button>
-          </div>
           <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
-          <div className="mb-6">
+          <div className="mb-6 flex items-center space-x-4">
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as '100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level')}
-              className="p-4 rounded-lg text-black"
+              className="p-3 rounded-lg text-black"
             >
               <option value="100 Level">100 Level</option>
               <option value="200 Level">200 Level</option>
@@ -62,6 +54,14 @@ const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) =>
               <option value="400 Level">400 Level</option>
               <option value="500 Level">500 Level</option>
             </select>
+
+            <button
+              onClick={() => router.push(`/university/${universityId}`)}
+              className="p-3 bg-white rounded-md text-black text-center"
+            >
+              Back to Department List
+            </button>
+
           </div>
           <Timetable department={department} data={timetableData} level={level} />
         </div>
