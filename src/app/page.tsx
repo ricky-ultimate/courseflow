@@ -23,7 +23,7 @@ const HomePage = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-mocha">
       <NavBar />
 
-      {/* <h1 className="text-4xl font-bold mb-6">Find Your University</h1> */}
+      <h1 className="text-4xl font-bold mb-6">Find Your University</h1>
       <form onSubmit={handleSearch} className="w-full max-w-md">
         <input
           type="text"
