@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Timetable from '@/components/Timetable';
 import { Department } from '@/data/universities/types';
+import NavBar from '@/components/ui/NavBar';
 
 interface TimeTablePageParams {
   universityId: string;
@@ -37,32 +38,35 @@ const TimeTablePage: React.FC<{ params: TimeTablePageParams }> = ({ params }) =>
     const timetableData = department.timetable[level];
 
     return (
-      <div className="min-h-screen p-8 bg-black text-mocha">
-        <div className="mb-6">
-        <button
-          onClick={() => router.push(`/university/${universityId}`)}
-          className="p-3 bg-white rounded-md text-black text-center"
-        >
-          Back to Department List
-        </button>
-      </div>
-        <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
-        <div className="mb-6">
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value as '100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level')}
-            className="p-4 rounded-lg text-black"
-          >
-            <option value="100 Level">100 Level</option>
-            <option value="200 Level">200 Level</option>
-            <option value="300 Level">300 Level</option>
-            <option value="400 Level">400 Level</option>
-            <option value="500 Level">500 Level</option>
-          </select>
+      <>
+        <NavBar />
+        <div className="min-h-screen p-8 pt-32 bg-black text-mocha">
+          <div className="mb-6">
+            <button
+              onClick={() => router.push(`/university/${universityId}`)}
+              className="p-3 bg-white rounded-md text-black text-center"
+            >
+              Back to Department List
+            </button>
+          </div>
+          <h1 className="text-3xl font-bold mb-6">{department.name} - {level}</h1>
+          <div className="mb-6">
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value as '100 Level' | '200 Level' | '300 Level' | '400 Level' | '500 Level')}
+              className="p-4 rounded-lg text-black"
+            >
+              <option value="100 Level">100 Level</option>
+              <option value="200 Level">200 Level</option>
+              <option value="300 Level">300 Level</option>
+              <option value="400 Level">400 Level</option>
+              <option value="500 Level">500 Level</option>
+            </select>
+          </div>
+          <Timetable department={department} data={timetableData} level={level} />
         </div>
-        <Timetable department={department} data={timetableData} level={level} />
-      </div>
+      </>
     );
-  };
+};
 
-  export default TimeTablePage;
+export default TimeTablePage;
