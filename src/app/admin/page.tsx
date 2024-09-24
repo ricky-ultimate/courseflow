@@ -1,10 +1,11 @@
-'use client'
+"use client";
 import { auth } from "../../../auth";
 import NotAdmin from "@/components/NotAdmin";
 import NavBar from "@/components/ui/NavBar";
+import { useSession } from "next-auth/react";
 
-export default async function Page() {
-  const session = await auth();
+export default function Page() {
+  const { data: session, status } = useSession();
 
   if (session?.user?.role === "ADMIN") {
     return (
