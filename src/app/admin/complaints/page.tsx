@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import NotAdmin from "@/components/NotAdmin";
+import NavBar from "@/components/ui/NavBar";
 
 interface Complaint {
   id: number;
@@ -81,74 +82,76 @@ export default function AdminComplaintsPage() {
 
   if (session?.user?.role === "ADMIN") {
     return (
-      <div className="p-8 bg-black text-white min-h-screen">
-        <h1 className="text-4xl font-bold mb-6">User Complaints</h1>
-        <div className="overflow-x-auto bg-gray-900 shadow-md rounded-lg">
-          <table className="min-w-full table-auto">
-            <thead>
-              <tr className="bg-gray-800 text-white text-left">
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Department</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Message</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {complaints.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    No complaints available.
-                  </td>
+      <>
+        <NavBar />
+        <div style={{ height: "80px" }} />
+        <div className="p-8 bg-black text-white min-h-screen">
+          <h1 className="text-4xl font-bold mb-6">User Complaints</h1>
+          <div className="overflow-x-auto bg-gray-900 shadow-md rounded-lg">
+            <table className="min-w-full table-auto">
+              <thead>
+                <tr className="bg-gray-800 text-white text-left">
+                  <th className="px-6 py-4">Name</th>
+                  <th className="px-6 py-4">Department</th>
+                  <th className="px-6 py-4">Email</th>
+                  <th className="px-6 py-4">Message</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Actions</th>
                 </tr>
-              ) : (
-                complaints.map((complaint) => (
-                  <tr
-                    key={complaint.id}
-                    className="border-b border-gray-700 hover:bg-gray-800"
-                  >
-                    <td
-                      className="px-6 py-4"
-                      title={`Submitted on: ${new Date(
-                        complaint.createdAt
-                      ).toLocaleString()}`}
-                    >
-                      {complaint.name}
-                    </td>
-                    <td className="px-6 py-4">{complaint.department}</td>
-                    <td className="px-6 py-4">{complaint.email}</td>
-                    <td className="px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis whitespace-pre-wrap">
-                      {complaint.message}
-                    </td>
-                    <td className="px-6 py-4">{complaint.status}</td>
-                    <td className="px-6 py-4 flex space-x-2">
-                      {complaint.status === "unresolved" && (
-                        <button
-                          onClick={() => resolveComplaint(complaint.id)}
-                          className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                        >
-                          Resolved
-                        </button>
-                      )}
-                      <button
-                        onClick={() => deleteComplaint(complaint.id)}
-                        className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-                      >
-                        Delete
-                      </button>
+              </thead>
+              <tbody>
+                {complaints.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4">
+                      No complaints available.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  complaints.map((complaint) => (
+                    <tr
+                      key={complaint.id}
+                      className="border-b border-gray-700 hover:bg-gray-800"
+                    >
+                      <td
+                        className="px-6 py-4"
+                        title={`Submitted on: ${new Date(
+                          complaint.createdAt
+                        ).toLocaleString()}`}
+                      >
+                        {complaint.name}
+                      </td>
+                      <td className="px-6 py-4">{complaint.department}</td>
+                      <td className="px-6 py-4">{complaint.email}</td>
+                      <td className="px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis whitespace-pre-wrap">
+                        {complaint.message}
+                      </td>
+                      <td className="px-6 py-4">{complaint.status}</td>
+                      <td className="px-6 py-4 flex space-x-2">
+                        {complaint.status === "unresolved" && (
+                          <button
+                            onClick={() => resolveComplaint(complaint.id)}
+                            className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                          >
+                            Resolved
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteComplaint(complaint.id)}
+                          className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  return (
-    <NotAdmin />
-  );
+  return <NotAdmin />;
 }
