@@ -10,19 +10,19 @@ export default function NavBar() {
     <>
       <div className="overflow-x-hidden z-[9999]">
         <header
-          className={`flex flex-col md:flex-row bg-[#2c2c2e] p-4 justify-center border-b-[1.5px] border-b-neutral-800 md:items-center space-y-4 md:space-y-0 fixed z-[999] left-0 right-0 top-0`}
+          className="flex flex-row bg-[#2c2c2e] p-4 justify-between border-b-[1.5px] border-b-neutral-800 items-center fixed z-[999] left-0 right-0 top-0 w-full"
         >
-          <div className="w-full max-w-3xl flex flex-col md:flex-row md:justify-between space-y-4 md:space-y-0 gap-2">
-            <div className=" md:w-auto w-full flex justify-between items-center">
+          <div className="w-full max-w-6xl flex flex-row justify-between items-center">
+            <div className="flex justify-between items-center w-full md:w-auto">
               <Image
                 src="/logo.svg"
                 alt="Logo"
-                width="160"
-                height="100"
+                width="150"
+                height="80"
                 className="select-none cursor-pointer"
               />
             </div>
-            <div className={`space-x-4 md:flex md:flex-row md:items-center`}>
+            <div className="flex flex-row items-center space-x-4">
               {status === "authenticated" ? (
                 <SignOutButton />
               ) : (
