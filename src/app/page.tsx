@@ -20,11 +20,11 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-mocha">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-mocha px-4">
       <NavBar />
 
-      <h1 className="text-4xl font-bold mb-6">Find Your University</h1>
-      <form onSubmit={handleSearch} className="w-full max-w-md">
+      <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center">Find Your University</h1>
+      <form onSubmit={handleSearch} className="w-full max-w-md sm:max-w-md mx-auto px-4 sm:px-0">
         <input
           type="text"
           placeholder="Search University"
