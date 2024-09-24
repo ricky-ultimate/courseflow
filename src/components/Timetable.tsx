@@ -45,17 +45,17 @@ const Timetable: React.FC<TimetableProps> = ({ department, data, level }) => {
 
   return (
     <div className="bg-white shadow-lg rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{department.name} Timetable - {level}</h2>
-        <div className="flex space-x-4">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0">
+        <h2 className="text-2xl font-bold text-center md:text-left">{department.name} Timetable - {level}</h2>
+        <div className="flex flex-wrap justify-center md:justify-end space-x-4 space-y-4 md:space-y-0 w-full md:w-auto">
           <button
             onClick={generatePDF}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg w-full md:w-auto"
           >
             Save as PDF
           </button>
           <Link href="/complaints" passHref>
-            <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+            <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg w-full md:w-auto">
               Report Complaint
             </button>
           </Link>
