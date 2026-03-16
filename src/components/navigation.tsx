@@ -49,7 +49,8 @@ import {
 } from 'lucide-react'
 
 export function Navigation() {
-  const { user, logout, isAuthenticated, isAdmin, isLecturer } = useAuth()
+  const { user, logout, isAuthenticated, isAdmin, isLecturer, isHod } = useAuth()
+  const isStaff = isAdmin || isLecturer || isHod
   const router = useRouter()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
@@ -59,8 +60,12 @@ export function Navigation() {
     const fetchActiveSession = async () => {
       try {
         const response = await apiClient.getActiveAcademicSession()
-        if (response.success && response.data) {
-          setActiveSession(response.data as AcademicSession)
+        if (response.success && response.data != null) {
+          const raw = response.data as { data?: AcademicSession } | AcademicSession
+          const session = (raw as { data?: AcademicSession }).data ?? (raw as AcademicSession)
+          setActiveSession(session?.id ? session : null)
+        } else {
+          setActiveSession(null)
         }
       } catch (error) {
         console.error('Failed to fetch active session:', error)
@@ -71,7 +76,7 @@ export function Navigation() {
 
   const handleLogout = () => {
     logout()
-    router.push('/auth/login')
+    router.push('/login')
   }
 
   const navItems = [
@@ -89,7 +94,7 @@ export function Navigation() {
     },
     {
       title: 'Schedule',
-      href: '/schedule',
+      href: '/schedules',
       icon: Calendar,
       show: true,
     },
@@ -110,31 +115,25 @@ export function Navigation() {
   const adminItems = [
     {
       title: 'Users',
-      href: '/admin/users',
+      href: '/lecturers',
       icon: Users,
       show: isAdmin,
     },
     {
       title: 'Academic Sessions',
-      href: '/admin/academic-sessions',
+      href: '/sessions',
       icon: Calendar,
       show: isAdmin,
     },
     {
       title: 'Exams',
-      href: '/admin/exams',
+      href: '/exams',
       icon: ClipboardList,
       show: isAdmin,
     },
     {
-      title: 'Venues',
-      href: '/admin/venues',
-      icon: Building2,
-      show: isAdmin,
-    },
-    {
       title: 'Verification Codes',
-      href: '/admin/verification-codes',
+      href: '/verification-codes',
       icon: ClipboardList,
       show: isAdmin,
     },
@@ -173,11 +172,11 @@ export function Navigation() {
             </Link>
           ))}
 
-          {(isAdmin || isLecturer) && (
+          {isStaff && (
             <>
               <div className="border-t pt-3">
                 <p className="px-3 text-sm font-medium text-muted-foreground mb-2">
-                  {isAdmin ? 'Admin' : 'Lecturer'}
+                  {isAdmin ? 'Admin' : isHod ? 'HOD' : 'Lecturer'}
                 </p>
                 {adminItems.filter(item => item.show).map((item) => (
                   <Link
@@ -262,12 +261,12 @@ export function Navigation() {
               </Link>
             ))}
 
-            {(isAdmin || isLecturer) && (
+            {isStaff && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Settings className="h-4 w-4 mr-1" />
-                    {isAdmin ? 'Admin' : 'Lecturer'}
+                    {isAdmin ? 'Admin' : isHod ? 'HOD' : 'Lecturer'}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -317,10 +316,10 @@ export function Navigation() {
             ) : (
               <div className="space-x-2 hidden md:flex">
                 <Button variant="ghost" asChild>
-                  <Link href="/auth/login">Login</Link>
+                  <Link href="/login">Login</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/auth/register">Register</Link>
+                  <Link href="/register">Register</Link>
                 </Button>
               </div>
             )}

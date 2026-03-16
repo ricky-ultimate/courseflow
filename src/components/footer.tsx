@@ -10,7 +10,7 @@ export function Footer() {
   const publicPages = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/courses', label: 'Courses', icon: BookOpen },
-    { href: '/schedule', label: 'Schedule', icon: Calendar },
+    { href: '/schedules', label: 'Schedules', icon: Calendar },
     { href: '/departments', label: 'Departments', icon: Building2 },
   ]
 
@@ -20,11 +20,10 @@ export function Footer() {
   ]
 
   const adminPages = [
-    { href: '/admin/users', label: 'Users', icon: Users },
-    { href: '/admin/academic-sessions', label: 'Academic Sessions', icon: Calendar },
-    { href: '/admin/venues', label: 'Venues', icon: Building2 },
-    { href: '/admin/exams', label: 'Exams', icon: ClipboardList },
-    { href: '/admin/verification-codes', label: 'Verification Codes', icon: Settings },
+    { href: '/lecturers', label: 'Lecturers', icon: Users },
+    { href: '/sessions', label: 'Academic Sessions', icon: Calendar },
+    { href: '/exams', label: 'Exams', icon: ClipboardList },
+    { href: '/verification-codes', label: 'Verification Codes', icon: Settings },
   ]
 
   return (

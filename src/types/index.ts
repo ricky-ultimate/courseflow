@@ -1,50 +1,47 @@
-// API Response Types
 export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  message?: string
-  timestamp?: string
-  error?: string
-  statusCode?: number
+  success: boolean;
+  data?: T;
+  message?: string;
+  timestamp?: string;
+  error?: string;
+  statusCode?: number;
 }
 
 export interface PaginatedResponse<T> {
-  success: boolean
+  success: boolean;
   data: {
-    items: T[]
+    items: T[];
     pagination: {
-      page: number
-      limit: number
-      total: number
-      totalPages: number
-      hasNext: boolean
-      hasPrev: boolean
-    }
-  }
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
 }
 
-// For endpoints that return arrays directly (like verification codes)
 export interface ArrayResponse<T> extends ApiResponse<T[]> {}
 
-// Enums
 export enum Role {
   STUDENT = "STUDENT",
   LECTURER = "LECTURER",
-  ADMIN = "ADMIN"
+  HOD = "HOD",
+  ADMIN = "ADMIN",
 }
 
-// Academic structure enums
 export enum Level {
   LEVEL_100 = "LEVEL_100",
   LEVEL_200 = "LEVEL_200",
   LEVEL_300 = "LEVEL_300",
   LEVEL_400 = "LEVEL_400",
-  LEVEL_500 = "LEVEL_500"
+  LEVEL_500 = "LEVEL_500",
 }
 
 export enum College {
-  CBAS = "CBAS", // College of Basic and Applied Sciences
-  CHMS = "CHMS", // College of Humanities and Management Sciences
+  CBAS = "CBAS",
+  CHMS = "CHMS",
 }
 
 export enum Semester {
@@ -59,84 +56,97 @@ export enum DayOfWeek {
   THURSDAY = "THURSDAY",
   FRIDAY = "FRIDAY",
   SATURDAY = "SATURDAY",
-  SUNDAY = "SUNDAY"
-}
-
-export enum ClassType {
-  LECTURE = "LECTURE",
-  SEMINAR = "SEMINAR",
-  LAB = "LAB",
-  TUTORIAL = "TUTORIAL"
+  SUNDAY = "SUNDAY",
 }
 
 export enum ComplaintStatus {
   PENDING = "PENDING",
   IN_PROGRESS = "IN_PROGRESS",
   RESOLVED = "RESOLVED",
-  CLOSED = "CLOSED"
+  CLOSED = "CLOSED",
 }
 
-// Data Models
+export enum VenueType {
+  UNIVERSITY_ICT_CENTER = "UNIVERSITY_ICT_CENTER",
+  ICT_LAB_1 = "ICT_LAB_1",
+  ICT_LAB_2 = "ICT_LAB_2",
+  COMPUTER_LAB = "COMPUTER_LAB",
+  LECTURE_HALL_1 = "LECTURE_HALL_1",
+  LECTURE_HALL_2 = "LECTURE_HALL_2",
+  LECTURE_HALL_3 = "LECTURE_HALL_3",
+  AUDITORIUM_A = "AUDITORIUM_A",
+  AUDITORIUM_B = "AUDITORIUM_B",
+  SEMINAR_ROOM_A = "SEMINAR_ROOM_A",
+  SEMINAR_ROOM_B = "SEMINAR_ROOM_B",
+  ROOM_101 = "ROOM_101",
+  ROOM_102 = "ROOM_102",
+  ROOM_201 = "ROOM_201",
+  ROOM_202 = "ROOM_202",
+  ROOM_301 = "ROOM_301",
+  ROOM_302 = "ROOM_302",
+  SCIENCE_LAB_1 = "SCIENCE_LAB_1",
+  SCIENCE_LAB_2 = "SCIENCE_LAB_2",
+}
+
+export const ICT_VENUES: VenueType[] = [
+  VenueType.UNIVERSITY_ICT_CENTER,
+  VenueType.ICT_LAB_1,
+  VenueType.ICT_LAB_2,
+  VenueType.COMPUTER_LAB,
+];
+
 export interface User {
   id: string;
   matricNO: string;
   email: string;
-  name: string;
+  name: string | null;
   role: Role;
+  phone?: string | null;
+  departmentCode?: string | null;
+  department?: Pick<Department, "name" | "code" | "college"> | null;
   isActive: boolean;
-  lastLoginAt?: string;
+  lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type Lecturer = User & {
+  role: Role.LECTURER | Role.HOD;
+  departmentCode: string;
+};
 
 export interface AuthResponse {
-  user: User
-  access_token: string
-  token_type: string
-}
-
-export interface Lecturer {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  departmentCode: string;
-  department?: Department;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  user: Pick<User, "id" | "email" | "name" | "role">;
+  access_token: string;
+  token_type: string;
 }
 
 export interface Department {
   id: string;
   name: string;
   code: string;
-  description?: string;
-  college?: College;
-  hodId?: string;
-  hod?: User;
+  description?: string | null;
+  college: College;
+  hodId?: string | null;
+  hod?: Pick<User, "id" | "name" | "email" | "role"> | null;
   isActive: boolean;
+  isScheduleLocked: boolean;
   createdAt: string;
   updatedAt: string;
-  _count?: {
-    courses: number;
-    lecturers: number;
-  };
 }
 
 export interface Course {
   id: string;
   code: string;
   name: string;
-  overview?: string;
+  overview?: string | null;
   level: Level;
   credits: number;
   semester: Semester;
   departmentCode: string;
   department?: Department;
-  lecturerId?: string;
-  lecturer?: Lecturer | User; // Handles both strict Lecturer model or User model depending on endpoint
-  lecturerEmail?: string;
+  lecturerId?: string | null;
+  lecturer?: Pick<User, "id" | "name" | "email" | "phone" | "departmentCode"> | null;
   isGeneral: boolean;
   isLocked: boolean;
   isActive: boolean;
@@ -145,26 +155,14 @@ export interface Course {
   schedules?: Schedule[];
 }
 
-// Academic sessions (v2.0)
 export interface AcademicSession {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
-  createdAt?: string
-  updatedAt?: string
-}
-
-// Venues (v2.0)
-export interface Venue {
-  id: string
-  name: string
-  capacity: number
-  isIct: boolean
-  isActive?: boolean
-  createdAt?: string
-  updatedAt?: string
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Schedule {
@@ -176,13 +174,13 @@ export interface Schedule {
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
-  venue: string;
-  type: ClassType;
+  isAutoGenerated: boolean;
+  isManualOverride: boolean;
+  isFixed: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// Exams (v2.0)
 export interface Exam {
   id: string;
   courseCode: string;
@@ -190,11 +188,10 @@ export interface Exam {
   date: string;
   startTime: string;
   endTime: string;
-  venueId: string;
-  venue?: Venue;
+  venue: VenueType;
   studentCount: number;
-  targetCollege?: College;
-  invigilators?: string;
+  targetCollege?: College | null;
+  invigilators?: string | null;
   semester: Semester;
   sessionId: string;
   createdAt: string;
@@ -203,15 +200,15 @@ export interface Exam {
 
 export interface Complaint {
   id: string;
-  userId?: string;
+  userId?: string | null;
   name: string;
   email: string;
   department: string;
   subject: string;
   message: string;
   status: ComplaintStatus;
-  resolvedBy?: string;
-  resolvedAt?: string;
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -220,122 +217,249 @@ export interface VerificationCode {
   id: string;
   code: string;
   role: Role;
-  description?: string;
+  description?: string | null;
   isActive: boolean;
-  currentUses: number; // Mapped from usageCount in backend
-  maxUses?: number; // Mapped from maxUsage in backend
-  expiresAt?: string;
+  usageCount: number;
+  maxUsage?: number | null;
+  expiresAt?: string | null;
   createdBy: string;
+  creator?: Pick<User, "id" | "name" | "email" | "role">;
   createdAt: string;
   updatedAt: string;
 }
 
-// Form Data Types
+export interface GenerateScheduleResult {
+  sessionId: string;
+  sessionName: string;
+  semester: Semester;
+  departmentCode: string | null;
+  totalCourses: number;
+  scheduledCourses: number;
+  preservedOverrides: number;
+  skippedLockedDepartments: number;
+}
+
+export interface SessionStatistics {
+  totalSchedules: number;
+  totalExams: number;
+  schedulesBySemester: {
+    FIRST: number;
+    SECOND: number;
+  };
+  examsBySemester: {
+    FIRST: number;
+    SECOND: number;
+  };
+}
+
+export interface ScheduleStatistics {
+  totalSchedules: number;
+  schedulesByDay: Record<DayOfWeek, number>;
+  autoGenerated: number;
+  manualOverrides: number;
+}
+
+export interface CourseStatistics {
+  totalCourses: number;
+  coursesByLevel: Record<Level, number>;
+  coursesByDepartment: Record<string, number>;
+  averageCredits: number;
+}
+
+export interface DepartmentStatistics {
+  totalDepartments: number;
+  departmentsWithCourses: number;
+  departmentsWithoutCourses: number;
+  averageCoursesPerDepartment: number;
+}
+
+export interface LecturerDashboard {
+  totalCourses: number;
+  totalSchedules: number;
+  coursesByLevel: Record<string, number>;
+  schedulesByDay: Record<string, number>;
+  upcomingClasses: number;
+}
+
+export interface BulkOperationResult<T> {
+  success: boolean;
+  created: T[];
+  errors: Array<{
+    row: number;
+    field: string;
+    value: any;
+    message: string;
+  }>;
+  summary: {
+    totalRows: number;
+    successCount: number;
+    errorCount: number;
+  };
+}
+
 export interface LoginData {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface RegisterData {
-  matricNO: string
-  email: string
-  password: string
-  name?: string
-  role?: Role
-  verificationCode?: string
+  matricNO: string;
+  email: string;
+  password: string;
+  name?: string;
+  role?: Role;
+  verificationCode?: string;
+  departmentCode?: string;
+  phone?: string;
 }
 
 export interface CreateDepartmentData {
-  name: string
-  code: string
-  // NEW (v2.0)
-  description?: string
-  hodEmail?: string
+  name: string;
+  code: string;
+  description?: string;
+  college?: College;
+  hodId?: string;
 }
+
+export interface UpdateDepartmentData extends Partial<CreateDepartmentData> {}
 
 export interface CreateCourseData {
-  code: string
-  name: string
-  level: Level
-  // NEW (v2.0)
-  overview?: string
-  credits: number
-  departmentCode: string
-  lecturerEmail?: string
-  // University‑wide / admin flags (v2.0)
-  isGeneral?: boolean
-  isLocked?: boolean
+  code: string;
+  name: string;
+  overview?: string;
+  level: Level;
+  semester: Semester;
+  credits: number;
+  departmentCode: string;
+  lecturerId?: string;
+  isGeneral?: boolean;
+  isLocked?: boolean;
 }
 
+export interface UpdateCourseData extends Partial<CreateCourseData> {}
+
 export interface CreateScheduleData {
-  courseCode: string
-  dayOfWeek: DayOfWeek
-  startTime: string
-  endTime: string
-  venue: string
-  type: ClassType
+  courseCode: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  isFixed?: boolean;
+}
+
+export interface UpdateScheduleData extends Partial<CreateScheduleData> {}
+
+export interface GenerateScheduleData {
+  semester: Semester;
+  sessionId?: string;
+  departmentCode?: string;
 }
 
 export interface CreateAcademicSessionData {
-  name: string
-  startDate: string
-  endDate: string
+  name: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface UpdateAcademicSessionData {
-  name?: string
-  startDate?: string
-  endDate?: string
-}
-
-export interface CreateVenueData {
-  name: string
-  capacity: number
-  isIct: boolean
-}
-
-export interface UpdateVenueData {
-  name?: string
-  capacity?: number
-  isIct?: boolean
+  name?: string;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
 }
 
 export interface CreateExamData {
-  courseCode: string
-  venueId: string
-  date: string
-  startTime: string
-  endTime: string
-  studentCount: number
-  invigilators: string
-  targetCollege?: College
+  courseCode: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  venue: VenueType;
+  studentCount: number;
+  invigilators?: string;
+  targetCollege?: College;
 }
 
 export interface UpdateExamData extends Partial<CreateExamData> {}
 
 export interface CreateComplaintData {
-  name: string
-  email: string
-  department: string
-  subject: string
-  message: string
+  name: string;
+  email: string;
+  department: string;
+  subject: string;
+  message: string;
 }
 
 export interface CreateVerificationCodeData {
-  code: string
-  role: Role
-  expiresAt?: string
-  maxUses?: number
+  code: string;
+  role: Role;
+  description?: string;
+  maxUsage?: number;
+  expiresAt?: string;
 }
 
-// Utils
+export interface UpdateVerificationCodeData extends Partial<CreateVerificationCodeData> {
+  isActive?: boolean;
+}
+
+export interface CreateUserData {
+  matricNO: string;
+  email: string;
+  password: string;
+  name?: string;
+  role?: Role;
+  phone?: string;
+  departmentCode?: string;
+}
+
+export interface UpdateUserData {
+  matricNO?: string;
+  email?: string;
+  name?: string;
+  role?: Role;
+  phone?: string;
+  departmentCode?: string;
+  isActive?: boolean;
+}
+
 export interface QueryParams {
-  page?: number
-  limit?: number
-  orderBy?: string
-  orderDirection?: 'asc' | 'desc'
+  page?: number;
+  limit?: number;
+  orderBy?: string;
+  orderDirection?: "asc" | "desc";
 }
 
-export interface SearchParams extends QueryParams {
-  search?: string
+export interface UserFilterParams extends QueryParams {
+  role?: Role;
+  departmentCode?: string;
+  isActive?: boolean;
 }
+
+export interface CourseFilterParams extends QueryParams {
+  departmentCode?: string;
+  level?: Level;
+  semester?: Semester;
+  isGeneral?: boolean;
+  includeGeneral?: boolean;
+  searchTerm?: string;
+  lecturerId?: string;
+  minCredits?: number;
+  maxCredits?: number;
+}
+
+export interface ScheduleFilterParams extends QueryParams {
+  courseCode?: string;
+  departmentCode?: string;
+  level?: Level;
+  semester?: Semester;
+  sessionId?: string;
+  dayOfWeek?: DayOfWeek;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface DepartmentFilterParams extends QueryParams {
+  searchTerm?: string;
+  hasCourses?: boolean;
+  withoutCourses?: boolean;
+}
+
+export interface ExamFilterParams extends QueryParams {}
