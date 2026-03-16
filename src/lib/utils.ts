@@ -23,6 +23,17 @@ export function getItemsFromResponse<T>(
     return { items: raw, total: raw.length, totalPages: 1 }
   }
 
+  // Direct items format: { items: T[], pagination?: { total, totalPages } } or { items: T[], total, totalPages }
+  if (raw && typeof raw === "object" && Array.isArray((raw as any).items)) {
+    const r = raw as any
+    const pagination = r.pagination || {}
+    return {
+      items: r.items,
+      total: r.total ?? pagination.total ?? r.items.length,
+      totalPages: r.totalPages ?? pagination.totalPages ?? 1,
+    }
+  }
+
   // New format: { data: { items: T[], pagination: { total, totalPages } } }
   const inner = raw?.data
   if (inner && typeof inner === "object" && Array.isArray(inner.items)) {

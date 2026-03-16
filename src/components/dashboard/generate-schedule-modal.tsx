@@ -63,33 +63,51 @@ export function GenerateScheduleModal({
     preserved?: number;
     skipped?: number;
     failedCourses?: string[];
+    message?: string;
   } | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!open) return;
-    setFetchError(null);
-    setServerError("");
-    setLoadingData(true);
+const fetchData = useCallback(async () => {
+  if (!open) return;
+  setFetchError(null);
+  setServerError("");
+  setLoadingData(true);
+
+  try {
+    // Fetch sessions and active session together — unrelated to departments
+    const [sessRes, activeRes] = await Promise.all([
+      apiClient.getAcademicSessions({ limit: 50 }),
+      apiClient.getActiveAcademicSession(),
+    ]);
+
+    const sess = getItemsFromResponse<AcademicSession>(sessRes);
+    setSessions(sess?.items ?? []);
+
+    const active =
+      activeRes.success && activeRes.data
+        ? (activeRes.data as AcademicSession)
+        : null;
+    const defaultId = active?.id ?? sess?.items?.[0]?.id ?? "";
+    setActiveSessionId(defaultId);
+
+    if (isHod && hodDeptCode) setDepartmentCode(hodDeptCode);
+  } catch {
+    setFetchError("Failed to load sessions");
+  } finally {
+    setLoadingData(false);
+  }
+
+  // Fetch departments separately so a session failure can't suppress them
+  if (!isHod) {
     try {
-      const [sessRes, deptRes, activeRes] = await Promise.all([
-        apiClient.getAcademicSessions({ limit: 50 }),
-        isHod ? Promise.resolve({ success: true, data: [] }) : apiClient.getDepartments({ limit: 200 }),
-        apiClient.getActiveAcademicSession(),
-      ]);
-      const sess = getItemsFromResponse<AcademicSession>(sessRes);
-      const dept = isHod ? [] : (getItemsFromResponse<Department>(deptRes)?.items ?? []);
-      setSessions(sess?.items ?? []);
-      setDepartments(dept);
-      const active = activeRes.success && activeRes.data ? (activeRes.data as AcademicSession) : null;
-      const defaultId = active?.id ?? sess?.items?.[0]?.id ?? "";
-      setActiveSessionId(defaultId);
-      if (isHod && hodDeptCode) setDepartmentCode(hodDeptCode);
+      const deptRes = await apiClient.getDepartments({ limit: 100 });
+      const deptResult = getItemsFromResponse<Department>(deptRes);
+      setDepartments(deptResult?.items ?? []);
     } catch {
-      setFetchError("Failed to load sessions and departments");
-    } finally {
-      setLoadingData(false);
+      // Non-fatal: department selector just won't have options
+      setDepartments([]);
     }
-  }, [open, isHod, hodDeptCode]);
+  }
+}, [open, isHod, hodDeptCode]);
 
   useEffect(() => {
     if (open) fetchData();
@@ -107,20 +125,24 @@ export function GenerateScheduleModal({
       });
       if (res.success && res.data) {
         const d = res.data as any;
+        const scheduledCount = d.scheduledCourses ?? d.scheduled ?? 0;
         setResult({
           success: true,
-          session: d.session ?? activeSessionId,
+          session: d.sessionName ?? d.session ?? activeSessionId,
           semester: d.semester ?? semester,
           totalCourses: d.totalCourses ?? d.total,
-          scheduled: d.scheduled,
-          preserved: d.preserved,
-          skipped: d.skipped,
+          scheduled: scheduledCount,
+          preserved: d.preservedOverrides ?? d.preserved,
+          skipped: d.skippedLockedDepartments ?? d.skipped,
         });
-        toast({ title: `${d.scheduled ?? 0} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.` });
+        toast({ title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.` });
         onSuccess?.();
       } else {
         const errMsg = (res as { error?: string }).error;
-        if (errMsg) {
+        const statusCode = (res as { statusCode?: number }).statusCode;
+        if (statusCode === 422 && errMsg) {
+          setResult({ success: false, message: errMsg });
+        } else if (errMsg) {
           setServerError(errMsg);
         } else {
           const errData = (res as any).data;
@@ -183,11 +205,27 @@ export function GenerateScheduleModal({
                   <div className="flex justify-between"><span>Total Courses</span><span className="font-medium">{result.totalCourses ?? "—"}</span></div>
                   <div className="flex justify-between"><span>Scheduled</span><span className="font-medium">{result.scheduled ?? "—"}</span></div>
                   {result.preserved != null && <div className="flex justify-between"><span>Preserved</span><span className="font-medium">{result.preserved} manual overrides</span></div>}
-                  {result.skipped != null && <div className="flex justify-between"><span>Skipped</span><span className="font-medium">{result.skipped} locked departments</span></div>}
+                  {result.skipped != null && result.skipped > 0 && <div className="flex justify-between"><span>Skipped</span><span className="font-medium">{result.skipped} locked {result.skipped === 1 ? 'department' : 'departments'}</span></div>}
                 </div>
                 <DialogFooter className="gap-2">
                   <Button variant="outline" onClick={handleClose}>Close</Button>
                   <Button asChild className="bg-indigo-600 hover:bg-indigo-700"><Link href="/schedules" onClick={() => { onSuccess?.(); handleClose(); }}>View Schedules</Link></Button>
+                </DialogFooter>
+              </>
+            ) : result.message ? (
+              <>
+                <div className="flex flex-col items-center text-center">
+                  <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+                  <h3 className="text-lg font-semibold">Scheduling Failed</h3>
+                  <p className="text-sm text-gray-500 mt-1">The solver could not generate a valid schedule.</p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm text-red-800">{result.message}</p>
+                </div>
+                <p className="text-sm text-gray-500">Review the courses listed above, adjust constraints, then try again.</p>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={handleClose}>Close</Button>
+                  <Button onClick={() => { setResult(null); }}>Try Again</Button>
                 </DialogFooter>
               </>
             ) : (

@@ -281,7 +281,8 @@ export default function DepartmentsPage() {
     }
   }
 
-  const canLockUnlock = (d: Department) => isAdmin || (isHod && user?.departmentCode === d.code)
+  // HOD lock/unlock is scoped to their own department detail page only
+  const canLockUnlock = (d: Department) => isAdmin
 
   return (
     <div className="space-y-4">
@@ -427,11 +428,24 @@ export default function DepartmentsPage() {
                 <Badge variant="outline" className={dept.college === College.CBAS ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>
                   {dept.college}
                 </Badge>
-                {dept.isScheduleLocked && (
+                {isAdmin ? (
+                  <span data-menu>
+                    <button
+                      type="button"
+                      title={dept.isScheduleLocked ? 'Unlock schedule' : 'Lock schedule'}
+                      className="rounded p-1 hover:bg-gray-100 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setConfirmAction({ open: true, type: dept.isScheduleLocked ? 'unlock' : 'lock', dept }); }}
+                    >
+                      {dept.isScheduleLocked
+                        ? <Lock className="h-4 w-4 text-amber-500" />
+                        : <Unlock className="h-4 w-4 text-gray-400" />}
+                    </button>
+                  </span>
+                ) : dept.isScheduleLocked ? (
                   <span title="Schedule locked">
                     <Lock className="h-4 w-4 text-amber-500" />
                   </span>
-                )}
+                ) : null}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mt-2">{dept.name}</h3>
               <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded inline-block mt-1">{dept.code}</span>
