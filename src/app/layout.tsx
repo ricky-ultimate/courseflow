@@ -8,7 +8,6 @@ import { ActiveSessionProvider } from "@/contexts/ActiveSessionContext";
 import { NetworkErrorProvider } from "@/contexts/NetworkErrorContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { Footer } from "@/components/footer";
 import { TopProgressBar } from "@/components/ui/top-progress-bar";
 
 //Analytics
@@ -48,7 +47,6 @@ export default function RootLayout({
               <TopProgressBar />
               <div className="flex flex-col min-h-screen">
               {children}
-              <Footer />
             </div>
             <Toaster />
             <Analytics />

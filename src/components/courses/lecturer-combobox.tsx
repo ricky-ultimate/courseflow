@@ -50,7 +50,7 @@ export function LecturerCombobox({
         const r = getItemsFromResponse<LecturerOption>(res)
         setOptions(r?.items ?? [])
       } else {
-        const res = await apiClient.getUsers({ role: Role.LECTURER, limit: 200 })
+        const res = await apiClient.getUsers({ role: Role.LECTURER, limit: 100 })
         const r = getItemsFromResponse<LecturerOption>(res)
         setOptions(r?.items ?? [])
       }

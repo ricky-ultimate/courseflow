@@ -253,12 +253,16 @@ export function GenerateScheduleModal({
                 {!isHod && (
                   <div>
                     <Label>Department scope</Label>
-                    <Select value={departmentCode} onValueChange={setDepartmentCode} disabled={loading || loadingData}>
+                    <Select
+                      value={departmentCode || "__all__"}
+                      onValueChange={(v) => setDepartmentCode(v === "__all__" ? "" : v)}
+                      disabled={loading || loadingData}
+                    >
                       <SelectTrigger className="mt-1.5">
                         <SelectValue placeholder="All Unlocked Departments" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Unlocked Departments</SelectItem>
+                        <SelectItem value="__all__">All Unlocked Departments</SelectItem>
                         {departments.map((d) => (
                           <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
                         ))}

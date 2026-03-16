@@ -176,7 +176,7 @@ export function UsersPage({ role }: UsersPageProps) {
       setFetchError(null)
       const baseParams: Record<string, unknown> = {
         page: 1,
-        limit: 200,
+        limit: 100,
         isActive: showInactive ? undefined : true,
       }
       if (isHod && user?.departmentCode) baseParams.departmentCode = user.departmentCode
