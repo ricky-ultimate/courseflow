@@ -10,8 +10,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Role } from "@/types";
-import { Menu, Bell, User, LogOut } from "lucide-react";
+import { Menu, Bell, User, LogOut, LogIn } from "lucide-react";
 import { cn, getInitials, getAvatarColor } from "@/lib/utils";
 import { ROLE_BADGE_COLORS } from "@/lib/constants";
 
@@ -39,7 +38,7 @@ export function Topbar({ onMenuClick, className }: { onMenuClick?: () => void; c
             <Menu className="h-5 w-5" />
           </Button>
           <Link
-            href="/dashboard"
+            href={user ? "/dashboard" : "/"}
             className="hidden sm:inline font-semibold text-lg text-indigo-600 hover:text-indigo-700 focus:outline focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-md"
           >
             CourseFlow
@@ -48,7 +47,7 @@ export function Topbar({ onMenuClick, className }: { onMenuClick?: () => void; c
 
         <div className="flex-1 flex justify-center min-w-0 sm:hidden">
           <Link
-            href="/dashboard"
+            href={user ? "/dashboard" : "/"}
             className="font-semibold text-lg text-indigo-600 hover:text-indigo-700 focus:outline focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-md"
           >
             CourseFlow
@@ -56,19 +55,17 @@ export function Topbar({ onMenuClick, className }: { onMenuClick?: () => void; c
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <div className="hidden sm:flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="min-w-[44px] min-h-[44px] touch-manipulation" aria-label="Notifications">
-              <Bell className="h-5 w-5 text-gray-500" />
-            </Button>
-            {user && (
-              <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", ROLE_BADGE_COLORS[user.role] ?? "bg-gray-100 text-gray-700")}>
-                {user.role}
-              </span>
-            )}
-          </div>
-
-          {user && (
+          {user ? (
             <>
+              <div className="hidden sm:flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="min-w-[44px] min-h-[44px] touch-manipulation" aria-label="Notifications">
+                  <Bell className="h-5 w-5 text-gray-500" />
+                </Button>
+                <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", ROLE_BADGE_COLORS[user.role] ?? "bg-gray-100 text-gray-700")}>
+                  {user.role}
+                </span>
+              </div>
+
               <button
                 onClick={() => setMobileUserSheetOpen(true)}
                 className={cn(
@@ -126,6 +123,20 @@ export function Topbar({ onMenuClick, className }: { onMenuClick?: () => void; c
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button size="sm" asChild className="bg-indigo-600 hover:bg-indigo-700 text-white hidden sm:inline-flex">
+                <Link href="/register">Register</Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild className="sm:hidden min-w-[44px] min-h-[44px]">
+                <Link href="/login" aria-label="Sign in">
+                  <LogIn className="h-5 w-5 text-indigo-600" />
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
       </div>

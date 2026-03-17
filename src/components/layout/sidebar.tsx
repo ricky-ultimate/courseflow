@@ -7,28 +7,29 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Calendar, Building2, BookOpen, GraduationCap,
-  Users, Clock, ClipboardList, MessageCircle, KeyRound, Settings, X, Activity,
+  Users, Clock, ClipboardList, MessageCircle, KeyRound, Settings, X, Activity, LogIn,
 } from "lucide-react";
 import { Role } from "@/types";
 import { cn } from "@/lib/utils";
 import { getInitials, getAvatarColor } from "@/lib/utils";
-import { ROLE_BADGE_COLORS, AVATAR_COLORS } from "@/lib/constants";
+import { ROLE_BADGE_COLORS } from "@/lib/constants";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   visibleTo: Role[];
+  isPublic?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
   { label: "Academic Sessions", href: "/sessions", icon: Calendar, visibleTo: [Role.ADMIN] },
-  { label: "Departments", href: "/departments", icon: Building2, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
-  { label: "Courses", href: "/courses", icon: BookOpen, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
+  { label: "Departments", href: "/departments", icon: Building2, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT], isPublic: true },
+  { label: "Courses", href: "/courses", icon: BookOpen, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT], isPublic: true },
   { label: "Lecturers", href: "/lecturers", icon: GraduationCap, visibleTo: [Role.ADMIN, Role.HOD] },
   { label: "Students", href: "/students", icon: Users, visibleTo: [Role.ADMIN, Role.HOD] },
-  { label: "Schedules", href: "/schedules", icon: Clock, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
+  { label: "Schedules", href: "/schedules", icon: Clock, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT], isPublic: true },
   { label: "Exams", href: "/exams", icon: ClipboardList, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
   { label: "Complaints", href: "/complaints", icon: MessageCircle, visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT] },
   { label: "Verification Codes", href: "/verification-codes", icon: KeyRound, visibleTo: [Role.ADMIN] },
@@ -49,7 +50,7 @@ export function Sidebar({
   const router = useRouter();
 
   const visibleItems = NAV_ITEMS.filter((item) =>
-    user ? item.visibleTo.includes(user.role) : false
+    user ? item.visibleTo.includes(user.role) : item.isPublic === true
   );
 
   const handleLogout = () => {
@@ -85,6 +86,17 @@ export function Sidebar({
         </div>
       )}
 
+      {isMobile && !user && (
+        <div className="flex items-center justify-between p-4 border-b">
+          <span className="text-sm font-medium text-gray-600">Browse CourseFlow</span>
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose} className="min-w-[44px] min-h-[44px]">
+              <X className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
+      )}
+
       <nav className="flex-1 overflow-y-auto py-4">
         <div className={cn("space-y-1", isMobile ? "px-2" : "px-2 sm:px-0 sm:flex sm:flex-col sm:items-center lg:items-stretch lg:px-2")}>
           {visibleItems.map((item) => {
@@ -109,27 +121,39 @@ export function Sidebar({
         </div>
       </nav>
 
-      <div className={cn("border-t p-4", isMobile ? "hidden" : "hidden lg:block")}>
-        <Link
-          href="/settings"
-          title="Settings"
-          className={cn(
-            "flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 lg:justify-start",
-            pathname === "/settings" && "bg-indigo-50 text-indigo-600"
-          )}
-        >
-          <Settings className="h-5 w-5 flex-shrink-0" />
-          <span className="hidden lg:inline">Settings</span>
-        </Link>
-        {user && (
+      {user && (
+        <div className={cn("border-t p-4", isMobile ? "hidden" : "hidden lg:block")}>
+          <Link
+            href="/settings"
+            title="Settings"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 lg:justify-start",
+              pathname === "/settings" && "bg-indigo-50 text-indigo-600"
+            )}
+          >
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            <span className="hidden lg:inline">Settings</span>
+          </Link>
           <div className="mt-2 px-3 py-2 hidden lg:block">
             <p className="text-sm font-medium truncate">{user.name || user.email}</p>
             <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-600 mt-1">
               Sign out
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className={cn("border-t p-4", isMobile ? "block" : "hidden lg:block")}>
+          <Link
+            href="/login"
+            className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+          >
+            <LogIn className="h-5 w-5 flex-shrink-0" />
+            <span className={cn(!isMobile && "hidden lg:inline")}>Sign in</span>
+          </Link>
+        </div>
+      )}
     </>
   );
 

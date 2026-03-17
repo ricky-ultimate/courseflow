@@ -17,6 +17,14 @@ const ROUTE_ROLES: Record<string, Role[]> = {
   "/departments/create": [Role.ADMIN],
 };
 
+const PUBLIC_ROUTES = ["/courses", "/schedules", "/departments"];
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+}
+
 function getBasePath(pathname: string): string | null {
   for (const route of Object.keys(ROUTE_ROLES)) {
     if (pathname === route || pathname.startsWith(route + "/")) return route;
@@ -31,6 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
+    if (!isAuthenticated && isPublicRoute(pathname)) return;
     if (!isAuthenticated) {
       router.replace("/login");
       return;
@@ -56,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isPublicRoute(pathname)) {
     return null;
   }
 
