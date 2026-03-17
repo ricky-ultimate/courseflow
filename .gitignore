@@ -44,3 +44,5 @@ prisma/.env
 .vscode
 
 ISSUE.md
+
+.next
