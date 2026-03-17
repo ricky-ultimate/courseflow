@@ -49,6 +49,8 @@ import { AcademicSession, Course, Department, Level, Semester } from "@/types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/state/error-state";
 import { Pagination } from "@/components/ui/pagination";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { FilterSelect } from "@/components/ui/filter-select";
 
 const LEVEL_PILL: Record<Level, string> = {
   [Level.LEVEL_100]: "bg-slate-100 text-slate-700",
@@ -61,7 +63,8 @@ const LEVEL_PILL: Record<Level, string> = {
 function getInitials(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  if (parts.length >= 2)
+    return (parts[0][0]! + parts[parts.length - 1]![0]!).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 
@@ -119,7 +122,9 @@ export default function CoursesPage() {
         const res = await apiClient.getAcademicSessions({ limit: 50 });
         const r = getItemsFromResponse<AcademicSession>(res);
         if (r) setSessions(r.items);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     fetchSessions();
   }, []);
@@ -135,7 +140,8 @@ export default function CoursesPage() {
         ...(debouncedSearch && { searchTerm: debouncedSearch }),
         ...(departmentCode && departmentCode !== "all" && { departmentCode }),
         ...(level && level !== "all" && { level: level as Level }),
-        ...(semester && semester !== "all" && { semester: semester as Semester }),
+        ...(semester &&
+          semester !== "all" && { semester: semester as Semester }),
         ...(isGeneral && { isGeneral: true }),
       };
       const res = await apiClient.getCourses(params);
@@ -153,13 +159,27 @@ export default function CoursesPage() {
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [page, limit, debouncedSearch, departmentCode, level, semester, isGeneral, toast]);
+  }, [
+    page,
+    limit,
+    debouncedSearch,
+    departmentCode,
+    level,
+    semester,
+    isGeneral,
+    toast,
+  ]);
 
   useEffect(() => {
     fetchCourses();
   }, [fetchCourses]);
 
-  const filterCount = [departmentCode !== "all", level !== "all", semester !== "all", isGeneral].filter(Boolean).length;
+  const filterCount = [
+    departmentCode !== "all",
+    level !== "all",
+    semester !== "all",
+    isGeneral,
+  ].filter(Boolean).length;
   const hasFilters = filterCount > 0;
 
   const clearFilters = () => {
@@ -175,7 +195,10 @@ export default function CoursesPage() {
       const res = await apiClient.getCoursesBulkTemplate();
       if (res.success && res.data) {
         const raw = res.data as unknown;
-        const blob = raw instanceof Blob ? raw : new Blob([String(raw)], { type: "text/csv" });
+        const blob =
+          raw instanceof Blob
+            ? raw
+            : new Blob([String(raw)], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -200,7 +223,10 @@ export default function CoursesPage() {
         setSelectedFile(null);
         fetchCourses();
       } else {
-        toast({ title: (res as any).error || "Upload failed", variant: "destructive" });
+        toast({
+          title: (res as any).error || "Upload failed",
+          variant: "destructive",
+        });
       }
     } catch {
       toast({ title: "Upload failed", variant: "destructive" });
@@ -243,25 +269,48 @@ export default function CoursesPage() {
     }
   };
 
-  const canEditCourse = (c: Course) => isAdmin || (isHod && user?.departmentCode === c.departmentCode);
+  const canEditCourse = (c: Course) =>
+    isAdmin || (isHod && user?.departmentCode === c.departmentCode);
 
   return (
     <div className="space-y-4">
       {/* 7.1 Page header — filter bar margin-top 16px, courses margin-top 16px */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Courses</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Courses
+          </h1>
+          {/* Optional subtitle */}
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Manage and browse all course listings
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {isStaff && (
             <>
-              <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={handleDownloadTemplate}
+              >
                 <Download className="h-4 w-4 mr-2" />
-                Download Template
+                Template
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsUploadOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setIsUploadOpen(true)}
+              >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload CSV
               </Button>
-              <Button size="sm" onClick={() => router.push("/courses/create")}>
+              <Button
+                size="sm"
+                className="rounded-full bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => router.push("/courses/create")}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 New Course
               </Button>
@@ -270,90 +319,106 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      {/* 7.2 Filter bar — desktop: padding 12px 20px, mobile: search + Filters (N) on same row */}
-      <div className="rounded-xl border border-gray-200 bg-white py-3 px-5">
-        <div className="flex flex-row flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-0 md:min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by code, name or lecturer..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
-          <div className="hidden md:flex items-center gap-2 flex-wrap">
-            <Select value={departmentCode} onValueChange={setDepartmentCode}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={level} onValueChange={setLevel}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="All Levels" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                {[Level.LEVEL_100, Level.LEVEL_200, Level.LEVEL_300, Level.LEVEL_400, Level.LEVEL_500].map((l) => (
-                  <SelectItem key={l} value={l}>{l.replace("LEVEL_", "")} Level</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={semester} onValueChange={setSemester}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Semesters" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Semesters</SelectItem>
-                <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
-                <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
-              </SelectContent>
-            </Select>
-            {departmentCode === "all" && (
-              <Button
-                variant={isGeneral ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsGeneral(!isGeneral)}
-              >
-                General Only
-              </Button>
-            )}
-            {hasFilters && (
-              <button
-                type="button"
-                className="text-sm text-gray-500 hover:text-gray-700"
-                onClick={clearFilters}
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-          <Button variant="outline" className="md:hidden shrink-0" onClick={() => setFiltersOpen(true)}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filters {filterCount > 0 ? `(${filterCount})` : ""}
-          </Button>
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="Search by code, name or lecturer..."
+      >
+        <div className="hidden md:flex items-center gap-1">
+          <FilterSelect
+            value={departmentCode}
+            onValueChange={setDepartmentCode}
+            width="w-[160px]"
+          >
+            <SelectItem value="all">All Departments</SelectItem>
+            {departments.map((d) => (
+              <SelectItem key={d.code} value={d.code}>
+                {d.name}
+              </SelectItem>
+            ))}
+          </FilterSelect>
+          <FilterSelect
+            value={level}
+            onValueChange={setLevel}
+            width="w-[130px]"
+          >
+            <SelectItem value="all">All Levels</SelectItem>
+            {[
+              Level.LEVEL_100,
+              Level.LEVEL_200,
+              Level.LEVEL_300,
+              Level.LEVEL_400,
+              Level.LEVEL_500,
+            ].map((l) => (
+              <SelectItem key={l} value={l}>
+                {l.replace("LEVEL_", "")} Level
+              </SelectItem>
+            ))}
+          </FilterSelect>
+          <FilterSelect
+            value={semester}
+            onValueChange={setSemester}
+            width="w-[150px]"
+          >
+            <SelectItem value="all">All Semesters</SelectItem>
+            <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
+            <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
+          </FilterSelect>
+          {departmentCode === "all" && (
+            <button
+              type="button"
+              onClick={() => setIsGeneral(!isGeneral)}
+              className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${
+                isGeneral
+                  ? "bg-indigo-600 text-white"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              }`}
+            >
+              General only
+            </button>
+          )}
+          {hasFilters && (
+            <button
+              type="button"
+              className="text-sm text-slate-500 hover:text-slate-800 px-2"
+              onClick={clearFilters}
+            >
+              Clear
+            </button>
+          )}
         </div>
-      </div>
+        <Button
+          variant="outline"
+          className="md:hidden shrink-0 rounded-full"
+          onClick={() => setFiltersOpen(true)}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {filterCount > 0 ? `(${filterCount})` : ""}
+        </Button>
+      </FilterBar>
 
       {/* Mobile filters */}
       <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <DialogContent className="md:max-w-[400px]" onSwipeDown={() => setFiltersOpen(false)}>
-          <DialogHeader><DialogTitle>Filters</DialogTitle></DialogHeader>
+        <DialogContent
+          className="md:max-w-[400px]"
+          onSwipeDown={() => setFiltersOpen(false)}
+        >
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Department</label>
               <Select value={departmentCode} onValueChange={setDepartmentCode}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((d) => (
-                    <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
+                    <SelectItem key={d.code} value={d.code}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -361,11 +426,21 @@ export default function CoursesPage() {
             <div>
               <label className="text-sm font-medium">Level</label>
               <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  {[Level.LEVEL_100, Level.LEVEL_200, Level.LEVEL_300, Level.LEVEL_400, Level.LEVEL_500].map((l) => (
-                    <SelectItem key={l} value={l}>{l.replace("LEVEL_", "")} Level</SelectItem>
+                  {[
+                    Level.LEVEL_100,
+                    Level.LEVEL_200,
+                    Level.LEVEL_300,
+                    Level.LEVEL_400,
+                    Level.LEVEL_500,
+                  ].map((l) => (
+                    <SelectItem key={l} value={l}>
+                      {l.replace("LEVEL_", "")} Level
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -373,24 +448,43 @@ export default function CoursesPage() {
             <div>
               <label className="text-sm font-medium">Semester</label>
               <Select value={semester} onValueChange={setSemester}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Semesters</SelectItem>
                   <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
-                  <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
+                  <SelectItem value={Semester.SECOND}>
+                    Second Semester
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {departmentCode === "all" && (
               <div>
                 <label className="text-sm font-medium">General Only</label>
-                <Button variant={isGeneral ? "default" : "outline"} className="w-full mt-1.5" onClick={() => setIsGeneral(!isGeneral)}>{isGeneral ? "On" : "Off"}</Button>
+                <Button
+                  variant={isGeneral ? "default" : "outline"}
+                  className="w-full mt-1.5"
+                  onClick={() => setIsGeneral(!isGeneral)}
+                >
+                  {isGeneral ? "On" : "Off"}
+                </Button>
               </div>
             )}
             <div>
               <label className="text-sm font-medium">Per page</label>
-              <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); setFiltersOpen(false); }}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <Select
+                value={String(limit)}
+                onValueChange={(v) => {
+                  setLimit(Number(v));
+                  setPage(1);
+                  setFiltersOpen(false);
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="10">10</SelectItem>
                   <SelectItem value="25">25</SelectItem>
@@ -398,8 +492,19 @@ export default function CoursesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={() => setFiltersOpen(false)}>Apply</Button>
-            <button type="button" className="text-sm text-gray-500 underline" onClick={() => { clearFilters(); setFiltersOpen(false); }}>Clear All</button>
+            <Button className="w-full" onClick={() => setFiltersOpen(false)}>
+              Apply
+            </Button>
+            <button
+              type="button"
+              className="text-sm text-gray-500 underline"
+              onClick={() => {
+                clearFilters();
+                setFiltersOpen(false);
+              }}
+            >
+              Clear All
+            </button>
           </div>
         </DialogContent>
       </Dialog>
@@ -407,7 +512,13 @@ export default function CoursesPage() {
       {/* 7.3 Courses table / card list */}
       {fetchError ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <ErrorState entity="courses" onRetry={() => { setFetchError(null); fetchCourses(); }} />
+          <ErrorState
+            entity="courses"
+            onRetry={() => {
+              setFetchError(null);
+              fetchCourses();
+            }}
+          />
         </div>
       ) : loading ? (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -418,8 +529,12 @@ export default function CoursesPage() {
                   <th className="p-3 w-[100px]">Code</th>
                   <th className="p-3">Name</th>
                   <th className="p-3 w-[100px]">Level</th>
-                  <th className="p-3 w-[150px] hidden lg:table-cell">Semester</th>
-                  <th className="p-3 w-[70px] hidden lg:table-cell text-center">Credits</th>
+                  <th className="p-3 w-[150px] hidden lg:table-cell">
+                    Semester
+                  </th>
+                  <th className="p-3 w-[70px] hidden lg:table-cell text-center">
+                    Credits
+                  </th>
                   <th className="p-3 w-[90px]">Department</th>
                   <th className="p-3 w-[160px]">Lecturer</th>
                   <th className="p-3 w-[80px] hidden lg:table-cell">Status</th>
@@ -429,15 +544,33 @@ export default function CoursesPage() {
               <tbody>
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <tr key={i} className="border-t">
-                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-[80px]" /></td>
-                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-3/4" /></td>
-                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-[70px]" /></td>
-                    <td className="p-3 hidden lg:table-cell"><div className="h-6 bg-gray-200 animate-pulse rounded w-[100px]" /></td>
-                    <td className="p-3 hidden lg:table-cell"><div className="h-6 bg-gray-200 animate-pulse rounded w-8 mx-auto" /></td>
-                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-[60px]" /></td>
-                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-[120px]" /></td>
-                    <td className="p-3 hidden lg:table-cell"><div className="h-6 bg-gray-200 animate-pulse rounded w-[60px]" /></td>
-                    <td className="p-3 text-right"><div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" /></td>
+                    <td className="p-3">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[80px]" />
+                    </td>
+                    <td className="p-3">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-3/4" />
+                    </td>
+                    <td className="p-3">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[70px]" />
+                    </td>
+                    <td className="p-3 hidden lg:table-cell">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[100px]" />
+                    </td>
+                    <td className="p-3 hidden lg:table-cell">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-8 mx-auto" />
+                    </td>
+                    <td className="p-3">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[60px]" />
+                    </td>
+                    <td className="p-3">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[120px]" />
+                    </td>
+                    <td className="p-3 hidden lg:table-cell">
+                      <div className="h-6 bg-gray-200 animate-pulse rounded w-[60px]" />
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -448,12 +581,18 @@ export default function CoursesPage() {
         <div className="relative rounded-xl border border-gray-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <BookOpen className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-base font-semibold text-gray-700">No courses found</h3>
-          <p className="text-sm text-gray-400 mt-2">Try adjusting your filters or add a new course.</p>
+          <h3 className="text-base font-semibold text-gray-700">
+            No courses found
+          </h3>
+          <p className="text-sm text-gray-400 mt-2">
+            Try adjusting your filters or add a new course.
+          </p>
           {(isAdmin || isHod) && (
-            <Button className="mt-5" onClick={() => router.push("/courses/create")}>
-              <Plus className="h-4 w-4 mr-2" />
-              + New Course
+            <Button
+              className="mt-5"
+              onClick={() => router.push("/courses/create")}
+            >
+              <Plus className="h-4 w-4 mr-2" />+ New Course
             </Button>
           )}
         </div>
@@ -469,11 +608,17 @@ export default function CoursesPage() {
                     <th className="p-3 w-[100px]">Code</th>
                     <th className="p-3">Name</th>
                     <th className="p-3 w-[100px]">Level</th>
-                    <th className="p-3 w-[80px] hidden lg:table-cell">Semester</th>
-                    <th className="p-3 w-[70px] hidden lg:table-cell text-center">Credits</th>
+                    <th className="p-3 w-[80px] hidden lg:table-cell">
+                      Semester
+                    </th>
+                    <th className="p-3 w-[70px] hidden lg:table-cell text-center">
+                      Credits
+                    </th>
                     <th className="p-3 w-[90px]">Department</th>
                     <th className="p-3 w-[160px]">Lecturer</th>
-                    <th className="p-3 w-[80px] hidden lg:table-cell">Status</th>
+                    <th className="p-3 w-[80px] hidden lg:table-cell">
+                      Status
+                    </th>
                     <th className="p-3 w-[80px] text-right">Actions</th>
                   </tr>
                 </thead>
@@ -481,37 +626,98 @@ export default function CoursesPage() {
                   {courses.map((c) => (
                     <tr key={c.id} className="border-t hover:bg-gray-50">
                       <td className="p-3">
-                        <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{c.code}</span>
+                        <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                          {c.code}
+                        </span>
                       </td>
                       <td className="p-3 text-sm">{c.name}</td>
                       <td className="p-3">
-                        <Badge variant="secondary" className={LEVEL_PILL[c.level] ?? ""}>{c.level.replace("LEVEL_", "")}</Badge>
+                        <Badge
+                          variant="secondary"
+                          className={LEVEL_PILL[c.level] ?? ""}
+                        >
+                          {c.level.replace("LEVEL_", "")}
+                        </Badge>
                       </td>
-                      <td className="p-3 text-sm hidden lg:table-cell">{c.semester === Semester.FIRST ? "First" : "Second"}</td>
-                      <td className="p-3 text-center text-sm hidden lg:table-cell">{c.credits}</td>
+                      <td className="p-3 text-sm hidden lg:table-cell">
+                        {c.semester === Semester.FIRST ? "First" : "Second"}
+                      </td>
+                      <td className="p-3 text-center text-sm hidden lg:table-cell">
+                        {c.credits}
+                      </td>
                       <td className="p-3">
-                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">{c.departmentCode}</span>
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
+                          {c.departmentCode}
+                        </span>
                       </td>
                       <td className="p-3 text-sm">
-                        {c.lecturer ? c.lecturer.name ?? c.lecturer.email : <span className="italic text-gray-400">Unassigned</span>}
+                        {c.lecturer ? (
+                          (c.lecturer.name ?? c.lecturer.email)
+                        ) : (
+                          <span className="italic text-gray-400">
+                            Unassigned
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 hidden lg:table-cell">
                         {c.isLocked ? (
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-700"><Lock className="h-3 w-3 mr-1 inline" />Locked</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-700"
+                          >
+                            <Lock className="h-3 w-3 mr-1 inline" />
+                            Locked
+                          </Badge>
                         ) : c.isActive ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700">Active</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-700"
+                          >
+                            Active
+                          </Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-600">Inactive</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-100 text-gray-600"
+                          >
+                            Inactive
+                          </Badge>
                         )}
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1 min-w-0">
-                          <Button size="icon" variant="ghost" className="h-11 w-11 touch-manipulation" onClick={() => openDetail(c)}><Eye className="h-5 w-5" /><span className="sr-only">View</span></Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-11 w-11 touch-manipulation"
+                            onClick={() => openDetail(c)}
+                          >
+                            <Eye className="h-5 w-5" />
+                            <span className="sr-only">View</span>
+                          </Button>
                           {canEditCourse(c) && (
-                            <Button size="icon" variant="ghost" className="h-11 w-11 touch-manipulation" onClick={() => router.push(`/courses/${c.code}/edit`)}><Pencil className="h-5 w-5" /><span className="sr-only">Edit</span></Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-11 w-11 touch-manipulation"
+                              onClick={() =>
+                                router.push(`/courses/${c.code}/edit`)
+                              }
+                            >
+                              <Pencil className="h-5 w-5" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
                           )}
                           {isAdmin && (
-                            <Button size="icon" variant="ghost" className="h-11 w-11 text-red-600 touch-manipulation" onClick={() => setDeleteCourse(c)}><Trash2 className="h-5 w-5" /><span className="sr-only">Delete</span></Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-11 w-11 text-red-600 touch-manipulation"
+                              onClick={() => setDeleteCourse(c)}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -528,29 +734,62 @@ export default function CoursesPage() {
               <div
                 key={c.id}
                 className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                onClick={(e) => { if (!(e.target as HTMLElement).closest('[data-menu]')) openDetail(c); }}
+                onClick={(e) => {
+                  if (!(e.target as HTMLElement).closest("[data-menu]"))
+                    openDetail(c);
+                }}
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-mono text-sm font-semibold">{c.code}</p>
-                  <Badge variant="secondary" className={LEVEL_PILL[c.level] ?? ""}>{c.level.replace("LEVEL_", "")}</Badge>
+                  <Badge
+                    variant="secondary"
+                    className={LEVEL_PILL[c.level] ?? ""}
+                  >
+                    {c.level.replace("LEVEL_", "")}
+                  </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{c.name}</p>
-                <p className="text-xs text-gray-500 mt-1">{c.lecturer?.name ?? "Unassigned"} · {c.department?.name ?? c.departmentCode}</p>
-                <p className="text-xs text-gray-500">{c.semester === Semester.FIRST ? "First" : "Second"} Semester · {c.credits} Credits</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {c.lecturer?.name ?? "Unassigned"} ·{" "}
+                  {c.department?.name ?? c.departmentCode}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {c.semester === Semester.FIRST ? "First" : "Second"} Semester
+                  · {c.credits} Credits
+                </p>
                 <div className="mt-3 pt-3 border-t flex justify-between items-center">
                   {c.isLocked ? (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700"><Lock className="h-3 w-3 mr-1" />Locked</Badge>
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-amber-700"
+                    >
+                      <Lock className="h-3 w-3 mr-1" />
+                      Locked
+                    </Badge>
                   ) : c.isActive ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700">Active</Badge>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-700"
+                    >
+                      Active
+                    </Badge>
                   ) : (
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">Inactive</Badge>
+                    <Badge
+                      variant="secondary"
+                      className="bg-gray-100 text-gray-600"
+                    >
+                      Inactive
+                    </Badge>
                   )}
                   <div data-menu>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-11 w-11 touch-manipulation"
-                      onClick={(e) => { e.stopPropagation(); setMobileCourseMenu(c); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileCourseMenu(c);
+                      }}
                     >
                       <MoreVertical className="h-5 w-5" />
                       <span className="sr-only">Menu</span>
@@ -562,45 +801,60 @@ export default function CoursesPage() {
           </div>
 
           {/* Mobile course action bottom sheet */}
-          <Sheet open={!!mobileCourseMenu} onOpenChange={(o) => !o && setMobileCourseMenu(null)}>
+          <Sheet
+            open={!!mobileCourseMenu}
+            onOpenChange={(o) => !o && setMobileCourseMenu(null)}
+          >
             <SheetContent side="bottom" className="rounded-t-2xl">
               <SheetHeader>
-                <SheetTitle>{mobileCourseMenu?.name ?? 'Course actions'}</SheetTitle>
+                <SheetTitle>
+                  {mobileCourseMenu?.name ?? "Course actions"}
+                </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-1 py-4">
-                {mobileCourseMenu && (() => {
-                  const course = mobileCourseMenu
-                  const close = () => setMobileCourseMenu(null)
-                  return (
-                    <>
-                      <button
-                        type="button"
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
-                        onClick={() => { openDetail(course); close(); }}
-                      >
-                        View Details
-                      </button>
-                      {canEditCourse(course) && (
+                {mobileCourseMenu &&
+                  (() => {
+                    const course = mobileCourseMenu;
+                    const close = () => setMobileCourseMenu(null);
+                    return (
+                      <>
                         <button
                           type="button"
                           className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
-                          onClick={() => { router.push(`/courses/${course.code}/edit`); close(); }}
+                          onClick={() => {
+                            openDetail(course);
+                            close();
+                          }}
                         >
-                          Edit Course
+                          View Details
                         </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left w-full min-h-[52px] font-medium"
-                          onClick={() => { setDeleteCourse(course); close(); }}
-                        >
-                          Delete Course
-                        </button>
-                      )}
-                    </>
-                  )
-                })()}
+                        {canEditCourse(course) && (
+                          <button
+                            type="button"
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
+                            onClick={() => {
+                              router.push(`/courses/${course.code}/edit`);
+                              close();
+                            }}
+                          >
+                            Edit Course
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left w-full min-h-[52px] font-medium"
+                            onClick={() => {
+                              setDeleteCourse(course);
+                              close();
+                            }}
+                          >
+                            Delete Course
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
               </div>
             </SheetContent>
           </Sheet>
@@ -615,15 +869,30 @@ export default function CoursesPage() {
           total={total}
           limit={limit}
           onPageChange={setPage}
-          onLimitChange={(v) => { setLimit(v); setPage(1); }}
+          onLimitChange={(v) => {
+            setLimit(v);
+            setPage(1);
+          }}
         />
       )}
 
       {/* 7.4 Course Detail Sheet */}
-      <Sheet open={!!detailCourse} onOpenChange={(o) => !o && setDetailCourse(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-[480px] overflow-y-auto" hideCloseOnMobile>
+      <Sheet
+        open={!!detailCourse}
+        onOpenChange={(o) => !o && setDetailCourse(null)}
+      >
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-[480px] overflow-y-auto"
+          hideCloseOnMobile
+        >
           <SheetHeader className="md:sr-only">
-            <Button variant="ghost" size="icon" className="md:hidden absolute left-4 top-4 z-10" onClick={() => setDetailCourse(null)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden absolute left-4 top-4 z-10"
+              onClick={() => setDetailCourse(null)}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </SheetHeader>
@@ -636,24 +905,75 @@ export default function CoursesPage() {
           ) : detailCourse ? (
             <div className="pt-12 md:pt-0 space-y-6">
               <div>
-                <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{detailCourse.code}</span>
-                <h2 className="text-xl font-semibold mt-2">{detailCourse.name}</h2>
+                <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                  {detailCourse.code}
+                </span>
+                <h2 className="text-xl font-semibold mt-2">
+                  {detailCourse.name}
+                </h2>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <p><span className="text-gray-500">Level</span><br />{detailCourse.level.replace("LEVEL_", "")}</p>
-                <p><span className="text-gray-500">Semester</span><br />{detailCourse.semester === Semester.FIRST ? "First" : "Second"}</p>
-                <p><span className="text-gray-500">Credits</span><br />{detailCourse.credits}</p>
-                <p><span className="text-gray-500">Department</span><br />{detailCourse.department?.name ?? detailCourse.departmentCode}</p>
-                <p><span className="text-gray-500">Session</span><br />{detailCourse.schedules?.[0]?.sessionId ? (sessions.find(s => s.id === detailCourse.schedules?.[0]?.sessionId)?.name ?? detailCourse.schedules[0].sessionId) : "—"}</p>
+                <p>
+                  <span className="text-gray-500">Level</span>
+                  <br />
+                  {detailCourse.level.replace("LEVEL_", "")}
+                </p>
+                <p>
+                  <span className="text-gray-500">Semester</span>
+                  <br />
+                  {detailCourse.semester === Semester.FIRST
+                    ? "First"
+                    : "Second"}
+                </p>
+                <p>
+                  <span className="text-gray-500">Credits</span>
+                  <br />
+                  {detailCourse.credits}
+                </p>
+                <p>
+                  <span className="text-gray-500">Department</span>
+                  <br />
+                  {detailCourse.department?.name ?? detailCourse.departmentCode}
+                </p>
+                <p>
+                  <span className="text-gray-500">Session</span>
+                  <br />
+                  {detailCourse.schedules?.[0]?.sessionId
+                    ? (sessions.find(
+                        (s) => s.id === detailCourse.schedules?.[0]?.sessionId,
+                      )?.name ?? detailCourse.schedules[0].sessionId)
+                    : "—"}
+                </p>
               </div>
               <div className="flex gap-2 flex-wrap">
-                {detailCourse.isActive ? <Badge className="bg-green-100 text-green-700">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}
-                {detailCourse.isGeneral ? <Badge variant="secondary">General</Badge> : <Badge variant="secondary">Specific</Badge>}
-                {detailCourse.isLocked ? <Badge className="bg-amber-100 text-amber-700"><Lock className="h-3 w-3 mr-1" />Locked</Badge> : <Badge variant="outline">Unlocked</Badge>}
+                {detailCourse.isActive ? (
+                  <Badge className="bg-green-100 text-green-700">Active</Badge>
+                ) : (
+                  <Badge variant="secondary">Inactive</Badge>
+                )}
+                {detailCourse.isGeneral ? (
+                  <Badge variant="secondary">General</Badge>
+                ) : (
+                  <Badge variant="secondary">Specific</Badge>
+                )}
+                {detailCourse.isLocked ? (
+                  <Badge className="bg-amber-100 text-amber-700">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Locked
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">Unlocked</Badge>
+                )}
               </div>
               <div>
                 <h3 className="font-medium mb-2">Overview</h3>
-                <p className="text-sm text-gray-600">{detailCourse.overview || <span className="italic text-gray-400">No overview provided.</span>}</p>
+                <p className="text-sm text-gray-600">
+                  {detailCourse.overview || (
+                    <span className="italic text-gray-400">
+                      No overview provided.
+                    </span>
+                  )}
+                </p>
               </div>
               <div className="rounded-lg border p-4">
                 <h3 className="font-medium mb-2">Lecturer</h3>
@@ -664,24 +984,51 @@ export default function CoursesPage() {
                         {getInitials(detailCourse.lecturer.name)}
                       </div>
                       <div>
-                        <p className="font-medium">{detailCourse.lecturer.name ?? detailCourse.lecturer.email}</p>
-                        <p className="text-sm text-gray-500">{detailCourse.lecturer.email}</p>
+                        <p className="font-medium">
+                          {detailCourse.lecturer.name ??
+                            detailCourse.lecturer.email}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {detailCourse.lecturer.email}
+                        </p>
                         {detailCourse.lecturer.departmentCode && (
-                          <p className="text-sm text-gray-500">{departments.find(d => d.code === detailCourse.lecturer?.departmentCode)?.name ?? detailCourse.lecturer.departmentCode}</p>
+                          <p className="text-sm text-gray-500">
+                            {departments.find(
+                              (d) =>
+                                d.code ===
+                                detailCourse.lecturer?.departmentCode,
+                            )?.name ?? detailCourse.lecturer.departmentCode}
+                          </p>
                         )}
                       </div>
                     </div>
                     {canEditCourse(detailCourse) && (
-                      <Button variant="outline" size="sm" onClick={() => { setDetailCourse(null); router.push(`/courses/${detailCourse.code}/edit`); }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDetailCourse(null);
+                          router.push(`/courses/${detailCourse.code}/edit`);
+                        }}
+                      >
                         Change Lecturer
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-400 italic">No lecturer assigned</p>
+                    <p className="text-sm text-gray-400 italic">
+                      No lecturer assigned
+                    </p>
                     {canEditCourse(detailCourse) && (
-                      <Button variant="outline" size="sm" onClick={() => { setDetailCourse(null); router.push(`/courses/${detailCourse.code}/edit`); }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDetailCourse(null);
+                          router.push(`/courses/${detailCourse.code}/edit`);
+                        }}
+                      >
                         Change Lecturer
                       </Button>
                     )}
@@ -691,12 +1038,27 @@ export default function CoursesPage() {
               <div className="rounded-lg border p-4">
                 <h3 className="font-medium mb-2">Schedule</h3>
                 {detailCourse.schedules && detailCourse.schedules.length > 0 ? (
-                  <p className="text-sm">{detailCourse.schedules[0]?.dayOfWeek}, {detailCourse.schedules[0]?.startTime} – {detailCourse.schedules[0]?.endTime}</p>
+                  <p className="text-sm">
+                    {detailCourse.schedules[0]?.dayOfWeek},{" "}
+                    {detailCourse.schedules[0]?.startTime} –{" "}
+                    {detailCourse.schedules[0]?.endTime}
+                  </p>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-400 italic">Not yet scheduled</p>
+                    <p className="text-sm text-gray-400 italic">
+                      Not yet scheduled
+                    </p>
                     {isStaff && canEditCourse(detailCourse) && (
-                      <Button variant="outline" size="sm" onClick={() => { setDetailCourse(null); router.push(`/schedules/create?course=${encodeURIComponent(detailCourse.code)}`); }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDetailCourse(null);
+                          router.push(
+                            `/schedules/create?course=${encodeURIComponent(detailCourse.code)}`,
+                          );
+                        }}
+                      >
                         Add to Schedule
                       </Button>
                     )}
@@ -704,7 +1066,14 @@ export default function CoursesPage() {
                 )}
               </div>
               {isStaff && canEditCourse(detailCourse) && (
-                <Button variant="outline" className="w-full border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700" onClick={() => { setDetailCourse(null); router.push(`/courses/${detailCourse.code}/edit`); }}>
+                <Button
+                  variant="outline"
+                  className="w-full border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                  onClick={() => {
+                    setDetailCourse(null);
+                    router.push(`/courses/${detailCourse.code}/edit`);
+                  }}
+                >
                   Edit Course
                 </Button>
               )}
@@ -715,14 +1084,19 @@ export default function CoursesPage() {
 
       {/* Upload modal */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="md:max-w-md" onSwipeDown={() => setIsUploadOpen(false)}>
+        <DialogContent
+          className="md:max-w-md"
+          onSwipeDown={() => setIsUploadOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>Upload Courses CSV</DialogTitle>
           </DialogHeader>
           <div className={isUploading ? "opacity-60 pointer-events-none" : ""}>
             <div
               className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-400 transition-colors"
-              onClick={() => !isUploading && document.getElementById("course-csv")?.click()}
+              onClick={() =>
+                !isUploading && document.getElementById("course-csv")?.click()
+              }
             >
               <input
                 id="course-csv"
@@ -730,16 +1104,46 @@ export default function CoursesPage() {
                 accept=".csv"
                 className="hidden"
                 disabled={isUploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) setSelectedFile(f); }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setSelectedFile(f);
+                }}
               />
-              {selectedFile ? <p className="text-sm font-medium">{selectedFile.name}</p> : <p className="text-sm text-gray-500">Drop CSV or click to browse</p>}
+              {selectedFile ? (
+                <p className="text-sm font-medium">{selectedFile.name}</p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Drop CSV or click to browse
+                </p>
+              )}
             </div>
-            <p className="text-xs text-gray-500 mt-2"><button type="button" className="underline" onClick={handleDownloadTemplate}>Download template</button></p>
+            <p className="text-xs text-gray-500 mt-2">
+              <button
+                type="button"
+                className="underline"
+                onClick={handleDownloadTemplate}
+              >
+                Download template
+              </button>
+            </p>
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setIsUploadOpen(false)} disabled={isUploading}>Cancel</Button>
-            <Button onClick={handleBulkUpload} disabled={!selectedFile || isUploading}>
-              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Upload"}
+            <Button
+              variant="outline"
+              onClick={() => setIsUploadOpen(false)}
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkUpload}
+              disabled={!selectedFile || isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Upload"
+              )}
             </Button>
           </div>
         </DialogContent>
