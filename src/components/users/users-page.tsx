@@ -549,7 +549,7 @@ export function UsersPage({ role }: UsersPageProps) {
           />
         </div>
       ) : loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white border-b">
@@ -603,7 +603,7 @@ export function UsersPage({ role }: UsersPageProps) {
           </div>
         </div>
       ) : filteredUsers.length === 0 ? (
-        <div className="relative rounded-xl border border-gray-200 p-12 text-center">
+        <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-base font-semibold text-gray-700">
@@ -617,7 +617,7 @@ export function UsersPage({ role }: UsersPageProps) {
         <div className="relative">
           {refetching && <RefetchIndicator />}
           {/* Desktop table */}
-          <div className="hidden md:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-white border-b sticky top-0 z-10">

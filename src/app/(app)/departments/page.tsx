@@ -543,7 +543,7 @@ export default function DepartmentsPage() {
           ))}
         </div>
       ) : departments.length === 0 ? (
-        <div className="relative rounded-xl border border-gray-200 p-12 text-center">
+        <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <Building2 className="h-16 w-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-base font-semibold text-gray-700">

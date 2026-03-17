@@ -590,7 +590,7 @@ export default function DepartmentDetailsPage() {
           ) : (
             <>
               {/* Desktop table */}
-              <div className="hidden md:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-white border-b sticky top-0 z-10">

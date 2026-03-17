@@ -297,7 +297,7 @@ if (res.success) {
           <ErrorState entity="verification codes" onRetry={() => { setFetchError(null); fetchCodes(); }} />
         </div>
       ) : loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white border-b">
@@ -330,7 +330,7 @@ if (res.success) {
           </div>
         </div>
       ) : codes.length === 0 ? (
-        <div className="relative rounded-xl border border-gray-200 p-12 text-center">
+        <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <KeyRound className="h-16 w-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-base font-semibold text-gray-700">No verification codes</h3>
@@ -343,7 +343,7 @@ if (res.success) {
       ) : (
         <div className="relative">
           {refetching && <RefetchIndicator />}
-          <div className="hidden md:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-white border-b">

@@ -305,7 +305,7 @@ export default function ComplaintsPage() {
             ))}
           </div>
         ) : complaints.length === 0 ? (
-          <div className="relative rounded-xl border border-gray-200 p-12 text-center">
+          <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
             {refetching && <RefetchIndicator />}
             <MessageSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
             <h3 className="text-base font-semibold text-gray-700">
@@ -584,7 +584,7 @@ export default function ComplaintsPage() {
           />
         </div>
       ) : loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white border-b">
