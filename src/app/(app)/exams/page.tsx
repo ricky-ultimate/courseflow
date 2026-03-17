@@ -53,7 +53,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -72,6 +71,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/state/error-state";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { Pagination } from "@/components/ui/pagination";
 
 const VENUE_LABELS: Record<VenueType, string> = {
   [VenueType.UNIVERSITY_ICT_CENTER]: "University ICT Centre",
@@ -171,7 +171,7 @@ function createExamSchema(courses: Course[]) {
 }
 
 export default function ExamsPage() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
 
   const [exams, setExams] = useState<Exam[]>([]);
@@ -181,7 +181,14 @@ export default function ExamsPage() {
   const [refetching, setRefetching] = useState(false);
   const hasFetchedRef = useRef(false);
   usePageLoadReporter(loading);
-  const [searchTerm, setSearchTerm] = useState("");
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sessionId, setSessionId] = useState<string>("");
   const [semester, setSemester] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -236,6 +243,14 @@ export default function ExamsPage() {
     },
   });
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const openEditExam = useCallback(
     async (exam: Exam) => {
       openForEditExamIdRef.current = exam.id;
@@ -287,18 +302,20 @@ export default function ExamsPage() {
     .filter((c) => {
       const q = courseComboboxQuery.toLowerCase().trim();
       if (!q) return true;
-      const code = (c.code ?? "").toLowerCase();
-      const name = (c.name ?? "").toLowerCase();
-      return code.includes(q) || name.includes(q);
+      return (
+        (c.code ?? "").toLowerCase().includes(q) ||
+        (c.name ?? "").toLowerCase().includes(q)
+      );
     })
     .slice(0, 50);
   const editFilteredCoursesForCombobox = courses
     .filter((c) => {
       const q = editCourseComboboxQuery.toLowerCase().trim();
       if (!q) return true;
-      const code = (c.code ?? "").toLowerCase();
-      const name = (c.name ?? "").toLowerCase();
-      return code.includes(q) || name.includes(q);
+      return (
+        (c.code ?? "").toLowerCase().includes(q) ||
+        (c.name ?? "").toLowerCase().includes(q)
+      );
     })
     .slice(0, 50);
   const isCbt = isCbtCourse(selectedCourse);
@@ -308,10 +325,10 @@ export default function ExamsPage() {
       if (!hasFetchedRef.current) setLoading(true);
       else setRefetching(true);
       setFetchError(null);
-      const params: Record<string, unknown> = { page: 1, limit: 100 };
+
+      const params: Record<string, unknown> = { page, limit };
       if (sessionId) params.sessionId = sessionId;
       if (semester && semester !== "all") params.semester = semester;
-      if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
 
       const [examsRes, coursesRes, sessRes] = await Promise.all([
         apiClient.getExams(params),
@@ -323,7 +340,11 @@ export default function ExamsPage() {
       const courseR = getItemsFromResponse<Course>(coursesRes);
       const sessR = getItemsFromResponse<AcademicSession>(sessRes);
 
-      if (examR) setExams(examR.items);
+      if (examR) {
+        setExams(examR.items);
+        setTotal(examR.total);
+        setTotalPages(examR.totalPages);
+      }
       if (courseR) setCourses(courseR.items);
       if (sessR) setSessions(sessR.items);
       if (sessR?.items?.length && !sessionId) setSessionId(sessR.items[0]!.id);
@@ -335,19 +356,20 @@ export default function ExamsPage() {
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [sessionId, semester, searchTerm, toast]);
+  }, [sessionId, semester, page, limit, toast]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const filteredExams = exams.filter((exam) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    const code = (exam.course?.code ?? exam.courseCode ?? "").toLowerCase();
-    const name = (exam.course?.name ?? "").toLowerCase();
-    return code.includes(term) || name.includes(term);
-  });
+  const filteredExams = debouncedSearch.trim()
+    ? exams.filter((exam) => {
+        const term = debouncedSearch.toLowerCase();
+        const code = (exam.course?.code ?? exam.courseCode ?? "").toLowerCase();
+        const name = (exam.course?.name ?? "").toLowerCase();
+        return code.includes(term) || name.includes(term);
+      })
+    : exams;
 
   const resetForm = () => {
     form.reset({
@@ -391,6 +413,7 @@ export default function ExamsPage() {
         toast({ title: `Exam scheduled for ${data.courseCode}.` });
         setIsCreateOpen(false);
         resetForm();
+        setPage(1);
         fetchData();
       } else {
         setCreateError(
@@ -452,7 +475,8 @@ export default function ExamsPage() {
       if (res.success) {
         toast({ title: "Exam deleted." });
         setDeleteExam(null);
-        fetchData();
+        if (exams.length === 1 && page > 1) setPage((p) => p - 1);
+        else fetchData();
         return true;
       }
       toast({ title: (res as any).error, variant: "destructive" });
@@ -467,13 +491,11 @@ export default function ExamsPage() {
 
   return (
     <div className="space-y-4">
-      {/* 9.1 Page Layout */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Exams
           </h1>
-          {/* Optional subtitle */}
           <p className="text-sm font-medium text-slate-500 mt-1">
             Manage and browse all exam schedule listings
           </p>
@@ -490,16 +512,18 @@ export default function ExamsPage() {
         )}
       </div>
 
-      {/* Filter bar (margin-top 16px via space-y-4) */}
       <FilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by course code..."
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="Search by course code or name..."
       >
         <div className="hidden md:flex items-center gap-1">
           <FilterSelect
             value={sessionId || "all"}
-            onValueChange={(v) => setSessionId(v === "all" ? "" : v)}
+            onValueChange={(v) => {
+              setSessionId(v === "all" ? "" : v);
+              setPage(1);
+            }}
             width="w-[160px]"
           >
             <SelectItem value="all">All Sessions</SelectItem>
@@ -511,7 +535,10 @@ export default function ExamsPage() {
           </FilterSelect>
           <FilterSelect
             value={semester}
-            onValueChange={setSemester}
+            onValueChange={(v) => {
+              setSemester(v);
+              setPage(1);
+            }}
             width="w-[150px]"
           >
             <SelectItem value="all">All Semesters</SelectItem>
@@ -542,7 +569,10 @@ export default function ExamsPage() {
               <Label>Session</Label>
               <Select
                 value={sessionId || "all"}
-                onValueChange={(v) => setSessionId(v === "all" ? "" : v)}
+                onValueChange={(v) => {
+                  setSessionId(v === "all" ? "" : v);
+                  setPage(1);
+                }}
               >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
@@ -559,7 +589,13 @@ export default function ExamsPage() {
             </div>
             <div>
               <Label>Semester</Label>
-              <Select value={semester} onValueChange={setSemester}>
+              <Select
+                value={semester}
+                onValueChange={(v) => {
+                  setSemester(v);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
@@ -572,6 +608,26 @@ export default function ExamsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Per page</Label>
+              <Select
+                value={String(limit)}
+                onValueChange={(v) => {
+                  setLimit(Number(v));
+                  setPage(1);
+                  setFiltersOpen(false);
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button className="w-full" onClick={() => setFiltersOpen(false)}>
               Apply
             </Button>
@@ -579,7 +635,6 @@ export default function ExamsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 9.2 Exam Table */}
       {fetchError ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <ErrorState
@@ -667,7 +722,6 @@ export default function ExamsPage() {
       ) : (
         <div className="relative">
           {refetching && <RefetchIndicator />}
-          {/* Desktop table */}
           <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -692,7 +746,9 @@ export default function ExamsPage() {
                     const cbt = isCbtCourse(course);
                     return (
                       <tr key={exam.id} className="border-t hover:bg-gray-50">
-                        <td className="p-3 text-sm">{formatDate(exam.date)}</td>
+                        <td className="p-3 text-sm">
+                          {formatDate(exam.date)}
+                        </td>
                         <td className="p-3 text-sm">
                           {exam.startTime} – {exam.endTime}
                         </td>
@@ -772,7 +828,6 @@ export default function ExamsPage() {
             </div>
           </div>
 
-          {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filteredExams.map((exam) => {
               const course =
@@ -839,7 +894,21 @@ export default function ExamsPage() {
         </div>
       )}
 
-      {/* 9.3 Schedule Exam Modal */}
+      {total > 0 && (
+        <Pagination
+          page={page}
+          totalPages={Math.max(1, totalPages)}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(v) => {
+            setLimit(v);
+            setPage(1);
+          }}
+          resultsLabel="exams"
+        />
+      )}
+
       <Dialog
         open={isCreateOpen}
         onOpenChange={(o) => {
@@ -1113,7 +1182,6 @@ export default function ExamsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Exam Modal */}
       <Dialog
         open={!!editExam}
         onOpenChange={(o) => {
@@ -1262,7 +1330,11 @@ export default function ExamsPage() {
                     <FormItem>
                       <FormLabel>Exam date *</FormLabel>
                       <FormControl>
-                        <Input type="date" disabled={editLoading} {...field} />
+                        <Input
+                          type="date"
+                          disabled={editLoading}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1275,7 +1347,11 @@ export default function ExamsPage() {
                     <FormItem>
                       <FormLabel>Start time *</FormLabel>
                       <FormControl>
-                        <Input type="time" disabled={editLoading} {...field} />
+                        <Input
+                          type="time"
+                          disabled={editLoading}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1288,7 +1364,11 @@ export default function ExamsPage() {
                     <FormItem>
                       <FormLabel>End time *</FormLabel>
                       <FormControl>
-                        <Input type="time" disabled={editLoading} {...field} />
+                        <Input
+                          type="time"
+                          disabled={editLoading}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
