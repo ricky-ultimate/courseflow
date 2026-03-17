@@ -4,20 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiClient } from '@/lib/api'
-import { getItemsFromResponse } from '@/lib/utils'
+import { getInitials, getItemsFromResponse } from '@/lib/utils'
 import { Role } from '@/types'
 
 export interface LecturerOption {
   id: string
   name: string | null
   email: string
-}
-
-function getInitials(name: string | null | undefined): string {
-  if (!name?.trim()) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0]! + parts[parts.length - 1]![0]!).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
 }
 
 export interface LecturerComboboxProps {
