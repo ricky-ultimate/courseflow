@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,7 +29,6 @@ import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { useToast } from "@/hooks/use-toast";
 import {
   BookOpen,
-  Search,
   Filter,
   Upload,
   Download,
@@ -51,16 +49,7 @@ import { ErrorState } from "@/components/state/error-state";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { FilterSelect } from "@/components/ui/filter-select";
-
-const LEVEL_PILL: Record<Level, string> = {
-  [Level.LEVEL_100]: "bg-slate-100 text-slate-700",
-  [Level.LEVEL_200]: "bg-blue-100 text-blue-700",
-  [Level.LEVEL_300]: "bg-violet-100 text-violet-700",
-  [Level.LEVEL_400]: "bg-orange-100 text-orange-700",
-  [Level.LEVEL_500]: "bg-red-100 text-red-700",
-};
-
-
+import { LEVEL_PILL } from "@/lib/constants";
 
 export default function CoursesPage() {
   const router = useRouter();

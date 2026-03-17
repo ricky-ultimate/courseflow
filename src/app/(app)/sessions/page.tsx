@@ -11,7 +11,6 @@ import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { apiClient } from "@/lib/api";
 import {
   AcademicSession,
-  CreateAcademicSessionData,
   SessionStatistics,
 } from "@/types";
 import { Button } from "@/components/ui/button";

@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveSessionInvalidateCount } from "@/contexts/ActiveSessionContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
@@ -31,7 +30,6 @@ import {
   Schedule,
   Exam,
   Course,
-  VenueType,
   Level,
   DayOfWeek,
 } from "@/types";
@@ -40,28 +38,7 @@ import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GenerateScheduleModal } from "@/components/dashboard/generate-schedule-modal";
 import { ErrorState } from "@/components/state/error-state";
-
-const VENUE_LABELS: Record<string, string> = {
-  [VenueType.UNIVERSITY_ICT_CENTER]: "University ICT Centre",
-  [VenueType.ICT_LAB_1]: "ICT Lab 1",
-  [VenueType.ICT_LAB_2]: "ICT Lab 2",
-  [VenueType.COMPUTER_LAB]: "Computer Lab",
-  [VenueType.LECTURE_HALL_1]: "Lecture Hall 1",
-  [VenueType.LECTURE_HALL_2]: "Lecture Hall 2",
-  [VenueType.LECTURE_HALL_3]: "Lecture Hall 3",
-  [VenueType.AUDITORIUM_A]: "Auditorium A",
-  [VenueType.AUDITORIUM_B]: "Auditorium B",
-  [VenueType.SEMINAR_ROOM_A]: "Seminar Room A",
-  [VenueType.SEMINAR_ROOM_B]: "Seminar Room B",
-  [VenueType.ROOM_101]: "Room 101",
-  [VenueType.ROOM_102]: "Room 102",
-  [VenueType.ROOM_201]: "Room 201",
-  [VenueType.ROOM_202]: "Room 202",
-  [VenueType.ROOM_301]: "Room 301",
-  [VenueType.ROOM_302]: "Room 302",
-  [VenueType.SCIENCE_LAB_1]: "Science Lab 1",
-  [VenueType.SCIENCE_LAB_2]: "Science Lab 2",
-};
+import { VENUE_LABELS } from "@/lib/constants";
 
 function getGreeting(): string {
   const h = new Date().getHours();

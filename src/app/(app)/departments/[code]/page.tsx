@@ -36,7 +36,6 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -64,7 +63,6 @@ import {
   AcademicSession,
   Course,
   Department,
-  Level,
   College,
   Semester,
   Schedule,
@@ -80,8 +78,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { HodCombobox } from "@/components/departments/hod-combobox";
 import { GenerateScheduleModal } from "@/components/dashboard/generate-schedule-modal";
-import { TimetableGrid } from "@/components/schedules/timetable-grid";
-import { MobileTimetable } from "@/components/schedules/mobile-timetable";
+import { LEVEL_PILL } from "@/lib/constants";
 
 const editDepartmentSchema = z.object({
   name: z.string().min(1, "Department name is required").max(100),
@@ -95,14 +92,6 @@ const editDepartmentSchema = z.object({
 });
 
 type EditDepartmentFormValues = z.infer<typeof editDepartmentSchema>;
-
-const LEVEL_PILL: Record<Level, string> = {
-  [Level.LEVEL_100]: "bg-slate-100 text-slate-700",
-  [Level.LEVEL_200]: "bg-blue-100 text-blue-700",
-  [Level.LEVEL_300]: "bg-violet-100 text-violet-700",
-  [Level.LEVEL_400]: "bg-orange-100 text-orange-700",
-  [Level.LEVEL_500]: "bg-red-100 text-red-700",
-};
 
 export default function DepartmentDetailsPage() {
   const params = useParams();
@@ -777,118 +766,6 @@ export default function DepartmentDetailsPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ── Schedules section ────────────────────────────────────────────── */}
-        <div className="mt-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-semibold">Timetable</h2>
-            {schedules.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/schedules?departmentCode=${code}`)}
-              >
-                View full schedule
-              </Button>
-            )}
-          </div>
-
-          {schedulesLoading ? (
-            /* Timetable skeleton — mirrors the one in schedules/page.tsx */
-            <div
-              className="grid gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200"
-              style={{
-                gridTemplateColumns: "64px repeat(5, 1fr)",
-                gridTemplateRows: "40px repeat(6, 60px)",
-              }}
-            >
-              <div
-                className="bg-gray-100"
-                style={{ gridColumn: 1, gridRow: 1 }}
-              />
-              {[2, 3, 4, 5, 6].map((c) => (
-                <div
-                  key={c}
-                  className="bg-gray-50"
-                  style={{ gridColumn: c, gridRow: 1 }}
-                />
-              ))}
-              {[2, 3, 4, 5, 6, 7].map((r) => (
-                <div
-                  key={r}
-                  className="bg-gray-50"
-                  style={{ gridColumn: 1, gridRow: r }}
-                />
-              ))}
-              {[2, 3, 4, 5, 6]
-                .map((c) =>
-                  [2, 3, 4, 5, 6, 7].map((r) => (
-                    <div
-                      key={`${c}-${r}`}
-                      className="bg-gray-50"
-                      style={{ gridColumn: c, gridRow: r }}
-                    />
-                  )),
-                )
-                .flat()}
-              {[
-                { col: 2, row: 2, span: 2 },
-                { col: 4, row: 3, span: 2 },
-                { col: 3, row: 5, span: 2 },
-                { col: 5, row: 2, span: 2 },
-              ].map((b, i) => (
-                <div
-                  key={i}
-                  className="bg-gray-200 animate-pulse rounded-lg m-1"
-                  style={{
-                    gridColumn: b.col,
-                    gridRow: `${b.row} / span ${b.span}`,
-                    minHeight: 58,
-                  }}
-                />
-              ))}
-            </div>
-          ) : schedulesError ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
-              <ErrorState entity="schedules" onRetry={fetchSchedules} />
-            </div>
-          ) : schedules.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <RefreshCw className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  No schedules generated yet for this department.
-                </p>
-                {canGenerateSchedule && (
-                  <Button
-                    className="mt-4"
-                    onClick={() => setGenerateModalOpen(true)}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Generate Schedule
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <div className="hidden md:block">
-                <TimetableGrid
-                  schedules={schedules}
-                  onScheduleClick={() => {}}
-                />
-              </div>
-              <div className="md:hidden">
-                <MobileTimetable
-                  schedules={schedules}
-                  selectedDay={mobileSelectedDay}
-                  onDayChange={setMobileSelectedDay}
-                  onScheduleClick={() => {}}
-                />
               </div>
             </>
           )}
