@@ -8,50 +8,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { apiClient } from "@/lib/api";
-import { getItemsFromResponse } from "@/lib/utils";
+import { getItemsFromResponse, formatRelativeDate } from "@/lib/utils";
 import { Complaint, ComplaintStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MessageSquare,
-  MessageSquareWarning,
-  MoreVertical,
-  Eye,
-  Plus,
-  Search,
-  Loader2,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MessageSquare, MessageSquareWarning, MoreVertical, Eye, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { ErrorState } from "@/components/state/error-state";
@@ -61,14 +29,8 @@ import { FilterSelect } from "@/components/ui/filter-select";
 const complaintSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   department: z.string().min(1, "Department is required"),
-  subject: z
-    .string()
-    .min(5, "Subject must be 5–200 characters")
-    .max(200, "Subject must be 5–200 characters"),
-  message: z
-    .string()
-    .min(10, "Message must be 10–1000 characters")
-    .max(1000, "Message must be 10–1000 characters"),
+  subject: z.string().min(5, "Subject must be 5–200 characters").max(200, "Subject must be 5–200 characters"),
+  message: z.string().min(10, "Message must be 10–1000 characters").max(1000, "Message must be 10–1000 characters"),
 });
 
 type ComplaintFormValues = z.infer<typeof complaintSchema>;
@@ -79,17 +41,6 @@ const STATUS_BADGES: Record<ComplaintStatus, string> = {
   [ComplaintStatus.RESOLVED]: "bg-green-100 text-green-800",
   [ComplaintStatus.CLOSED]: "bg-gray-100 text-gray-800",
 };
-
-function formatRelative(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return d.toLocaleDateString();
-}
 
 export default function ComplaintsPage() {
   const { user, isAdmin, isHod } = useAuth();
@@ -104,9 +55,7 @@ export default function ComplaintsPage() {
   const [activeTab, setActiveTab] = useState<"all" | ComplaintStatus>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [orderBy, setOrderBy] = useState<"newest" | "oldest">("newest");
-  const [detailComplaint, setDetailComplaint] = useState<Complaint | null>(
-    null,
-  );
+  const [detailComplaint, setDetailComplaint] = useState<Complaint | null>(null);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -116,22 +65,12 @@ export default function ComplaintsPage() {
   const complaintForm = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
     mode: "onBlur",
-    defaultValues: {
-      name: user?.name ?? "",
-      department: "",
-      subject: "",
-      message: "",
-    },
+    defaultValues: { name: user?.name ?? "", department: "", subject: "", message: "" },
   });
 
   useEffect(() => {
     if (isSubmitOpen && user) {
-      complaintForm.reset({
-        name: user.name ?? "",
-        department: "",
-        subject: "",
-        message: "",
-      });
+      complaintForm.reset({ name: user.name ?? "", department: "", subject: "", message: "" });
       setSubmitError("");
     }
   }, [isSubmitOpen, user?.id, user?.name, complaintForm, user]);
@@ -144,38 +83,24 @@ export default function ComplaintsPage() {
       if (isManager) {
         let res;
         if (activeTab === "all") {
-          res = await apiClient.getComplaints({
-            page: 1,
-            limit: 200,
-            orderBy: "createdAt",
-            orderDirection: orderBy === "newest" ? "desc" : "asc",
-          });
+          res = await apiClient.getComplaints({ page: 1, limit: 200, orderBy: "createdAt", orderDirection: orderBy === "newest" ? "desc" : "asc" });
         } else if (activeTab === ComplaintStatus.PENDING) {
           res = await apiClient.getPendingComplaints();
         } else if (activeTab === ComplaintStatus.RESOLVED) {
           res = await apiClient.getResolvedComplaints();
         } else {
-          res = await apiClient.getComplaints({
-            page: 1,
-            limit: 200,
-            orderBy: "createdAt",
-            orderDirection: orderBy === "newest" ? "desc" : "asc",
-          });
+          res = await apiClient.getComplaints({ page: 1, limit: 200, orderBy: "createdAt", orderDirection: orderBy === "newest" ? "desc" : "asc" });
         }
         const r = getItemsFromResponse<Complaint>(res);
         let items = r?.items ?? [];
-        if (
-          activeTab === ComplaintStatus.IN_PROGRESS ||
-          activeTab === ComplaintStatus.CLOSED
-        ) {
+        if (activeTab === ComplaintStatus.IN_PROGRESS || activeTab === ComplaintStatus.CLOSED) {
           items = items.filter((c) => c.status === activeTab);
         }
         setComplaints(items);
       } else {
         const res = await apiClient.getMyComplaints();
         const data = (res as any)?.data;
-        const items = Array.isArray(data) ? data : (data?.data ?? []);
-        setComplaints(items);
+        setComplaints(Array.isArray(data) ? data : (data?.data ?? []));
       }
     } catch {
       setFetchError("Failed to load complaints");
@@ -187,25 +112,13 @@ export default function ComplaintsPage() {
     }
   }, [isManager, orderBy, activeTab, toast]);
 
-  useEffect(() => {
-    fetchComplaints();
-  }, [fetchComplaints]);
-
-  const pendingCount =
-    activeTab === "all"
-      ? complaints.filter((c) => c.status === ComplaintStatus.PENDING).length
-      : activeTab === ComplaintStatus.PENDING
-        ? complaints.length
-        : 0;
+  useEffect(() => { fetchComplaints(); }, [fetchComplaints]);
 
   const filteredComplaints = complaints.filter((c) => {
-    if (isManager && activeTab !== "all" && c.status !== activeTab)
-      return false;
+    if (isManager && activeTab !== "all" && c.status !== activeTab) return false;
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
-    const subj = (c.subject ?? "").toLowerCase();
-    const name = (c.name ?? "").toLowerCase();
-    return subj.includes(term) || name.includes(term);
+    return (c.subject ?? "").toLowerCase().includes(term) || (c.name ?? "").toLowerCase().includes(term);
   });
 
   const sortedComplaints = [...filteredComplaints].sort((a, b) => {
@@ -220,11 +133,7 @@ export default function ComplaintsPage() {
     try {
       setSubmitting(true);
       const res = await apiClient.createComplaint({
-        name: data.name,
-        email: user.email,
-        department: data.department,
-        subject: data.subject,
-        message: data.message,
+        name: data.name, email: user.email, department: data.department, subject: data.subject, message: data.message,
       });
       if (res.success) {
         toast({ title: "Your complaint has been submitted." });
@@ -232,9 +141,7 @@ export default function ComplaintsPage() {
         complaintForm.reset();
         fetchComplaints();
       } else {
-        setSubmitError(
-          (res as { error?: string }).error || "Submission failed",
-        );
+        setSubmitError((res as { error?: string }).error || "Submission failed");
       }
     } catch {
       setSubmitError("Submission failed");
@@ -248,9 +155,7 @@ export default function ComplaintsPage() {
       setStatusLoading(id);
       const res = await apiClient.updateComplaintStatus(id, status);
       if (res.success) {
-        const statusLabel = status
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
+        const statusLabel = status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         toast({ title: `Complaint status updated to ${statusLabel}.` });
         setDetailComplaint((c) => (c?.id === id ? { ...c, status } : c));
         fetchComplaints();
@@ -264,7 +169,6 @@ export default function ComplaintsPage() {
     }
   };
 
-  // ─── Student View (11.5, 11.6) ───────────────────────────────────────────
   if (!isManager) {
     return (
       <div className="space-y-6">
@@ -278,21 +182,12 @@ export default function ComplaintsPage() {
 
         {fetchError ? (
           <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <ErrorState
-              entity="complaints"
-              onRetry={() => {
-                setFetchError(null);
-                fetchComplaints();
-              }}
-            />
+            <ErrorState entity="complaints" onRetry={() => { setFetchError(null); fetchComplaints(); }} />
           </div>
         ) : loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-gray-200 bg-white p-4 animate-pulse"
-              >
+              <div key={i} className="rounded-xl border border-gray-200 bg-white p-4 animate-pulse">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-2 flex-1">
                     <div className="h-5 bg-gray-200 rounded w-2/3" />
@@ -308,12 +203,8 @@ export default function ComplaintsPage() {
           <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
             {refetching && <RefetchIndicator />}
             <MessageSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-base font-semibold text-gray-700">
-              You haven&apos;t submitted any complaints.
-            </h3>
-            <p className="text-sm text-gray-400 mt-2">
-              Submit a complaint if you need assistance.
-            </p>
+            <h3 className="text-base font-semibold text-gray-700">You haven&apos;t submitted any complaints.</h3>
+            <p className="text-sm text-gray-400 mt-2">Submit a complaint if you need assistance.</p>
             <Button className="mt-5" onClick={() => setIsSubmitOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />+ Submit Complaint
             </Button>
@@ -330,131 +221,59 @@ export default function ComplaintsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">{c.subject}</p>
-                    <p className="text-sm text-gray-500">
-                      {c.department} · {formatRelative(c.createdAt)}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                      {c.message}
-                    </p>
+                    <p className="text-sm text-gray-500">{c.department} · {formatRelativeDate(c.createdAt)}</p>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{c.message}</p>
                   </div>
-                  <Badge className={STATUS_BADGES[c.status]}>
-                    {c.status.replace("_", " ")}
-                  </Badge>
+                  <Badge className={STATUS_BADGES[c.status]}>{c.status.replace("_", " ")}</Badge>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* 11.6 Submit Complaint Modal */}
         <Dialog open={isSubmitOpen} onOpenChange={setIsSubmitOpen}>
-          <DialogContent
-            className="md:max-w-[520px]"
-            onSwipeDown={() => setIsSubmitOpen(false)}
-          >
-            <DialogHeader>
-              <DialogTitle>Submit Complaint</DialogTitle>
-            </DialogHeader>
+          <DialogContent className="md:max-w-[520px]" onSwipeDown={() => setIsSubmitOpen(false)}>
+            <DialogHeader><DialogTitle>Submit Complaint</DialogTitle></DialogHeader>
             <Form {...complaintForm}>
-              <form
-                onSubmit={handleSubmit}
-                className={`space-y-4 transition-opacity ${submitting ? "opacity-60" : ""}`}
-              >
+              <form onSubmit={handleSubmit} className={`space-y-4 transition-opacity ${submitting ? "opacity-60" : ""}`}>
                 {submitError && <ServerErrorBanner message={submitError} />}
-                <FormField
-                  control={complaintForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full name *</FormLabel>
-                      <FormControl>
-                        <Input disabled={submitting} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={complaintForm.control} name="name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full name *</FormLabel>
+                    <FormControl><Input disabled={submitting} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
                 <div className="space-y-2">
                   <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={user?.email ?? ""}
-                    readOnly
-                    className="bg-gray-50"
-                    disabled={submitting}
-                  />
+                  <Input type="email" value={user?.email ?? ""} readOnly className="bg-gray-50" disabled={submitting} />
                 </div>
-                <FormField
-                  control={complaintForm.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g. Computer Science"
-                          disabled={submitting}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={complaintForm.control}
-                  name="subject"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject * (5–200 chars)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Brief description"
-                          maxLength={200}
-                          disabled={submitting}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={complaintForm.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Message * (10–1000 chars)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          maxLength={1000}
-                          disabled={submitting}
-                          {...field}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {field.value.length}/1000
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={complaintForm.control} name="department" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department *</FormLabel>
+                    <FormControl><Input placeholder="e.g. Computer Science" disabled={submitting} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={complaintForm.control} name="subject" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject * (5–200 chars)</FormLabel>
+                    <FormControl><Input placeholder="Brief description" maxLength={200} disabled={submitting} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={complaintForm.control} name="message" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Message * (10–1000 chars)</FormLabel>
+                    <FormControl><Textarea rows={5} maxLength={1000} disabled={submitting} {...field} /></FormControl>
+                    <p className="text-xs text-gray-500 mt-1">{field.value.length}/1000</p>
+                    <FormMessage />
+                  </FormItem>
+                )} />
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsSubmitOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsSubmitOpen(false)} disabled={submitting}>Cancel</Button>
                   <Button type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Submit"
-                    )}
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -462,35 +281,20 @@ export default function ComplaintsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Student detail (read-only) */}
-        <Dialog
-          open={!!detailComplaint}
-          onOpenChange={(o) => !o && setDetailComplaint(null)}
-        >
-          <DialogContent
-            className="md:max-w-[560px]"
-            onSwipeDown={() => setDetailComplaint(null)}
-          >
+        <Dialog open={!!detailComplaint} onOpenChange={(o) => !o && setDetailComplaint(null)}>
+          <DialogContent className="md:max-w-[560px]" onSwipeDown={() => setDetailComplaint(null)}>
             {detailComplaint && (
               <>
                 <DialogHeader>
                   <DialogTitle>{detailComplaint.subject}</DialogTitle>
-                  <Badge className={STATUS_BADGES[detailComplaint.status]}>
-                    {detailComplaint.status.replace("_", " ")}
-                  </Badge>
+                  <Badge className={STATUS_BADGES[detailComplaint.status]}>{detailComplaint.status.replace("_", " ")}</Badge>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-gray-500">Name</span>
-                    <span>{detailComplaint.name}</span>
-                    <span className="text-gray-500">Email</span>
-                    <span>{detailComplaint.email}</span>
-                    <span className="text-gray-500">Department</span>
-                    <span>{detailComplaint.department}</span>
-                    <span className="text-gray-500">Submitted</span>
-                    <span>
-                      {new Date(detailComplaint.createdAt).toLocaleString()}
-                    </span>
+                    <span className="text-gray-500">Name</span><span>{detailComplaint.name}</span>
+                    <span className="text-gray-500">Email</span><span>{detailComplaint.email}</span>
+                    <span className="text-gray-500">Department</span><span>{detailComplaint.department}</span>
+                    <span className="text-gray-500">Submitted</span><span>{new Date(detailComplaint.createdAt).toLocaleString()}</span>
                   </div>
                   <div>
                     <Label>Message</Label>
@@ -500,8 +304,7 @@ export default function ComplaintsPage() {
                   </div>
                   {detailComplaint.resolvedAt && (
                     <p className="text-sm text-gray-500">
-                      Resolved by {detailComplaint.resolvedBy ?? "admin"} on{" "}
-                      {new Date(detailComplaint.resolvedAt).toLocaleString()}
+                      Resolved by {detailComplaint.resolvedBy ?? "admin"} on {new Date(detailComplaint.resolvedAt).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -513,7 +316,6 @@ export default function ComplaintsPage() {
     );
   }
 
-  // ─── ADMIN/HOD View (11.2, 11.3, 11.4) ───────────────────────────────────
   const tabs: { value: "all" | ComplaintStatus; label: string }[] = [
     { value: "all", label: "All" },
     { value: ComplaintStatus.PENDING, label: "Pending" },
@@ -526,7 +328,6 @@ export default function ComplaintsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Complaints</h1>
 
-      {/* 11.2 Status tab bar (margin-top 16px per spec) */}
       <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 !mt-4">
         <div className="flex gap-1 border-b border-gray-200 min-w-max pb-px">
           {tabs.map((t) => (
@@ -534,21 +335,15 @@ export default function ComplaintsPage() {
               key={t.value}
               onClick={() => setActiveTab(t.value)}
               className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                activeTab === t.value
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                activeTab === t.value ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               {t.label}
               {t.value === ComplaintStatus.PENDING && (
                 <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                   {activeTab === "all"
-                    ? complaints.filter(
-                        (c) => c.status === ComplaintStatus.PENDING,
-                      ).length
-                    : activeTab === ComplaintStatus.PENDING
-                      ? complaints.length
-                      : 0}
+                    ? complaints.filter((c) => c.status === ComplaintStatus.PENDING).length
+                    : activeTab === ComplaintStatus.PENDING ? complaints.length : 0}
                 </span>
               )}
             </button>
@@ -556,32 +351,16 @@ export default function ComplaintsPage() {
         </div>
       </div>
 
-      {/* Filter bar */}
-      <FilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by subject or name..."
-      >
-        <FilterSelect
-          value={orderBy}
-          onValueChange={(v) => setOrderBy(v as "newest" | "oldest")}
-          width="w-[140px]"
-        >
+      <FilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search by subject or name...">
+        <FilterSelect value={orderBy} onValueChange={(v) => setOrderBy(v as "newest" | "oldest")} width="w-[140px]">
           <SelectItem value="newest">Newest</SelectItem>
           <SelectItem value="oldest">Oldest</SelectItem>
         </FilterSelect>
       </FilterBar>
 
-      {/* 11.3 Complaints table */}
       {fetchError ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <ErrorState
-            entity="complaints"
-            onRetry={() => {
-              setFetchError(null);
-              fetchComplaints();
-            }}
-          />
+          <ErrorState entity="complaints" onRetry={() => { setFetchError(null); fetchComplaints(); }} />
         </div>
       ) : loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -601,27 +380,11 @@ export default function ComplaintsPage() {
               <tbody>
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <tr key={i} className="border-t">
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-6" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-28" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-24" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-40" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-20" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-24" />
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
-                    </td>
+                    {[6, 28, 24, 40, 20, 24, 16].map((w, j) => (
+                      <td key={j} className="p-3">
+                        <div className={`h-6 bg-gray-200 animate-pulse rounded w-${w}`} />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -631,30 +394,9 @@ export default function ComplaintsPage() {
       ) : sortedComplaints.length === 0 ? (
         <div className="relative rounded-xl border border-gray-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
-          {isManager ? (
-            <>
-              <MessageSquareWarning className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-base font-semibold text-gray-700">
-                No complaints
-              </h3>
-              <p className="text-sm text-gray-400 mt-2">
-                No complaints match the current filter.
-              </p>
-            </>
-          ) : (
-            <>
-              <MessageSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-base font-semibold text-gray-700">
-                You haven&apos;t submitted any complaints.
-              </h3>
-              <p className="text-sm text-gray-400 mt-2">
-                Submit a complaint if you need assistance.
-              </p>
-              <Button className="mt-5" onClick={() => setIsSubmitOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />+ Submit Complaint
-              </Button>
-            </>
-          )}
+          <MessageSquareWarning className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-base font-semibold text-gray-700">No complaints</h3>
+          <p className="text-sm text-gray-400 mt-2">No complaints match the current filter.</p>
         </div>
       ) : (
         <div className="relative">
@@ -681,48 +423,25 @@ export default function ComplaintsPage() {
                       <td className="p-3 text-sm">{c.name}</td>
                       <td className="p-3 text-sm">{c.email}</td>
                       <td className="p-3 text-sm">{c.department}</td>
-                      <td
-                        className="p-3 text-sm max-w-[200px]"
-                        title={c.subject}
-                      >
-                        {(c.subject ?? "").length > 40
-                          ? `${c.subject!.slice(0, 40)}...`
-                          : c.subject}
+                      <td className="p-3 text-sm max-w-[200px]" title={c.subject}>
+                        {(c.subject ?? "").length > 40 ? `${c.subject!.slice(0, 40)}...` : c.subject}
                       </td>
-                      <td className="p-3">
-                        <Badge className={STATUS_BADGES[c.status]}>
-                          {c.status.replace("_", " ")}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-sm text-gray-500">
-                        {formatRelative(c.createdAt)}
-                      </td>
+                      <td className="p-3"><Badge className={STATUS_BADGES[c.status]}>{c.status.replace("_", " ")}</Badge></td>
+                      <td className="p-3 text-sm text-gray-500">{formatRelativeDate(c.createdAt)}</td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-11 w-11"
-                            onClick={() => setDetailComplaint(c)}
-                          >
-                            <Eye className="h-5 w-5" />
-                            <span className="sr-only">View</span>
+                          <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => setDetailComplaint(c)}>
+                            <Eye className="h-5 w-5" /><span className="sr-only">View</span>
                           </Button>
                           <Select
                             value={c.status}
-                            onValueChange={(v) =>
-                              handleStatusChange(c.id, v as ComplaintStatus)
-                            }
+                            onValueChange={(v) => handleStatusChange(c.id, v as ComplaintStatus)}
                             disabled={statusLoading === c.id}
                           >
-                            <SelectTrigger className="w-[120px] h-11">
-                              <SelectValue />
-                            </SelectTrigger>
+                            <SelectTrigger className="w-[120px] h-11"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {Object.values(ComplaintStatus).map((s) => (
-                                <SelectItem key={s} value={s}>
-                                  {s.replace("_", " ")}
-                                </SelectItem>
+                                <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -735,49 +454,27 @@ export default function ComplaintsPage() {
             </div>
           </div>
 
-          {/* Mobile cards — 11.3: subject + status row 1, name·dept, submitted, message, divider, [···] footer */}
           <div className="md:hidden space-y-3">
             {sortedComplaints.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
+              <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold">{c.subject}</p>
-                  <Badge className={`shrink-0 ${STATUS_BADGES[c.status]}`}>
-                    {c.status.replace("_", " ")}
-                  </Badge>
+                  <Badge className={`shrink-0 ${STATUS_BADGES[c.status]}`}>{c.status.replace("_", " ")}</Badge>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  {c.name} · {c.department}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatRelative(c.createdAt)}
-                </p>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {c.message}
-                </p>
+                <p className="text-sm text-gray-500 mt-1">{c.name} · {c.department}</p>
+                <p className="text-xs text-gray-500">{formatRelativeDate(c.createdAt)}</p>
+                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{c.message}</p>
                 <div className="border-t mt-3 pt-3 flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-11 w-11 shrink-0"
-                      >
-                        <MoreVertical className="h-5 w-5" />
-                        <span className="sr-only">Menu</span>
+                      <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0">
+                        <MoreVertical className="h-5 w-5" /><span className="sr-only">Menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setDetailComplaint(c)}>
-                        View detail
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDetailComplaint(c)}>View detail</DropdownMenuItem>
                       {Object.values(ComplaintStatus).map((s) => (
-                        <DropdownMenuItem
-                          key={s}
-                          onClick={() => handleStatusChange(c.id, s)}
-                        >
+                        <DropdownMenuItem key={s} onClick={() => handleStatusChange(c.id, s)}>
                           {s.replace("_", " ")}
                         </DropdownMenuItem>
                       ))}
@@ -790,39 +487,22 @@ export default function ComplaintsPage() {
         </div>
       )}
 
-      {/* 11.4 Complaint Detail Modal */}
-      <Dialog
-        open={!!detailComplaint}
-        onOpenChange={(o) => !o && setDetailComplaint(null)}
-      >
-        <DialogContent
-          className="md:max-w-[560px]"
-          onSwipeDown={() => setDetailComplaint(null)}
-        >
+      <Dialog open={!!detailComplaint} onOpenChange={(o) => !o && setDetailComplaint(null)}>
+        <DialogContent className="md:max-w-[560px]" onSwipeDown={() => setDetailComplaint(null)}>
           {detailComplaint && (
             <>
               <DialogHeader>
                 <div className="flex items-start justify-between gap-2">
-                  <DialogTitle className="text-lg">
-                    {detailComplaint.subject}
-                  </DialogTitle>
-                  <Badge className={STATUS_BADGES[detailComplaint.status]}>
-                    {detailComplaint.status.replace("_", " ")}
-                  </Badge>
+                  <DialogTitle className="text-lg">{detailComplaint.subject}</DialogTitle>
+                  <Badge className={STATUS_BADGES[detailComplaint.status]}>{detailComplaint.status.replace("_", " ")}</Badge>
                 </div>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <span className="text-gray-500">Name</span>
-                  <span>{detailComplaint.name}</span>
-                  <span className="text-gray-500">Email</span>
-                  <span>{detailComplaint.email}</span>
-                  <span className="text-gray-500">Department</span>
-                  <span>{detailComplaint.department}</span>
-                  <span className="text-gray-500">Submitted</span>
-                  <span>
-                    {new Date(detailComplaint.createdAt).toLocaleString()}
-                  </span>
+                  <span className="text-gray-500">Name</span><span>{detailComplaint.name}</span>
+                  <span className="text-gray-500">Email</span><span>{detailComplaint.email}</span>
+                  <span className="text-gray-500">Department</span><span>{detailComplaint.department}</span>
+                  <span className="text-gray-500">Submitted</span><span>{new Date(detailComplaint.createdAt).toLocaleString()}</span>
                 </div>
                 <div>
                   <Label>Message</Label>
@@ -832,8 +512,7 @@ export default function ComplaintsPage() {
                 </div>
                 {detailComplaint.resolvedAt && (
                   <p className="text-sm text-gray-500">
-                    Resolved by {detailComplaint.resolvedBy ?? "admin"} on{" "}
-                    {new Date(detailComplaint.resolvedAt).toLocaleString()}
+                    Resolved by {detailComplaint.resolvedBy ?? "admin"} on {new Date(detailComplaint.resolvedAt).toLocaleString()}
                   </p>
                 )}
               </div>
@@ -841,22 +520,13 @@ export default function ComplaintsPage() {
                 <DialogFooter>
                   <Select
                     value={detailComplaint.status}
-                    onValueChange={(v) =>
-                      handleStatusChange(
-                        detailComplaint.id,
-                        v as ComplaintStatus,
-                      )
-                    }
+                    onValueChange={(v) => handleStatusChange(detailComplaint.id, v as ComplaintStatus)}
                     disabled={statusLoading === detailComplaint.id}
                   >
-                    <SelectTrigger className="h-11 w-full">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.values(ComplaintStatus).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s.replace("_", " ")}
-                        </SelectItem>
+                        <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

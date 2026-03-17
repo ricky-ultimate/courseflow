@@ -65,7 +65,7 @@ import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { apiClient } from "@/lib/api";
-import { getItemsFromResponse } from "@/lib/utils";
+import { getInitials, getItemsFromResponse } from "@/lib/utils";
 import { Department, College, BulkOperationResult } from "@/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -345,10 +345,6 @@ export default function DepartmentsPage() {
 
   // HOD lock/unlock is scoped to their own department detail page only
   const canLockUnlock = (d: Department) => isAdmin;
-
-    function getInitials(name: string | null): import("react").ReactNode {
-        throw new Error("Function not implemented.");
-    }
 
   return (
     <div className="space-y-4">

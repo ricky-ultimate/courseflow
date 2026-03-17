@@ -21,9 +21,8 @@ import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { getInitials, getAvatarColor } from "@/lib/utils";
 import { Lock, Loader2 } from "lucide-react";
-
-const AVATAR_COLORS = ["bg-indigo-500", "bg-violet-500", "bg-blue-500", "bg-emerald-500"] as const;
 
 const profileSchema = z.object({
   name: z.string(),
@@ -31,15 +30,6 @@ const profileSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
-
-function getInitials(name: string | null, email: string): string {
-  if (name?.trim()) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return (parts[0][0] || "").toUpperCase();
-  }
-  return (email[0] || "?").toUpperCase();
-}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -105,10 +95,11 @@ export default function ProfilePage() {
     <div className="max-w-[640px] mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">Profile</h1>
 
-      {/* Section 1 — Identity card */}
       <Card className="rounded-xl border p-6">
         <div className="flex flex-col items-center text-center">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-semibold ${AVATAR_COLORS[0]}`}>
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-semibold ${getAvatarColor(user.name, user.email)}`}
+          >
             {getInitials(user.name, user.email)}
           </div>
           <p className="text-[22px] font-bold mt-4">{user.name || user.email}</p>
@@ -117,7 +108,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Section 2 — Personal Information */}
       <Card className="rounded-xl border mt-4 p-6">
         <CardHeader className="p-0 pb-4">
           <CardTitle>Personal Information</CardTitle>
@@ -169,7 +159,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Section 3 — Password Reset */}
       <Card className="rounded-xl border mt-4 p-6">
         <CardHeader className="p-0 pb-4">
           <CardTitle>Change Password</CardTitle>
@@ -186,7 +175,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Account Details */}
       <Card className="rounded-xl border mt-4 p-6">
         <CardHeader className="p-0 pb-4">
           <CardTitle>Account Details</CardTitle>

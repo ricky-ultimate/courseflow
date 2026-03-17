@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { apiClient } from "@/lib/api";
-import { getItemsFromResponse } from "@/lib/utils";
+import { getItemsFromResponse, getInitials, formatLastLogin } from "@/lib/utils";
 import {
   User as UserType,
   Role,
@@ -49,13 +49,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  GraduationCap,
   Loader2,
   MoreVertical,
   Pencil,
   Plus,
   Power,
-  Search,
   Trash2,
   UserX,
   Users,
@@ -67,14 +65,28 @@ import { ErrorState } from "@/components/state/error-state";
 import { FilterBar } from "../ui/filter-bar";
 import { FilterSelect } from "../ui/filter-select";
 
+const USER_LIST_AVATAR_COLORS = [
+  "bg-slate-400",
+  "bg-blue-400",
+  "bg-violet-400",
+  "bg-emerald-400",
+  "bg-orange-400",
+  "bg-pink-400",
+  "bg-sky-400",
+  "bg-teal-400",
+];
+
+function getUserAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash << 5) - hash + name.charCodeAt(i);
+  return USER_LIST_AVATAR_COLORS[Math.abs(hash) % USER_LIST_AVATAR_COLORS.length]!;
+}
+
 function createUserSchema(isEdit: boolean) {
   return z
     .object({
       matricNO: z.string().min(1, "Matric/Staff No. is required"),
-      email: z
-        .string()
-        .min(1, "Email is required")
-        .email("Invalid email format"),
+      email: z.string().min(1, "Email is required").email("Invalid email format"),
       password: z.string().optional(),
       name: z.string().optional(),
       role: z.nativeEnum(Role),
@@ -93,49 +105,6 @@ function createUserSchema(isEdit: boolean) {
 }
 
 type UserFormValues = z.infer<ReturnType<typeof createUserSchema>>;
-
-function getInitials(name: string | null | undefined, email: string): string {
-  if (name && name.trim()) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0]![0] + parts[1]![0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  }
-  return email.slice(0, 2).toUpperCase();
-}
-
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++)
-    hash = (hash << 5) - hash + name.charCodeAt(i);
-  const idx = Math.abs(hash) % 8;
-  const colors = [
-    "bg-slate-400",
-    "bg-blue-400",
-    "bg-violet-400",
-    "bg-emerald-400",
-    "bg-orange-400",
-    "bg-pink-400",
-    "bg-sky-400",
-    "bg-teal-400",
-  ];
-  return colors[idx];
-}
-
-function formatLastLogin(iso: string | null | undefined): string {
-  if (!iso) return "Never";
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24)
-    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
-  return d.toLocaleDateString();
-}
 
 const ROLE_LABELS: Record<Role, string> = {
   [Role.ADMIN]: "ADMIN",
@@ -174,10 +143,7 @@ export function UsersPage({ role }: UsersPageProps) {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState("");
 
-  const userSchema = useMemo(
-    () => createUserSchema(!!editingUser),
-    [editingUser],
-  );
+  const userSchema = useMemo(() => createUserSchema(!!editingUser), [editingUser]);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -188,9 +154,7 @@ export function UsersPage({ role }: UsersPageProps) {
       password: "",
       name: "",
       role: isLecturers ? Role.LECTURER : Role.STUDENT,
-      departmentCode: isHod
-        ? (user?.departmentCode ?? "")
-        : departmentCode || "",
+      departmentCode: isHod ? (user?.departmentCode ?? "") : departmentCode || "",
       phone: "",
     },
   });
@@ -206,8 +170,7 @@ export function UsersPage({ role }: UsersPageProps) {
         limit: 100,
         isActive: showInactive ? undefined : true,
       };
-      if (isHod && user?.departmentCode)
-        baseParams.departmentCode = user.departmentCode;
+      if (isHod && user?.departmentCode) baseParams.departmentCode = user.departmentCode;
       else if (departmentCode) baseParams.departmentCode = departmentCode;
 
       let result: UserType[] = [];
@@ -222,9 +185,7 @@ export function UsersPage({ role }: UsersPageProps) {
         const deptR = getItemsFromResponse<Department>(deptRes);
         const lect = lectR?.items ?? [];
         const hods = hodR?.items ?? [];
-        result = Array.from(
-          new Map([...lect, ...hods].map((u) => [u.id, u])).values(),
-        );
+        result = Array.from(new Map([...lect, ...hods].map((u) => [u.id, u])).values());
         if (deptR) setDepartments(deptR.items);
       } else {
         const [res, deptRes] = await Promise.all([
@@ -245,15 +206,7 @@ export function UsersPage({ role }: UsersPageProps) {
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [
-    isAdmin,
-    isHod,
-    user?.departmentCode,
-    departmentCode,
-    showInactive,
-    isLecturers,
-    toast,
-  ]);
+  }, [isAdmin, isHod, user?.departmentCode, departmentCode, showInactive, isLecturers, toast]);
 
   useEffect(() => {
     fetchData();
@@ -266,12 +219,7 @@ export function UsersPage({ role }: UsersPageProps) {
     const email = u.email.toLowerCase();
     const matric = u.matricNO.toLowerCase();
     const dept = (u.department?.name ?? u.departmentCode ?? "").toLowerCase();
-    return (
-      name.includes(term) ||
-      email.includes(term) ||
-      matric.includes(term) ||
-      dept.includes(term)
-    );
+    return name.includes(term) || email.includes(term) || matric.includes(term) || dept.includes(term);
   });
 
   const closeModal = useCallback(() => {
@@ -290,9 +238,7 @@ export function UsersPage({ role }: UsersPageProps) {
       password: "",
       name: "",
       role: isLecturers ? Role.LECTURER : Role.STUDENT,
-      departmentCode: isHod
-        ? (user?.departmentCode ?? "")
-        : departmentCode || "",
+      departmentCode: isHod ? (user?.departmentCode ?? "") : departmentCode || "",
       phone: "",
     });
     setIsModalOpen(true);
@@ -387,24 +333,18 @@ export function UsersPage({ role }: UsersPageProps) {
       return;
     }
     const prevActive = u.isActive;
-    setUsers((prev) =>
-      prev.map((x) => (x.id === u.id ? { ...x, isActive: true } : x)),
-    );
+    setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, isActive: true } : x)));
     try {
       setActionLoading(true);
       const res = await apiClient.updateUser(u.id, { isActive: true });
       if (res.success) {
         toast({ title: "User activated." });
       } else {
-        setUsers((prev) =>
-          prev.map((x) => (x.id === u.id ? { ...x, isActive: prevActive } : x)),
-        );
+        setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, isActive: prevActive } : x)));
         toast({ title: (res as any).error, variant: "destructive" });
       }
     } catch {
-      setUsers((prev) =>
-        prev.map((x) => (x.id === u.id ? { ...x, isActive: prevActive } : x)),
-      );
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, isActive: prevActive } : x)));
       toast({ title: "Update failed", variant: "destructive" });
     } finally {
       setActionLoading(false);
@@ -414,34 +354,20 @@ export function UsersPage({ role }: UsersPageProps) {
   const handleConfirmDeactivate = async (): Promise<boolean> => {
     if (!deactivateUser) return false;
     const prevActive = deactivateUser.isActive;
-    setUsers((prev) =>
-      prev.map((x) =>
-        x.id === deactivateUser.id ? { ...x, isActive: false } : x,
-      ),
-    );
+    setUsers((prev) => prev.map((x) => (x.id === deactivateUser.id ? { ...x, isActive: false } : x)));
     setDeactivateUser(null);
     try {
       setActionLoading(true);
-      const res = await apiClient.updateUser(deactivateUser.id, {
-        isActive: false,
-      });
+      const res = await apiClient.updateUser(deactivateUser.id, { isActive: false });
       if (res.success) {
         toast({ title: "User deactivated." });
         return true;
       }
-      setUsers((prev) =>
-        prev.map((x) =>
-          x.id === deactivateUser.id ? { ...x, isActive: prevActive } : x,
-        ),
-      );
+      setUsers((prev) => prev.map((x) => (x.id === deactivateUser.id ? { ...x, isActive: prevActive } : x)));
       toast({ title: (res as any).error, variant: "destructive" });
       return false;
     } catch {
-      setUsers((prev) =>
-        prev.map((x) =>
-          x.id === deactivateUser.id ? { ...x, isActive: prevActive } : x,
-        ),
-      );
+      setUsers((prev) => prev.map((x) => (x.id === deactivateUser.id ? { ...x, isActive: prevActive } : x)));
       toast({ title: "Update failed", variant: "destructive" });
       return false;
     } finally {
@@ -474,9 +400,7 @@ export function UsersPage({ role }: UsersPageProps) {
     return (
       <div className="text-center py-16">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-        <p className="text-gray-500">
-          You need admin or HOD privileges to access this page.
-        </p>
+        <p className="text-gray-500">You need admin or HOD privileges to access this page.</p>
       </div>
     );
   }
@@ -487,12 +411,9 @@ export function UsersPage({ role }: UsersPageProps) {
 
   return (
     <div className="space-y-6">
-      {/* 10.1 Page Layout */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            {heading}
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{heading}</h1>
         </div>
         {isAdmin && (
           <Button
@@ -506,12 +427,7 @@ export function UsersPage({ role }: UsersPageProps) {
         )}
       </div>
 
-      {/* Filter bar */}
-      <FilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search users..."
-      >
+      <FilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search users...">
         {showDeptSelect && (
           <FilterSelect
             value={departmentCode || "all"}
@@ -537,16 +453,9 @@ export function UsersPage({ role }: UsersPageProps) {
         </label>
       </FilterBar>
 
-      {/* 10.2 Users Table */}
       {fetchError ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <ErrorState
-            entity="users"
-            onRetry={() => {
-              setFetchError(null);
-              fetchData();
-            }}
-          />
+          <ErrorState entity="users" onRetry={() => { setFetchError(null); fetchData(); }} />
         </div>
       ) : loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -554,7 +463,7 @@ export function UsersPage({ role }: UsersPageProps) {
             <table className="w-full">
               <thead className="bg-white border-b">
                 <tr className="text-left text-sm text-gray-500">
-                  <th className="p-3">Avatar+Name</th>
+                  <th className="p-3">Name</th>
                   <th className="p-3">Matric/Staff No.</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Department</th>
@@ -573,24 +482,12 @@ export function UsersPage({ role }: UsersPageProps) {
                         <div className="h-6 bg-gray-200 animate-pulse rounded w-24" />
                       </div>
                     </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-20 font-mono" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-36" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-28" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-16" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-20" />
-                    </td>
-                    <td className="p-3">
-                      <div className="h-6 bg-gray-200 animate-pulse rounded w-14" />
-                    </td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-20" /></td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-36" /></td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-28" /></td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-16" /></td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-20" /></td>
+                    <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-14" /></td>
                     {isAdmin && (
                       <td className="p-3 text-right">
                         <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
@@ -606,23 +503,18 @@ export function UsersPage({ role }: UsersPageProps) {
         <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-base font-semibold text-gray-700">
-            No users found
-          </h3>
-          <p className="text-sm text-gray-400 mt-2">
-            Try adjusting your filters.
-          </p>
+          <h3 className="text-base font-semibold text-gray-700">No users found</h3>
+          <p className="text-sm text-gray-400 mt-2">Try adjusting your filters.</p>
         </div>
       ) : (
         <div className="relative">
           {refetching && <RefetchIndicator />}
-          {/* Desktop table */}
           <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-white border-b sticky top-0 z-10">
                   <tr className="text-left text-sm text-gray-500">
-                    <th className="p-3">Avatar+Name</th>
+                    <th className="p-3">Name</th>
                     <th className="p-3">Matric/Staff No.</th>
                     <th className="p-3">Email</th>
                     <th className="p-3">Department</th>
@@ -638,48 +530,29 @@ export function UsersPage({ role }: UsersPageProps) {
                       <td className="p-3">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${getAvatarColor(u.name ?? u.email)}`}
+                            className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${getUserAvatarColor(u.name ?? u.email)}`}
                           >
                             {getInitials(u.name, u.email)}
                           </div>
-                          <span className="font-medium">
-                            {u.name ?? u.email}
-                          </span>
+                          <span className="font-medium">{u.name ?? u.email}</span>
                         </div>
                       </td>
                       <td className="p-3 font-mono text-sm">{u.matricNO}</td>
                       <td className="p-3 text-sm">{u.email}</td>
-                      <td className="p-3 text-sm">
-                        {u.department?.name ?? u.departmentCode ?? "—"}
-                      </td>
+                      <td className="p-3 text-sm">{u.department?.name ?? u.departmentCode ?? "—"}</td>
                       <td className="p-3">
-                        <Badge variant="secondary" className="text-xs">
-                          {ROLE_LABELS[u.role]}
-                        </Badge>
+                        <Badge variant="secondary" className="text-xs">{ROLE_LABELS[u.role]}</Badge>
                       </td>
-                      <td className="p-3 text-sm text-gray-500">
-                        {formatLastLogin(u.lastLoginAt)}
-                      </td>
+                      <td className="p-3 text-sm text-gray-500">{formatLastLogin(u.lastLoginAt)}</td>
                       <td className="p-3">
-                        <Badge
-                          className={
-                            u.isActive
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }
-                        >
+                        <Badge className={u.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
                           {u.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </td>
                       {isAdmin && (
                         <td className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-11 w-11"
-                              onClick={() => openEdit(u)}
-                            >
+                            <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => openEdit(u)}>
                               <Pencil className="h-5 w-5" />
                               <span className="sr-only">Edit</span>
                             </Button>
@@ -712,65 +585,45 @@ export function UsersPage({ role }: UsersPageProps) {
             </div>
           </div>
 
-          {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filteredUsers.map((u) => (
-              <div
-                key={u.id}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
+              <div key={u.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0 ${getAvatarColor(u.name ?? u.email)}`}
+                      className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0 ${getUserAvatarColor(u.name ?? u.email)}`}
                     >
                       {getInitials(u.name, u.email)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium">{u.name ?? u.email}</p>
-                        <Badge variant="secondary" className="text-xs">
-                          {ROLE_LABELS[u.role]}
-                        </Badge>
+                        <Badge variant="secondary" className="text-xs">{ROLE_LABELS[u.role]}</Badge>
                       </div>
-                      <p className="text-sm text-gray-500 font-mono">
-                        {u.matricNO}
-                      </p>
+                      <p className="text-sm text-gray-500 font-mono">{u.matricNO}</p>
                       <p className="text-sm text-gray-500">{u.email}</p>
                       <p className="text-xs text-gray-500">
-                        {u.department?.name ?? u.departmentCode ?? "—"} ·{" "}
-                        {u.isActive ? "Active" : "Inactive"}
+                        {u.department?.name ?? u.departmentCode ?? "—"} · {u.isActive ? "Active" : "Inactive"}
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="border-t mt-3 pt-3 flex items-center justify-between gap-2">
-                  <p className="text-xs text-gray-500">
-                    Last login: {formatLastLogin(u.lastLoginAt)}
-                  </p>
+                  <p className="text-xs text-gray-500">Last login: {formatLastLogin(u.lastLoginAt)}</p>
                   {isAdmin && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-11 w-11 shrink-0"
-                        >
+                        <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0">
                           <MoreVertical className="h-5 w-5" />
                           <span className="sr-only">Menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(u)}>
-                          Edit
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(u)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleToggleActive(u)}>
                           {u.isActive ? "Deactivate" : "Activate"}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => setDeleteUser(u)}
-                        >
+                        <DropdownMenuItem className="text-red-600" onClick={() => setDeleteUser(u)}>
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -783,31 +636,16 @@ export function UsersPage({ role }: UsersPageProps) {
         </div>
       )}
 
-      {/* 10.3 Add/Edit Modal */}
-      <Dialog
-        open={isModalOpen}
-        onOpenChange={(o) => {
-          if (!o) closeModal();
-          else setIsModalOpen(o);
-        }}
-      >
-        <DialogContent
-          className="md:max-w-[520px]"
-          onSwipeDown={() => closeModal()}
-        >
+      <Dialog open={isModalOpen} onOpenChange={(o) => { if (!o) closeModal(); else setIsModalOpen(o); }}>
+        <DialogContent className="md:max-w-[520px]" onSwipeDown={() => closeModal()}>
           <DialogHeader>
             <DialogTitle>{editingUser ? "Edit User" : addLabel}</DialogTitle>
             <DialogDescription>
-              {editingUser
-                ? "Update user details."
-                : "Create a new user account."}
+              {editingUser ? "Update user details." : "Create a new user account."}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form
-              onSubmit={handleSave}
-              className={`space-y-4 transition-opacity ${saving ? "opacity-60" : ""}`}
-            >
+            <form onSubmit={handleSave} className={`space-y-4 transition-opacity ${saving ? "opacity-60" : ""}`}>
               {saveError && <ServerErrorBanner message={saveError} />}
               <FormField
                 control={form.control}
@@ -816,12 +654,7 @@ export function UsersPage({ role }: UsersPageProps) {
                   <FormItem>
                     <FormLabel>Full name</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Optional"
-                        disabled={saving}
-                        {...field}
-                        value={field.value ?? ""}
-                      />
+                      <Input placeholder="Optional" disabled={saving} {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -847,11 +680,7 @@ export function UsersPage({ role }: UsersPageProps) {
                   <FormItem>
                     <FormLabel>Email *</FormLabel>
                     <FormControl>
-                      <Input
-                        type="email"
-                        disabled={!!editingUser || saving}
-                        {...field}
-                      />
+                      <Input type="email" disabled={!!editingUser || saving} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -865,12 +694,7 @@ export function UsersPage({ role }: UsersPageProps) {
                     <FormItem>
                       <FormLabel>Password *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="password"
-                          disabled={saving}
-                          {...field}
-                          value={field.value ?? ""}
-                        />
+                        <Input type="password" disabled={saving} {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -884,20 +708,12 @@ export function UsersPage({ role }: UsersPageProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={saving}
-                      >
+                      <Select value={field.value} onValueChange={field.onChange} disabled={saving}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={Role.LECTURER}>
-                            Lecturer
-                          </SelectItem>
+                          <SelectItem value={Role.LECTURER}>Lecturer</SelectItem>
                           <SelectItem value={Role.HOD}>HOD</SelectItem>
                         </SelectContent>
                       </Select>
@@ -913,22 +729,14 @@ export function UsersPage({ role }: UsersPageProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Department</FormLabel>
-                      <Select
-                        value={field.value || ""}
-                        onValueChange={field.onChange}
-                        disabled={saving}
-                      >
+                      <Select value={field.value || ""} onValueChange={field.onChange} disabled={saving}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="">None</SelectItem>
                           {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.code}>
-                              {d.name}
-                            </SelectItem>
+                            <SelectItem key={d.id} value={d.code}>{d.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -944,32 +752,18 @@ export function UsersPage({ role }: UsersPageProps) {
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Optional"
-                        disabled={saving}
-                        {...field}
-                        value={field.value ?? ""}
-                      />
+                      <Input placeholder="Optional" disabled={saving} {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => closeModal()}
-                  disabled={saving}
-                >
+                <Button type="button" variant="outline" onClick={() => closeModal()} disabled={saving}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Save"
-                  )}
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
                 </Button>
               </DialogFooter>
             </form>

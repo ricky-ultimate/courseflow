@@ -1,43 +1,28 @@
-'use client'
+"use client";
 
-import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Lock, ArrowLeft, Pencil, Trash2 } from 'lucide-react'
-import { Schedule, Semester, DayOfWeek } from '@/types'
-
-const DAY_LABELS: Record<DayOfWeek, string> = {
-  [DayOfWeek.MONDAY]: 'Monday',
-  [DayOfWeek.TUESDAY]: 'Tuesday',
-  [DayOfWeek.WEDNESDAY]: 'Wednesday',
-  [DayOfWeek.THURSDAY]: 'Thursday',
-  [DayOfWeek.FRIDAY]: 'Friday',
-  [DayOfWeek.SATURDAY]: 'Saturday',
-  [DayOfWeek.SUNDAY]: 'Sunday',
-}
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Lock, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { Schedule, Semester } from "@/types";
+import { DAY_LABELS } from "@/lib/constants";
 
 export interface ScheduleDetailSheetProps {
-  schedule: Schedule | null
-  sessionName?: string
-  onClose: () => void
-  onEdit: (schedule: Schedule) => void
-  onDelete: (schedule: Schedule) => void
-  canMutate?: boolean
-  isAdmin?: boolean
+  schedule: Schedule | null;
+  sessionName?: string;
+  onClose: () => void;
+  onEdit: (schedule: Schedule) => void;
+  onDelete: (schedule: Schedule) => void;
+  canMutate?: boolean;
+  isAdmin?: boolean;
 }
 
 export function ScheduleDetailSheet({
-  schedule,
-  sessionName,
-  onClose,
-  onEdit,
-  onDelete,
-  canMutate,
-  isAdmin,
+  schedule, sessionName, onClose, onEdit, onDelete, canMutate, isAdmin,
 }: ScheduleDetailSheetProps) {
-  if (!schedule) return null
+  if (!schedule) return null;
 
-  const canDelete = canMutate && (schedule.isFixed ? !!isAdmin : true)
+  const canDelete = canMutate && (schedule.isFixed ? !!isAdmin : true);
 
   return (
     <Sheet open={!!schedule} onOpenChange={(o) => !o && onClose()}>
@@ -52,18 +37,16 @@ export function ScheduleDetailSheet({
             <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
               {schedule.course?.code ?? schedule.courseCode}
             </span>
-            <h2 className="text-xl font-semibold mt-2">{schedule.course?.name ?? '—'}</h2>
+            <h2 className="text-xl font-semibold mt-2">{schedule.course?.name ?? "—"}</h2>
           </div>
-
           <div>
             <p className="text-lg font-semibold">
-              {DAY_LABELS[schedule.dayOfWeek as DayOfWeek] ?? schedule.dayOfWeek}, {schedule.startTime} – {schedule.endTime}
+              {DAY_LABELS[schedule.dayOfWeek]}, {schedule.startTime} – {schedule.endTime}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              {sessionName || schedule.sessionId} · {schedule.semester === Semester.FIRST ? 'First' : 'Second'} Semester
+              {sessionName || schedule.sessionId} · {schedule.semester === Semester.FIRST ? "First" : "Second"} Semester
             </p>
           </div>
-
           <div className="flex gap-2 flex-wrap">
             {schedule.isFixed ? (
               <Badge className="bg-indigo-100 text-indigo-700">
@@ -76,33 +59,33 @@ export function ScheduleDetailSheet({
               <Badge variant="secondary" className="bg-gray-100 text-gray-600">Auto-generated</Badge>
             )}
           </div>
-
           <div className="rounded-lg border p-4 space-y-2">
             <p className="text-sm">
-              <span className="text-gray-500">Level:</span>{' '}
+              <span className="text-gray-500">Level:</span>{" "}
               <Badge variant="secondary" className="text-xs">
-                {schedule.course?.level?.replace('LEVEL_', '') ?? '—'}
+                {schedule.course?.level?.replace("LEVEL_", "") ?? "—"}
               </Badge>
             </p>
             <p className="text-sm">
-              <span className="text-gray-500">Department:</span>{' '}
-              <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{schedule.course?.departmentCode ?? '—'}</span>
+              <span className="text-gray-500">Department:</span>{" "}
+              <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                {schedule.course?.departmentCode ?? "—"}
+              </span>
             </p>
             <p className="text-sm">
-              <span className="text-gray-500">Lecturer:</span>{' '}
+              <span className="text-gray-500">Lecturer:</span>{" "}
               {schedule.course?.lecturer?.name && schedule.course?.lecturer?.email
                 ? `${schedule.course.lecturer.name} (${schedule.course.lecturer.email})`
-                : schedule.course?.lecturer?.name ?? schedule.course?.lecturer?.email ?? '—'}
+                : schedule.course?.lecturer?.name ?? schedule.course?.lecturer?.email ?? "—"}
             </p>
           </div>
-
           {canMutate && (
             <div className="space-y-2">
               <Button variant="outline" className="w-full" onClick={() => onEdit(schedule)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Schedule
               </Button>
-              <span title={!canDelete && schedule.isFixed ? 'This slot is fixed. Contact an admin to remove it.' : undefined} className="block">
+              <span title={!canDelete && schedule.isFixed ? "This slot is fixed. Contact an admin to remove it." : undefined} className="block">
                 <Button
                   variant="outline"
                   className="w-full text-red-600 border-red-200 hover:bg-red-50"
@@ -118,5 +101,5 @@ export function ScheduleDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
