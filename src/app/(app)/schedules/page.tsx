@@ -19,6 +19,7 @@ import { TimetableGrid } from "@/components/schedules/timetable-grid";
 import { MobileTimetable } from "@/components/schedules/mobile-timetable";
 import { ScheduleDetailSheet } from "@/components/schedules/schedule-detail-sheet";
 import { CreateScheduleModal } from "@/components/schedules/create-schedule-modal";
+import { UnscheduledCoursesPanel } from "@/components/schedules/unscheduled-courses-panel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/state/error-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -85,6 +86,7 @@ export default function SchedulePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(25);
+  const [unscheduledKey, setUnscheduledKey] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -181,6 +183,7 @@ export default function SchedulePage() {
         openForDetailScheduleIdRef.current = null;
         setDetailSchedule(null);
         fetchSchedules();
+        setUnscheduledKey((k) => k + 1);
         return true;
       }
       toast({ title: (res as any).error ?? "Failed", variant: "destructive" });
@@ -192,6 +195,11 @@ export default function SchedulePage() {
       setDeleteLoading(false);
     }
   };
+
+  const handleScheduleCreated = useCallback(() => {
+    fetchSchedules();
+    setUnscheduledKey((k) => k + 1);
+  }, [fetchSchedules]);
 
   const fetchAllSchedulesForExport = async (): Promise<Schedule[]> => {
     try {
@@ -302,8 +310,19 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      <GenerateScheduleModal open={generateModalOpen} onOpenChange={setGenerateModalOpen} onSuccess={fetchSchedules} isHod={!!isHod} departmentCode={isHod && user?.departmentCode ? user.departmentCode : undefined} departmentName={isHod && user?.departmentCode ? departments.find((d) => d.code === user.departmentCode)?.name : undefined} />
-      <CreateScheduleModal open={createModalOpen} onOpenChange={(o) => { if (!o) setEditSchedule(null); setCreateModalOpen(o); }} onSuccess={fetchSchedules} prefill={createModalPrefill} editSchedule={editSchedule} activeSessionId={selectedSessionId || activeSession?.id} existingSchedules={schedules} />
+      {canMutateSchedules && (
+        <UnscheduledCoursesPanel
+          key={unscheduledKey}
+          onAddSchedule={(courseCode) => {
+            setEditSchedule(null);
+            setCreateModalPrefill({ courseCode });
+            setCreateModalOpen(true);
+          }}
+        />
+      )}
+
+      <GenerateScheduleModal open={generateModalOpen} onOpenChange={setGenerateModalOpen} onSuccess={handleScheduleCreated} isHod={!!isHod} departmentCode={isHod && user?.departmentCode ? user.departmentCode : undefined} departmentName={isHod && user?.departmentCode ? departments.find((d) => d.code === user.departmentCode)?.name : undefined} />
+      <CreateScheduleModal open={createModalOpen} onOpenChange={(o) => { if (!o) setEditSchedule(null); setCreateModalOpen(o); }} onSuccess={handleScheduleCreated} prefill={createModalPrefill} editSchedule={editSchedule} activeSessionId={selectedSessionId || activeSession?.id} existingSchedules={schedules} />
       <ScheduleDetailSheet schedule={detailSchedule} sessionName={sessions.find((s) => s.id === detailSchedule?.sessionId)?.name} onClose={() => { openForDetailScheduleIdRef.current = null; setDetailSchedule(null); }} onEdit={(s) => { openForDetailScheduleIdRef.current = null; setDetailSchedule(null); setEditSchedule(s); setCreateModalOpen(true); }} onDelete={(s) => setDeleteSchedule(s)} canMutate={canMutateSchedules} isAdmin={isAdmin} />
       <ConfirmDialog open={!!deleteSchedule} onOpenChange={(o) => !o && setDeleteSchedule(null)} title="Delete schedule?" description={deleteSchedule ? `Remove ${deleteSchedule.course?.code ?? deleteSchedule.courseCode} from the timetable?` : ""} icon={Trash2} confirmLabel="Delete" confirmVariant="destructive" onConfirm={handleDeleteSchedule} loading={deleteLoading} />
 
