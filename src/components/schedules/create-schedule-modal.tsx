@@ -160,11 +160,13 @@ export function CreateScheduleModal({
     prefill.dayOfWeek,
     prefill.startTime,
     form,
+    courses,
   ]);
 
   const dayOfWeek = form.watch("dayOfWeek");
   const startTime = form.watch("startTime");
   const endTime = form.watch("endTime");
+  const courseCode = form.watch("courseCode");
 
   const availableEndTimes: string[] = (() => {
     if (!startTime) return [];
@@ -186,13 +188,14 @@ export function CreateScheduleModal({
   const filteredCourses =
     query.trim().length > 0 ? courses : courses.slice(0, 50);
 
-  const courseCode = form.watch("courseCode");
   const selectedCourse = courses.find((c) => c.code === courseCode);
   const displayValue = comboboxOpen
     ? query
     : selectedCourse
       ? `${selectedCourse.code} - ${selectedCourse.name}`
-      : "";
+      : courseCode
+        ? courseCode
+        : "";
 
   const handleSubmit = form.handleSubmit(async (data) => {
     setServerError("");
@@ -287,9 +290,12 @@ export function CreateScheduleModal({
                         value={displayValue}
                         onChange={(e) => {
                           setQuery(e.target.value);
+                          if (courseCode) field.onChange("");
                           setComboboxOpen(true);
                         }}
-                        onFocus={() => setComboboxOpen(true)}
+                        onFocus={() => {
+                          if (!courseCode) setComboboxOpen(true);
+                        }}
                         onKeyDown={(e) =>
                           e.key === "Escape" && setComboboxOpen(false)
                         }
