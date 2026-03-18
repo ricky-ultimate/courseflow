@@ -9,14 +9,51 @@ import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { RefetchIndicator } from "@/components/ui/refetch-indicator";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
-import { Exam, CreateExamData, UpdateExamData, Course, AcademicSession, Semester, VenueType, Level, ICT_VENUES } from "@/types";
+import {
+  Exam,
+  CreateExamData,
+  UpdateExamData,
+  Course,
+  AcademicSession,
+  Semester,
+  VenueType,
+  Level,
+  ICT_VENUES,
+} from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ClipboardList, Filter, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ClipboardList,
+  Filter,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Trash2,
+  CalendarDays,
+  MapPin,
+  Users,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/state/error-state";
@@ -34,8 +71,36 @@ const LEVEL_PILL_MAP: Record<string, string> = {
   [Level.LEVEL_500]: LEVEL_PILL[Level.LEVEL_500],
 };
 
+const LEVEL_OPTIONS = [
+  { value: Level.LEVEL_100, label: "100" },
+  { value: Level.LEVEL_200, label: "200" },
+  { value: Level.LEVEL_300, label: "300" },
+  { value: Level.LEVEL_400, label: "400" },
+  { value: Level.LEVEL_500, label: "500" },
+];
+
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function getDaysUntil(iso: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const examDate = new Date(iso);
+  examDate.setHours(0, 0, 0, 0);
+  return Math.round((examDate.getTime() - today.getTime()) / 86400000);
 }
 
 function isCbtCourse(course: Course | null | undefined): boolean {
@@ -44,32 +109,58 @@ function isCbtCourse(course: Course | null | undefined): boolean {
 }
 
 function createExamSchema(courses: Course[]) {
-  return z.object({
-    courseCode: z.string().min(1, "Course is required"),
-    venue: z.nativeEnum(VenueType),
-    date: z.string().min(1, "Date is required"),
-    startTime: z.string().min(1, "Start time is required"),
-    endTime: z.string().min(1, "End time is required"),
-    studentCount: z.union([z.number(), z.string()]).transform((v) => { const n = typeof v === "string" ? parseInt(v, 10) : v; return isNaN(n as number) ? 1 : (n as number); }).pipe(z.number().min(1)),
-    invigilators: z.string().optional(),
-    targetCollege: z.string().optional(),
-  }).refine((d) => {
-    const [sh, sm] = d.startTime.split(":").map(Number);
-    const [eh, em] = d.endTime.split(":").map(Number);
-    return (eh ?? 0) * 60 + ((em ?? 0)) > (sh ?? 0) * 60 + ((sm ?? 0));
-  }, { message: "End time must be after start time", path: ["endTime"] }).superRefine((data, ctx) => {
-    const course = courses.find((c) => c.code === data.courseCode);
-    if (course && isCbtCourse(course) && !ICT_VENUES.includes(data.venue as VenueType)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CBT courses require an ICT venue", path: ["venue"] });
-    }
-    if (course?.isGeneral && !data.targetCollege) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "General courses require Target College", path: ["targetCollege"] });
-    }
-  });
+  return z
+    .object({
+      courseCode: z.string().min(1, "Course is required"),
+      venue: z.nativeEnum(VenueType),
+      date: z.string().min(1, "Date is required"),
+      startTime: z.string().min(1, "Start time is required"),
+      endTime: z.string().min(1, "End time is required"),
+      studentCount: z
+        .union([z.number(), z.string()])
+        .transform((v) => {
+          const n = typeof v === "string" ? parseInt(v, 10) : v;
+          return isNaN(n as number) ? 1 : (n as number);
+        })
+        .pipe(z.number().min(1)),
+      invigilators: z.string().optional(),
+      targetCollege: z.string().optional(),
+    })
+    .refine(
+      (d) => {
+        const [sh, sm] = d.startTime.split(":").map(Number);
+        const [eh, em] = d.endTime.split(":").map(Number);
+        return (
+          (eh ?? 0) * 60 + (em ?? 0) > (sh ?? 0) * 60 + (sm ?? 0)
+        );
+      },
+      { message: "End time must be after start time", path: ["endTime"] }
+    )
+    .superRefine((data, ctx) => {
+      const course = courses.find((c) => c.code === data.courseCode);
+      if (
+        course &&
+        isCbtCourse(course) &&
+        !ICT_VENUES.includes(data.venue as VenueType)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "CBT courses require an ICT venue",
+          path: ["venue"],
+        });
+      }
+      if (course?.isGeneral && !data.targetCollege) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "General courses require Target College",
+          path: ["targetCollege"],
+        });
+      }
+    });
 }
 
 export default function ExamsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStudent, user } = useAuth();
   const { toast } = useToast();
 
   const [exams, setExams] = useState<Exam[]>([]);
@@ -87,6 +178,7 @@ export default function ExamsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sessionId, setSessionId] = useState<string>("");
   const [semester, setSemester] = useState<string>("all");
+  const [studentLevelFilter, setStudentLevelFilter] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -102,29 +194,87 @@ export default function ExamsPage() {
   const examSchema = useMemo(() => createExamSchema(courses), [courses]);
   type ExamFormValues = z.infer<ReturnType<typeof createExamSchema>>;
 
-  const form = useForm<ExamFormValues>({ resolver: zodResolver(examSchema), mode: "onBlur", defaultValues: { courseCode: "", venue: VenueType.LECTURE_HALL_1, date: "", startTime: "", endTime: "", studentCount: 1, invigilators: "", targetCollege: undefined } });
-  const editForm = useForm<ExamFormValues>({ resolver: zodResolver(examSchema), mode: "onBlur", defaultValues: { courseCode: "", venue: VenueType.LECTURE_HALL_1, date: "", startTime: "", endTime: "", studentCount: 1, invigilators: "", targetCollege: undefined } });
+  const form = useForm<ExamFormValues>({
+    resolver: zodResolver(examSchema),
+    mode: "onBlur",
+    defaultValues: {
+      courseCode: "",
+      venue: VenueType.LECTURE_HALL_1,
+      date: "",
+      startTime: "",
+      endTime: "",
+      studentCount: 1,
+      invigilators: "",
+      targetCollege: undefined,
+    },
+  });
+  const editForm = useForm<ExamFormValues>({
+    resolver: zodResolver(examSchema),
+    mode: "onBlur",
+    defaultValues: {
+      courseCode: "",
+      venue: VenueType.LECTURE_HALL_1,
+      date: "",
+      startTime: "",
+      endTime: "",
+      studentCount: 1,
+      invigilators: "",
+      targetCollege: undefined,
+    },
+  });
 
-  useEffect(() => { const t = setTimeout(() => { setDebouncedSearch(searchInput); setPage(1); }, 300); return () => clearTimeout(t); }, [searchInput]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  const openEditExam = useCallback(async (exam: Exam) => {
-    openForEditExamIdRef.current = exam.id;
-    setEditExam(exam);
-    setEditError("");
-    const resetValues = { courseCode: exam.courseCode, venue: exam.venue ?? VenueType.LECTURE_HALL_1, date: exam.date?.includes("T") ? exam.date.split("T")[0]! : (exam.date ?? ""), startTime: exam.startTime ?? "", endTime: exam.endTime ?? "", studentCount: exam.studentCount ?? 1, invigilators: exam.invigilators ?? "", targetCollege: exam.targetCollege ?? undefined };
-    editForm.reset(resetValues);
-    try {
-      const res = await apiClient.getExamById(exam.id);
-      if (openForEditExamIdRef.current !== exam.id) return;
-      if (res.success && res.data) {
-        const fresh = res.data as Exam;
-        setEditExam(fresh);
-        editForm.reset({ courseCode: fresh.courseCode, venue: fresh.venue ?? VenueType.LECTURE_HALL_1, date: fresh.date?.includes("T") ? fresh.date.split("T")[0]! : (fresh.date ?? ""), startTime: fresh.startTime ?? "", endTime: fresh.endTime ?? "", studentCount: fresh.studentCount ?? 1, invigilators: fresh.invigilators ?? "", targetCollege: fresh.targetCollege ?? undefined });
+  const openEditExam = useCallback(
+    async (exam: Exam) => {
+      openForEditExamIdRef.current = exam.id;
+      setEditExam(exam);
+      setEditError("");
+      const resetValues = {
+        courseCode: exam.courseCode,
+        venue: exam.venue ?? VenueType.LECTURE_HALL_1,
+        date: exam.date?.includes("T")
+          ? exam.date.split("T")[0]!
+          : (exam.date ?? ""),
+        startTime: exam.startTime ?? "",
+        endTime: exam.endTime ?? "",
+        studentCount: exam.studentCount ?? 1,
+        invigilators: exam.invigilators ?? "",
+        targetCollege: exam.targetCollege ?? undefined,
+      };
+      editForm.reset(resetValues);
+      try {
+        const res = await apiClient.getExamById(exam.id);
+        if (openForEditExamIdRef.current !== exam.id) return;
+        if (res.success && res.data) {
+          const fresh = res.data as Exam;
+          setEditExam(fresh);
+          editForm.reset({
+            courseCode: fresh.courseCode,
+            venue: fresh.venue ?? VenueType.LECTURE_HALL_1,
+            date: fresh.date?.includes("T")
+              ? fresh.date.split("T")[0]!
+              : (fresh.date ?? ""),
+            startTime: fresh.startTime ?? "",
+            endTime: fresh.endTime ?? "",
+            studentCount: fresh.studentCount ?? 1,
+            invigilators: fresh.invigilators ?? "",
+            targetCollege: fresh.targetCollege ?? undefined,
+          });
+        }
+      } catch {
+        if (openForEditExamIdRef.current === exam.id)
+          toast({ title: "Failed to load exam", variant: "destructive" });
       }
-    } catch {
-      if (openForEditExamIdRef.current === exam.id) toast({ title: "Failed to load exam", variant: "destructive" });
-    }
-  }, [editForm, toast]);
+    },
+    [editForm, toast]
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -134,14 +284,25 @@ export default function ExamsPage() {
       const params: Record<string, unknown> = { page, limit };
       if (sessionId) params.sessionId = sessionId;
       if (semester && semester !== "all") params.semester = semester;
-      const [examsRes, coursesRes, sessRes] = await Promise.all([apiClient.getExams(params), apiClient.getCourses({ limit: 500 }), apiClient.getAcademicSessions({ limit: 50 })]);
+      if (isStudent && user?.departmentCode)
+        params.departmentCode = user.departmentCode;
+      const [examsRes, coursesRes, sessRes] = await Promise.all([
+        apiClient.getExams(params),
+        apiClient.getCourses({ limit: 500 }),
+        apiClient.getAcademicSessions({ limit: 50 }),
+      ]);
       const examR = getItemsFromResponse<Exam>(examsRes);
       const courseR = getItemsFromResponse<Course>(coursesRes);
       const sessR = getItemsFromResponse<AcademicSession>(sessRes);
-      if (examR) { setExams(examR.items); setTotal(examR.total); setTotalPages(examR.totalPages); }
+      if (examR) {
+        setExams(examR.items);
+        setTotal(examR.total);
+        setTotalPages(examR.totalPages);
+      }
       if (courseR) setCourses(courseR.items);
       if (sessR) setSessions(sessR.items);
-      if (sessR?.items?.length && !sessionId) setSessionId(sessR.items[0]!.id);
+      if (sessR?.items?.length && !sessionId)
+        setSessionId(sessR.items[0]!.id);
     } catch {
       setFetchError("Failed to load exams");
       toast({ title: "Failed to load exams", variant: "destructive" });
@@ -150,27 +311,105 @@ export default function ExamsPage() {
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [sessionId, semester, page, limit, toast]);
+  }, [sessionId, semester, page, limit, isStudent, user?.departmentCode, toast]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const filteredExams = debouncedSearch.trim()
-    ? exams.filter((exam) => { const term = debouncedSearch.toLowerCase(); const code = (exam.course?.code ?? exam.courseCode ?? "").toLowerCase(); const name = (exam.course?.name ?? "").toLowerCase(); return code.includes(term) || name.includes(term); })
-    : exams;
+  const filteredExams = useMemo(() => {
+    let result = exams;
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.toLowerCase();
+      result = result.filter((exam) => {
+        const code = (
+          exam.course?.code ??
+          exam.courseCode ??
+          ""
+        ).toLowerCase();
+        const name = (exam.course?.name ?? "").toLowerCase();
+        return code.includes(term) || name.includes(term);
+      });
+    }
+    if (isStudent && studentLevelFilter !== "all") {
+      result = result.filter(
+        (exam) =>
+          (exam.course?.level ?? "") === studentLevelFilter
+      );
+    }
+    return result;
+  }, [exams, debouncedSearch, isStudent, studentLevelFilter]);
 
-  const resetCreateForm = () => { form.reset({ courseCode: "", venue: VenueType.LECTURE_HALL_1, date: "", startTime: "", endTime: "", studentCount: 1, invigilators: "", targetCollege: undefined }); setCreateError(""); };
+  const upcomingExams = useMemo(() => {
+    if (!isStudent) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return [...filteredExams]
+      .filter((e) => e.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredExams, isStudent]);
+
+  const pastExams = useMemo(() => {
+    if (!isStudent) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return [...filteredExams]
+      .filter((e) => e.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [filteredExams, isStudent]);
+
+  const resetCreateForm = () => {
+    form.reset({
+      courseCode: "",
+      venue: VenueType.LECTURE_HALL_1,
+      date: "",
+      startTime: "",
+      endTime: "",
+      studentCount: 1,
+      invigilators: "",
+      targetCollege: undefined,
+    });
+    setCreateError("");
+  };
 
   const handleCreate = form.handleSubmit(async (data) => {
     setCreateError("");
     try {
       setCreating(true);
-      const selectedCourse = courses.find((c) => c.code === data.courseCode) ?? null;
-      const payload: CreateExamData = { courseCode: data.courseCode, venue: data.venue as VenueType, date: data.date.includes("T") ? data.date : `${data.date}T00:00:00.000Z`, startTime: data.startTime, endTime: data.endTime, studentCount: typeof data.studentCount === "number" ? data.studentCount : parseInt(String(data.studentCount), 10) || 1, invigilators: data.invigilators, targetCollege: selectedCourse?.isGeneral ? (data.targetCollege as any) : undefined };
+      const selectedCourse =
+        courses.find((c) => c.code === data.courseCode) ?? null;
+      const payload: CreateExamData = {
+        courseCode: data.courseCode,
+        venue: data.venue as VenueType,
+        date: data.date.includes("T")
+          ? data.date
+          : `${data.date}T00:00:00.000Z`,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        studentCount:
+          typeof data.studentCount === "number"
+            ? data.studentCount
+            : parseInt(String(data.studentCount), 10) || 1,
+        invigilators: data.invigilators,
+        targetCollege: selectedCourse?.isGeneral
+          ? (data.targetCollege as any)
+          : undefined,
+      };
       const res = await apiClient.createExam(payload);
-      if (res.success) { toast({ title: `Exam scheduled for ${data.courseCode}.` }); setIsCreateOpen(false); resetCreateForm(); setPage(1); fetchData(); }
-      else setCreateError((res as { error?: string }).error ?? "Failed to schedule");
-    } catch { setCreateError("Failed to schedule exam"); }
-    finally { setCreating(false); }
+      if (res.success) {
+        toast({ title: `Exam scheduled for ${data.courseCode}.` });
+        setIsCreateOpen(false);
+        resetCreateForm();
+        setPage(1);
+        fetchData();
+      } else {
+        setCreateError(
+          (res as { error?: string }).error ?? "Failed to schedule"
+        );
+      }
+    } catch {
+      setCreateError("Failed to schedule exam");
+    } finally {
+      setCreating(false);
+    }
   });
 
   const handleEditSubmit = editForm.handleSubmit(async (data) => {
@@ -178,13 +417,40 @@ export default function ExamsPage() {
     setEditError("");
     try {
       setEditLoading(true);
-      const editSelectedCourse = courses.find((c) => c.code === data.courseCode) ?? null;
-      const payload: UpdateExamData = { courseCode: data.courseCode, venue: data.venue as VenueType, date: data.date.includes("T") ? data.date : `${data.date}T00:00:00.000Z`, startTime: data.startTime, endTime: data.endTime, studentCount: typeof data.studentCount === "number" ? data.studentCount : parseInt(String(data.studentCount), 10) || 1, invigilators: data.invigilators, targetCollege: editSelectedCourse?.isGeneral ? (data.targetCollege as any) : undefined };
+      const editSelectedCourse =
+        courses.find((c) => c.code === data.courseCode) ?? null;
+      const payload: UpdateExamData = {
+        courseCode: data.courseCode,
+        venue: data.venue as VenueType,
+        date: data.date.includes("T")
+          ? data.date
+          : `${data.date}T00:00:00.000Z`,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        studentCount:
+          typeof data.studentCount === "number"
+            ? data.studentCount
+            : parseInt(String(data.studentCount), 10) || 1,
+        invigilators: data.invigilators,
+        targetCollege: editSelectedCourse?.isGeneral
+          ? (data.targetCollege as any)
+          : undefined,
+      };
       const res = await apiClient.updateExam(editExam.id, payload);
-      if (res.success) { toast({ title: "Exam updated." }); setEditExam(null); fetchData(); }
-      else setEditError((res as { error?: string }).error ?? "Failed to update");
-    } catch { setEditError("Failed to update exam"); }
-    finally { setEditLoading(false); }
+      if (res.success) {
+        toast({ title: "Exam updated." });
+        setEditExam(null);
+        fetchData();
+      } else {
+        setEditError(
+          (res as { error?: string }).error ?? "Failed to update"
+        );
+      }
+    } catch {
+      setEditError("Failed to update exam");
+    } finally {
+      setEditLoading(false);
+    }
   });
 
   const handleDelete = async (): Promise<boolean> => {
@@ -192,73 +458,441 @@ export default function ExamsPage() {
     try {
       setActionLoading(true);
       const res = await apiClient.deleteExam(deleteExam.id);
-      if (res.success) { toast({ title: "Exam deleted." }); setDeleteExam(null); if (exams.length === 1 && page > 1) setPage((p) => p - 1); else fetchData(); return true; }
+      if (res.success) {
+        toast({ title: "Exam deleted." });
+        setDeleteExam(null);
+        if (exams.length === 1 && page > 1) setPage((p) => p - 1);
+        else fetchData();
+        return true;
+      }
       toast({ title: (res as any).error, variant: "destructive" });
       return false;
-    } catch { toast({ title: "Delete failed", variant: "destructive" }); return false; }
-    finally { setActionLoading(false); }
+    } catch {
+      toast({ title: "Delete failed", variant: "destructive" });
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
   };
+
+  if (isStudent) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Exams
+          </h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Your upcoming and past examinations
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1">
+            <FilterBar
+              searchValue={searchInput}
+              onSearchChange={setSearchInput}
+              searchPlaceholder="Search by course code or name..."
+            >
+              <FilterSelect
+                value={sessionId || "all"}
+                onValueChange={(v) => {
+                  setSessionId(v === "all" ? "" : v);
+                  setPage(1);
+                }}
+                width="w-[160px]"
+              >
+                <SelectItem value="all">All Sessions</SelectItem>
+                {sessions.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </FilterSelect>
+              <FilterSelect
+                value={semester}
+                onValueChange={(v) => {
+                  setSemester(v);
+                  setPage(1);
+                }}
+                width="w-[150px]"
+              >
+                <SelectItem value="all">All Semesters</SelectItem>
+                <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
+                <SelectItem value={Semester.SECOND}>
+                  Second Semester
+                </SelectItem>
+              </FilterSelect>
+            </FilterBar>
+          </div>
+        </div>
+
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <button
+            type="button"
+            onClick={() => setStudentLevelFilter("all")}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              studentLevelFilter === "all"
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            All Levels
+          </button>
+          {LEVEL_OPTIONS.map((l) => (
+            <button
+              key={l.value}
+              type="button"
+              onClick={() => setStudentLevelFilter(l.value)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                studentLevelFilter === l.value
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {l.label}L
+            </button>
+          ))}
+        </div>
+
+        {fetchError ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <ErrorState
+              entity="exams"
+              onRetry={() => {
+                setFetchError(null);
+                fetchData();
+              }}
+            />
+          </div>
+        ) : loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200 bg-white p-4 animate-pulse"
+              >
+                <div className="flex justify-between gap-2">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-1/3" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </div>
+                  <div className="h-10 w-16 bg-gray-200 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredExams.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 p-12 text-center">
+            <ClipboardList className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-base font-semibold text-gray-700">
+              No exams found
+            </h3>
+            <p className="text-sm text-gray-400 mt-2">
+              No exams match your current filters.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {refetching && <RefetchIndicator />}
+
+            {upcomingExams.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Upcoming
+                </h2>
+                {upcomingExams.map((exam) => {
+                  const course =
+                    exam.course ??
+                    courses.find((c) => c.code === exam.courseCode);
+                  const cbt = isCbtCourse(course);
+                  const daysUntil = getDaysUntil(exam.date);
+                  const isToday = daysUntil === 0;
+                  const isTomorrow = daysUntil === 1;
+                  const isSoon = daysUntil <= 7 && daysUntil >= 0;
+                  return (
+                    <div
+                      key={exam.id}
+                      className={`rounded-xl border bg-white p-4 shadow-sm ${
+                        isToday
+                          ? "border-red-200 bg-red-50/30"
+                          : isSoon
+                          ? "border-amber-200"
+                          : "border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded shrink-0">
+                              {exam.courseCode}
+                            </span>
+                            {course?.level && (
+                              <Badge
+                                variant="secondary"
+                                className={`text-xs shrink-0 ${
+                                  LEVEL_PILL_MAP[course.level] ?? ""
+                                }`}
+                              >
+                                {course.level.replace("LEVEL_", "")}L
+                              </Badge>
+                            )}
+                            {cbt && (
+                              <Badge className="bg-indigo-100 text-indigo-700 text-xs shrink-0">
+                                CBT
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {course?.name ?? exam.courseCode}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <CalendarDays className="h-3 w-3 shrink-0" />
+                              {formatDate(exam.date)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {exam.startTime} – {exam.endTime}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {VENUE_LABELS[exam.venue] ?? exam.venue}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {isToday ? (
+                            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                              Today
+                            </span>
+                          ) : isTomorrow ? (
+                            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                              Tomorrow
+                            </span>
+                          ) : isSoon ? (
+                            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600">
+                              {daysUntil}d
+                            </span>
+                          ) : (
+                            <span className="text-sm font-semibold text-gray-700">
+                              {formatDateShort(exam.date)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {pastExams.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Past
+                </h2>
+                {pastExams.map((exam) => {
+                  const course =
+                    exam.course ??
+                    courses.find((c) => c.code === exam.courseCode);
+                  const cbt = isCbtCourse(course);
+                  return (
+                    <div
+                      key={exam.id}
+                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm opacity-70"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded shrink-0">
+                              {exam.courseCode}
+                            </span>
+                            {course?.level && (
+                              <Badge
+                                variant="secondary"
+                                className={`text-xs shrink-0 ${
+                                  LEVEL_PILL_MAP[course.level] ?? ""
+                                }`}
+                              >
+                                {course.level.replace("LEVEL_", "")}L
+                              </Badge>
+                            )}
+                            {cbt && (
+                              <Badge className="bg-indigo-100 text-indigo-700 text-xs shrink-0">
+                                CBT
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {course?.name ?? exam.courseCode}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <CalendarDays className="h-3 w-3 shrink-0" />
+                              {formatDate(exam.date)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {exam.startTime} – {exam.endTime}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {VENUE_LABELS[exam.venue] ?? exam.venue}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-xs text-gray-400 font-medium">
+                          {formatDateShort(exam.date)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Exams</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage and browse all exam schedule listings</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Exams
+          </h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Manage and browse all exam schedule listings
+          </p>
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={() => setIsCreateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 rounded-full">
-            <Plus className="h-4 w-4 mr-2" />Schedule Exam
+          <Button
+            size="sm"
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 rounded-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Exam
           </Button>
         )}
       </div>
 
-      <FilterBar searchValue={searchInput} onSearchChange={setSearchInput} searchPlaceholder="Search by course code or name...">
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="Search by course code or name..."
+      >
         <div className="hidden md:flex items-center gap-1">
-          <FilterSelect value={sessionId || "all"} onValueChange={(v) => { setSessionId(v === "all" ? "" : v); setPage(1); }} width="w-[160px]">
+          <FilterSelect
+            value={sessionId || "all"}
+            onValueChange={(v) => {
+              setSessionId(v === "all" ? "" : v);
+              setPage(1);
+            }}
+            width="w-[160px]"
+          >
             <SelectItem value="all">All Sessions</SelectItem>
-            {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            {sessions.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
           </FilterSelect>
-          <FilterSelect value={semester} onValueChange={(v) => { setSemester(v); setPage(1); }} width="w-[150px]">
+          <FilterSelect
+            value={semester}
+            onValueChange={(v) => {
+              setSemester(v);
+              setPage(1);
+            }}
+            width="w-[150px]"
+          >
             <SelectItem value="all">All Semesters</SelectItem>
             <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
             <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
           </FilterSelect>
         </div>
-        <Button variant="outline" className="md:hidden rounded-full" onClick={() => setFiltersOpen(true)}>
-          <Filter className="h-4 w-4 mr-2" />Filters
+        <Button
+          variant="outline"
+          className="md:hidden rounded-full"
+          onClick={() => setFiltersOpen(true)}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
         </Button>
       </FilterBar>
 
-      <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <DialogContent className="md:max-w-[400px]" onSwipeDown={() => setFiltersOpen(false)}>
-          <DialogHeader><DialogTitle>Filters</DialogTitle></DialogHeader>
+      <Dialog
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+      >
+        <DialogContent
+          className="md:max-w-[400px]"
+          onSwipeDown={() => setFiltersOpen(false)}
+        >
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Session</Label>
-              <Select value={sessionId || "all"} onValueChange={(v) => { setSessionId(v === "all" ? "" : v); setPage(1); }}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <Select
+                value={sessionId || "all"}
+                onValueChange={(v) => {
+                  setSessionId(v === "all" ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sessions</SelectItem>
-                  {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  {sessions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Semester</Label>
-              <Select value={semester} onValueChange={(v) => { setSemester(v); setPage(1); }}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <Select
+                value={semester}
+                onValueChange={(v) => {
+                  setSemester(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Semesters</SelectItem>
-                  <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
-                  <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
+                  <SelectItem value={Semester.FIRST}>
+                    First Semester
+                  </SelectItem>
+                  <SelectItem value={Semester.SECOND}>
+                    Second Semester
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Per page</Label>
-              <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); setFiltersOpen(false); }}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <Select
+                value={String(limit)}
+                onValueChange={(v) => {
+                  setLimit(Number(v));
+                  setPage(1);
+                  setFiltersOpen(false);
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="10">10</SelectItem>
                   <SelectItem value="25">25</SelectItem>
@@ -266,28 +900,66 @@ export default function ExamsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={() => setFiltersOpen(false)}>Apply</Button>
+            <Button
+              className="w-full"
+              onClick={() => setFiltersOpen(false)}
+            >
+              Apply
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {fetchError ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-6"><ErrorState entity="exams" onRetry={() => { setFetchError(null); fetchData(); }} /></div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <ErrorState
+            entity="exams"
+            onRetry={() => {
+              setFetchError(null);
+              fetchData();
+            }}
+          />
+        </div>
       ) : loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white border-b">
                 <tr className="text-left text-sm text-gray-500">
-                  {["Date","Time","Course","Level","Venue","Students","College","Invigilators"].map((h) => <th key={h} className="p-3">{h}</th>)}
-                  {isAdmin && <th className="p-3 text-right">Actions</th>}
+                  {[
+                    "Date",
+                    "Time",
+                    "Course",
+                    "Level",
+                    "Venue",
+                    "Students",
+                    "College",
+                    "Invigilators",
+                  ].map((h) => (
+                    <th key={h} className="p-3">
+                      {h}
+                    </th>
+                  ))}
+                  {isAdmin && (
+                    <th className="p-3 text-right">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: 7 }).map((_, i) => (
                   <tr key={i} className="border-t">
-                    {[90,80,140,60,70,32,60,100].map((w, j) => <td key={j} className="p-3"><div className={`h-6 bg-gray-200 animate-pulse rounded w-[${w}px]`} /></td>)}
-                    {isAdmin && <td className="p-3 text-right"><div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" /></td>}
+                    {[90, 80, 140, 60, 70, 32, 60, 100].map((w, j) => (
+                      <td key={j} className="p-3">
+                        <div
+                          className={`h-6 bg-gray-200 animate-pulse rounded w-[${w}px]`}
+                        />
+                      </td>
+                    ))}
+                    {isAdmin && (
+                      <td className="p-3 text-right">
+                        <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -298,9 +970,21 @@ export default function ExamsPage() {
         <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <ClipboardList className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-base font-semibold text-gray-700">No exams scheduled</h3>
-          <p className="text-sm text-gray-400 mt-2">Schedule exams for the active session.</p>
-          {isAdmin && <Button className="mt-5 bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />Schedule Exam</Button>}
+          <h3 className="text-base font-semibold text-gray-700">
+            No exams scheduled
+          </h3>
+          <p className="text-sm text-gray-400 mt-2">
+            Schedule exams for the active session.
+          </p>
+          {isAdmin && (
+            <Button
+              className="mt-5 bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule Exam
+            </Button>
+          )}
         </div>
       ) : (
         <div className="relative">
@@ -310,35 +994,108 @@ export default function ExamsPage() {
               <table className="w-full">
                 <thead className="bg-white border-b sticky top-0 z-10">
                   <tr className="text-left text-sm text-gray-500">
-                    {["Date","Time","Course","Level","Venue","Students","College","Invigilators"].map((h) => <th key={h} className="p-3">{h}</th>)}
-                    {isAdmin && <th className="p-3 text-right">Actions</th>}
+                    {[
+                      "Date",
+                      "Time",
+                      "Course",
+                      "Level",
+                      "Venue",
+                      "Students",
+                      "College",
+                      "Invigilators",
+                    ].map((h) => (
+                      <th key={h} className="p-3">
+                        {h}
+                      </th>
+                    ))}
+                    {isAdmin && (
+                      <th className="p-3 text-right">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredExams.map((exam) => {
-                    const course = exam.course ?? courses.find((c) => c.code === exam.courseCode);
+                    const course =
+                      exam.course ??
+                      courses.find((c) => c.code === exam.courseCode);
                     const cbt = isCbtCourse(course);
                     return (
-                      <tr key={exam.id} className="border-t hover:bg-gray-50">
-                        <td className="p-3 text-sm">{formatDate(exam.date)}</td>
-                        <td className="p-3 text-sm">{exam.startTime} – {exam.endTime}</td>
+                      <tr
+                        key={exam.id}
+                        className="border-t hover:bg-gray-50"
+                      >
+                        <td className="p-3 text-sm">
+                          {formatDate(exam.date)}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {exam.startTime} – {exam.endTime}
+                        </td>
                         <td className="p-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{exam.courseCode}</span>
-                            {cbt && <Badge className="bg-indigo-100 text-indigo-700 text-xs">CBT</Badge>}
-                            <span className="text-sm">{course?.name ?? ""}</span>
+                            <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                              {exam.courseCode}
+                            </span>
+                            {cbt && (
+                              <Badge className="bg-indigo-100 text-indigo-700 text-xs">
+                                CBT
+                              </Badge>
+                            )}
+                            <span className="text-sm">
+                              {course?.name ?? ""}
+                            </span>
                           </div>
                         </td>
-                        <td className="p-3"><Badge variant="secondary" className={LEVEL_PILL_MAP[course?.level ?? ""] ?? "bg-gray-100"}>{course?.level?.replace("LEVEL_", "") ?? "—"}</Badge></td>
-                        <td className="p-3 text-sm">{VENUE_LABELS[exam.venue] ?? exam.venue}</td>
-                        <td className="p-3 text-sm">{exam.studentCount}</td>
-                        <td className="p-3">{exam.targetCollege ? <Badge variant="outline" className="text-xs">{exam.targetCollege}</Badge> : <span className="text-gray-400">—</span>}</td>
-                        <td className="p-3 text-sm truncate max-w-[120px]" title={exam.invigilators ?? ""}>{exam.invigilators ?? "—"}</td>
+                        <td className="p-3">
+                          <Badge
+                            variant="secondary"
+                            className={
+                              LEVEL_PILL_MAP[course?.level ?? ""] ??
+                              "bg-gray-100"
+                            }
+                          >
+                            {course?.level?.replace("LEVEL_", "") ?? "—"}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-sm">
+                          {VENUE_LABELS[exam.venue] ?? exam.venue}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {exam.studentCount}
+                        </td>
+                        <td className="p-3">
+                          {exam.targetCollege ? (
+                            <Badge variant="outline" className="text-xs">
+                              {exam.targetCollege}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td
+                          className="p-3 text-sm truncate max-w-[120px]"
+                          title={exam.invigilators ?? ""}
+                        >
+                          {exam.invigilators ?? "—"}
+                        </td>
                         {isAdmin && (
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => openEditExam(exam)}><Pencil className="h-5 w-5" /></Button>
-                              <Button size="icon" variant="ghost" className="h-11 w-11 text-red-600" onClick={() => setDeleteExam(exam)}><Trash2 className="h-5 w-5" /></Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-11 w-11"
+                                onClick={() => openEditExam(exam)}
+                              >
+                                <Pencil className="h-5 w-5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-11 w-11 text-red-600"
+                                onClick={() => setDeleteExam(exam)}
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
                             </div>
                           </td>
                         )}
@@ -351,25 +1108,63 @@ export default function ExamsPage() {
           </div>
           <div className="md:hidden space-y-3">
             {filteredExams.map((exam) => {
-              const course = exam.course ?? courses.find((c) => c.code === exam.courseCode);
+              const course =
+                exam.course ??
+                courses.find((c) => c.code === exam.courseCode);
               const cbt = isCbtCourse(course);
               return (
-                <div key={exam.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div
+                  key={exam.id}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium">{formatDate(exam.date)} {exam.startTime}–{exam.endTime}</p>
-                    {cbt && <Badge className="bg-indigo-100 text-indigo-700 text-xs shrink-0">CBT</Badge>}
+                    <p className="text-sm font-medium">
+                      {formatDate(exam.date)} {exam.startTime}–
+                      {exam.endTime}
+                    </p>
+                    {cbt && (
+                      <Badge className="bg-indigo-100 text-indigo-700 text-xs shrink-0">
+                        CBT
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-sm font-semibold mt-2">{exam.courseCode} · {course?.name ?? ""}</p>
-                  <p className="text-sm text-gray-500">{VENUE_LABELS[exam.venue] ?? exam.venue}</p>
-                  <p className="text-xs text-gray-500">{exam.studentCount} students · {exam.targetCollege ?? "—"}</p>
+                  <p className="text-sm font-semibold mt-2">
+                    {exam.courseCode} · {course?.name ?? ""}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {VENUE_LABELS[exam.venue] ?? exam.venue}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {exam.studentCount} students ·{" "}
+                    {exam.targetCollege ?? "—"}
+                  </p>
                   <div className="border-t mt-3 pt-3 flex items-center justify-between gap-2">
-                    <p className="text-xs text-gray-500 truncate flex-1 min-w-0">{exam.invigilators ?? "—"}</p>
+                    <p className="text-xs text-gray-500 truncate flex-1 min-w-0">
+                      {exam.invigilators ?? "—"}
+                    </p>
                     {isAdmin && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-11 w-11 shrink-0"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-11 w-11 shrink-0"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditExam(exam)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => setDeleteExam(exam)}>Delete</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openEditExam(exam)}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => setDeleteExam(exam)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -381,29 +1176,107 @@ export default function ExamsPage() {
         </div>
       )}
 
-      {total > 0 && <Pagination page={page} totalPages={Math.max(1, totalPages)} total={total} limit={limit} onPageChange={setPage} onLimitChange={(v) => { setLimit(v); setPage(1); }} resultsLabel="exams" />}
+      {total > 0 && (
+        <Pagination
+          page={page}
+          totalPages={Math.max(1, totalPages)}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(v) => {
+            setLimit(v);
+            setPage(1);
+          }}
+          resultsLabel="exams"
+        />
+      )}
 
-      <Dialog open={isCreateOpen} onOpenChange={(o) => { if (!o) { setIsCreateOpen(false); resetCreateForm(); } }}>
-        <DialogContent className="md:max-w-[560px]" onSwipeDown={() => { setIsCreateOpen(false); resetCreateForm(); }}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setIsCreateOpen(false);
+            resetCreateForm();
+          }
+        }}
+      >
+        <DialogContent
+          className="md:max-w-[560px]"
+          onSwipeDown={() => {
+            setIsCreateOpen(false);
+            resetCreateForm();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Schedule Exam</DialogTitle>
-            <DialogDescription>Select course, venue, date and time.</DialogDescription>
+            <DialogDescription>
+              Select course, venue, date and time.
+            </DialogDescription>
           </DialogHeader>
-          <ExamForm form={form} courses={courses} submitting={creating} error={createError} submitLabel="Schedule Exam" onCancel={() => { setIsCreateOpen(false); resetCreateForm(); }} onSubmit={handleCreate} />
+          <ExamForm
+            form={form}
+            courses={courses}
+            submitting={creating}
+            error={createError}
+            submitLabel="Schedule Exam"
+            onCancel={() => {
+              setIsCreateOpen(false);
+              resetCreateForm();
+            }}
+            onSubmit={handleCreate}
+          />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editExam} onOpenChange={(o) => { if (!o) { openForEditExamIdRef.current = null; setEditExam(null); } }}>
-        <DialogContent className="md:max-w-[560px]" onSwipeDown={() => { openForEditExamIdRef.current = null; setEditExam(null); }}>
+      <Dialog
+        open={!!editExam}
+        onOpenChange={(o) => {
+          if (!o) {
+            openForEditExamIdRef.current = null;
+            setEditExam(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="md:max-w-[560px]"
+          onSwipeDown={() => {
+            openForEditExamIdRef.current = null;
+            setEditExam(null);
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Edit Exam</DialogTitle>
             <DialogDescription>Update exam details.</DialogDescription>
           </DialogHeader>
-          <ExamForm form={editForm} courses={courses} submitting={editLoading} error={editError} submitLabel="Update Exam" onCancel={() => { openForEditExamIdRef.current = null; setEditExam(null); }} onSubmit={handleEditSubmit} />
+          <ExamForm
+            form={editForm}
+            courses={courses}
+            submitting={editLoading}
+            error={editError}
+            submitLabel="Update Exam"
+            onCancel={() => {
+              openForEditExamIdRef.current = null;
+              setEditExam(null);
+            }}
+            onSubmit={handleEditSubmit}
+          />
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog open={!!deleteExam} onOpenChange={(o) => !o && setDeleteExam(null)} title="Delete exam?" description={`This will permanently remove the exam for ${deleteExam?.courseCode ?? ""}.`} icon={Trash2} iconClassName="bg-red-500 text-white" confirmLabel="Delete" confirmVariant="destructive" onConfirm={handleDelete} loading={actionLoading} />
+      <ConfirmDialog
+        open={!!deleteExam}
+        onOpenChange={(o) => !o && setDeleteExam(null)}
+        title="Delete exam?"
+        description={`This will permanently remove the exam for ${
+          deleteExam?.courseCode ?? ""
+        }.`}
+        icon={Trash2}
+        iconClassName="bg-red-500 text-white"
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        onConfirm={handleDelete}
+        loading={actionLoading}
+      />
     </div>
   );
 }
