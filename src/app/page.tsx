@@ -1,29 +1,21 @@
-import Link from 'next/link'
-import { GraduationCap, BookOpen, Calendar, Building2, ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ReportPageLoadOnMount } from '@/components/page-load-reporter'
+import Link from "next/link";
+import {
+  GraduationCap,
+  BookOpen,
+  Calendar,
+  Building2,
+  ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ReportPageLoadOnMount } from "@/components/page-load-reporter";
+import { LandingHeader } from "@/components/landing-header";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <ReportPageLoadOnMount />
 
-      <header className="border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-indigo-600" />
-            <span className="font-semibold text-gray-900">CourseFlow</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
-              <Link href="/register">Register</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-sm font-medium mb-6">
@@ -37,7 +29,11 @@ export default function Home() {
           Courses, timetables, and departments — all in one place.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white px-8" asChild>
+          <Button
+            size="lg"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8"
+            asChild
+          >
             <Link href="/schedules">
               Browse Schedules
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -60,7 +56,9 @@ export default function Home() {
             </div>
             <div>
               <p className="font-semibold text-gray-900">Courses</p>
-              <p className="text-sm text-gray-500 mt-0.5">Browse the full course catalog</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Browse the full course catalog
+              </p>
             </div>
           </Link>
 
@@ -73,7 +71,9 @@ export default function Home() {
             </div>
             <div>
               <p className="font-semibold text-gray-900">Schedules</p>
-              <p className="text-sm text-gray-500 mt-0.5">View the academic timetable</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                View the academic timetable
+              </p>
             </div>
           </Link>
 
@@ -86,7 +86,9 @@ export default function Home() {
             </div>
             <div>
               <p className="font-semibold text-gray-900">Departments</p>
-              <p className="text-sm text-gray-500 mt-0.5">Explore academic departments</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Explore academic departments
+              </p>
             </div>
           </Link>
         </div>
@@ -96,5 +98,5 @@ export default function Home() {
         © {new Date().getFullYear()} CourseFlow
       </footer>
     </div>
-  )
+  );
 }
