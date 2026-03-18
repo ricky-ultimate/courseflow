@@ -21,7 +21,6 @@ export interface LecturerComboboxProps {
   disabled?: boolean
 }
 
-/** On department selection: getUsers({ role: 'LECTURER', departmentCode }). If no department: search across all lecturers. */
 export function LecturerCombobox({
   value,
   onChange,
@@ -38,15 +37,19 @@ export function LecturerCombobox({
   const fetchCandidates = useCallback(async () => {
     setLoading(true)
     try {
-      if (departmentCode) {
-        const res = await apiClient.getUsers({ role: Role.LECTURER, departmentCode, limit: 100 })
-        const r = getItemsFromResponse<LecturerOption>(res)
-        setOptions(r?.items ?? [])
-      } else {
-        const res = await apiClient.getUsers({ role: Role.LECTURER, limit: 100 })
-        const r = getItemsFromResponse<LecturerOption>(res)
-        setOptions(r?.items ?? [])
-      }
+      const params: Record<string, unknown> = { limit: 200 }
+      if (departmentCode) params.departmentCode = departmentCode
+
+      const [lecturerRes, hodRes] = await Promise.all([
+        apiClient.getUsers({ ...params, role: Role.LECTURER }),
+        apiClient.getUsers({ ...params, role: Role.HOD }),
+      ])
+
+      const lecturerR = getItemsFromResponse<LecturerOption>(lecturerRes)
+      const hodR = getItemsFromResponse<LecturerOption>(hodRes)
+      const combined = [...(lecturerR?.items ?? []), ...(hodR?.items ?? [])]
+      const seen = new Set<string>()
+      setOptions(combined.filter((u) => { if (seen.has(u.id)) return false; seen.add(u.id); return true }))
     } catch {
       setOptions([])
     } finally {
@@ -58,7 +61,6 @@ export function LecturerCombobox({
     if (open || (value && options.length === 0)) {
       fetchCandidates()
     }
-    // options.length intentionally omitted: including it would refetch when options populate
   }, [open, value, departmentCode, fetchCandidates]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = query.trim().toLowerCase()

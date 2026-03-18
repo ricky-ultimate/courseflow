@@ -66,48 +66,49 @@ export function GenerateScheduleModal({
     message?: string;
   } | null>(null);
 
-const fetchData = useCallback(async () => {
-  if (!open) return;
-  setFetchError(null);
-  setServerError("");
-  setLoadingData(true);
+  const fetchData = useCallback(async () => {
+    if (!open) return;
+    setFetchError(null);
+    setServerError("");
+    setLoadingData(true);
 
-  try {
-    // Fetch sessions and active session together — unrelated to departments
-    const [sessRes, activeRes] = await Promise.all([
-      apiClient.getAcademicSessions({ limit: 50 }),
-      apiClient.getActiveAcademicSession(),
-    ]);
-
-    const sess = getItemsFromResponse<AcademicSession>(sessRes);
-    setSessions(sess?.items ?? []);
-
-    const active =
-      activeRes.success && activeRes.data
-        ? (activeRes.data as AcademicSession)
-        : null;
-    const defaultId = active?.id ?? sess?.items?.[0]?.id ?? "";
-    setActiveSessionId(defaultId);
-
-    if (isHod && hodDeptCode) setDepartmentCode(hodDeptCode);
-  } catch {
-    setFetchError("Failed to load sessions");
-  } finally {
-    setLoadingData(false);
-  }
-
-  // Fetch departments separately so a session failure can't suppress them
-  if (!isHod) {
     try {
-      const deptRes = await apiClient.getDepartments({ limit: 100 });
-      const deptResult = getItemsFromResponse<Department>(deptRes);
-      setDepartments(deptResult?.items ?? []);
+      // Fetch sessions and active session together — unrelated to departments
+      const [sessRes, activeRes] = await Promise.all([
+        apiClient.getAcademicSessions({ limit: 50 }),
+        apiClient.getActiveAcademicSession(),
+      ]);
+
+      const sess = getItemsFromResponse<AcademicSession>(sessRes);
+      setSessions(sess?.items ?? []);
+
+      const active =
+        activeRes.success && activeRes.data
+          ? (activeRes.data as AcademicSession)
+          : null;
+      const defaultId = active?.id ?? sess?.items?.[0]?.id ?? "";
+      setActiveSessionId(defaultId);
+
+      if (isHod && hodDeptCode) setDepartmentCode(hodDeptCode);
+      else if (hodDeptCode) setDepartmentCode(hodDeptCode);
     } catch {
-      // Non-fatal: department selector just won't have options
-      setDepartments([]);
+      setFetchError("Failed to load sessions");
+    } finally {
+      setLoadingData(false);
     }
-  }
-}, [open, isHod, hodDeptCode]);
+
+    // Fetch departments separately so a session failure can't suppress them
+    if (!isHod) {
+      try {
+        const deptRes = await apiClient.getDepartments({ limit: 100 });
+        const deptResult = getItemsFromResponse<Department>(deptRes);
+        setDepartments(deptResult?.items ?? []);
+      } catch {
+        // Non-fatal: department selector just won't have options
+        setDepartments([]);
+      }
+    }
+  }, [open, isHod, hodDeptCode]);
 
   useEffect(() => {
     if (open) fetchData();
@@ -135,7 +136,9 @@ const fetchData = useCallback(async () => {
           preserved: d.preservedOverrides ?? d.preserved,
           skipped: d.skippedLockedDepartments ?? d.skipped,
         });
-        toast({ title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.` });
+        toast({
+          title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.`,
+        });
         onSuccess?.();
       } else {
         const errMsg = (res as { error?: string }).error;
@@ -176,14 +179,19 @@ const fetchData = useCallback(async () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !loading && (result ? handleClose() : onOpenChange(o))}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) =>
+        !loading && (result ? handleClose() : onOpenChange(o))
+      }
+    >
       <DialogContent
         className="sm:max-w-[520px] max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-h-[90vh] max-sm:rounded-t-2xl max-sm:rounded-b-none"
         onPointerDownOutside={(e) => result && e.preventDefault()}
         onSwipeDown={() => {
-          if (loading) return
-          if (result) handleClose()
-          else onOpenChange(false)
+          if (loading) return;
+          if (result) handleClose();
+          else onOpenChange(false);
         }}
       >
         <div className="max-sm:mt-3 max-sm:w-10 max-sm:h-1 max-sm:mx-auto max-sm:rounded-full max-sm:bg-gray-300" />
@@ -197,19 +205,70 @@ const fetchData = useCallback(async () => {
               <>
                 <div className="flex flex-col items-center text-center">
                   <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
-                  <h3 className="text-lg font-semibold">Schedule Generation Complete</h3>
+                  <h3 className="text-lg font-semibold">
+                    Schedule Generation Complete
+                  </h3>
                 </div>
                 <div className="rounded-lg border bg-gray-50 p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><span>Session</span><span className="font-medium">{sessions.find((s) => s.id === activeSessionId)?.name ?? result.session ?? "—"}</span></div>
-                  <div className="flex justify-between"><span>Semester</span><span className="font-medium">{semester === Semester.FIRST ? "First" : "Second"}</span></div>
-                  <div className="flex justify-between"><span>Total Courses</span><span className="font-medium">{result.totalCourses ?? "—"}</span></div>
-                  <div className="flex justify-between"><span>Scheduled</span><span className="font-medium">{result.scheduled ?? "—"}</span></div>
-                  {result.preserved != null && <div className="flex justify-between"><span>Preserved</span><span className="font-medium">{result.preserved} manual overrides</span></div>}
-                  {result.skipped != null && result.skipped > 0 && <div className="flex justify-between"><span>Skipped</span><span className="font-medium">{result.skipped} locked {result.skipped === 1 ? 'department' : 'departments'}</span></div>}
+                  <div className="flex justify-between">
+                    <span>Session</span>
+                    <span className="font-medium">
+                      {sessions.find((s) => s.id === activeSessionId)?.name ??
+                        result.session ??
+                        "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Semester</span>
+                    <span className="font-medium">
+                      {semester === Semester.FIRST ? "First" : "Second"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total Courses</span>
+                    <span className="font-medium">
+                      {result.totalCourses ?? "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Scheduled</span>
+                    <span className="font-medium">
+                      {result.scheduled ?? "—"}
+                    </span>
+                  </div>
+                  {result.preserved != null && (
+                    <div className="flex justify-between">
+                      <span>Preserved</span>
+                      <span className="font-medium">
+                        {result.preserved} manual overrides
+                      </span>
+                    </div>
+                  )}
+                  {result.skipped != null && result.skipped > 0 && (
+                    <div className="flex justify-between">
+                      <span>Skipped</span>
+                      <span className="font-medium">
+                        {result.skipped} locked{" "}
+                        {result.skipped === 1 ? "department" : "departments"}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter className="gap-2">
-                  <Button variant="outline" onClick={handleClose}>Close</Button>
-                  <Button asChild className="bg-indigo-600 hover:bg-indigo-700"><Link href="/schedules" onClick={() => { onSuccess?.(); handleClose(); }}>View Schedules</Link></Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    Close
+                  </Button>
+                  <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+                    <Link
+                      href="/schedules"
+                      onClick={() => {
+                        onSuccess?.();
+                        handleClose();
+                      }}
+                    >
+                      View Schedules
+                    </Link>
+                  </Button>
                 </DialogFooter>
               </>
             ) : result.message ? (
@@ -217,15 +276,28 @@ const fetchData = useCallback(async () => {
                 <div className="flex flex-col items-center text-center">
                   <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
                   <h3 className="text-lg font-semibold">Scheduling Failed</h3>
-                  <p className="text-sm text-gray-500 mt-1">The solver could not generate a valid schedule.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    The solver could not generate a valid schedule.
+                  </p>
                 </div>
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                   <p className="text-sm text-red-800">{result.message}</p>
                 </div>
-                <p className="text-sm text-gray-500">Review the courses listed above, adjust constraints, then try again.</p>
+                <p className="text-sm text-gray-500">
+                  Review the courses listed above, adjust constraints, then try
+                  again.
+                </p>
                 <DialogFooter className="gap-2">
-                  <Button variant="outline" onClick={handleClose}>Close</Button>
-                  <Button onClick={() => { setResult(null); }}>Try Again</Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setResult(null);
+                    }}
+                  >
+                    Try Again
+                  </Button>
                 </DialogFooter>
               </>
             ) : (
@@ -233,17 +305,32 @@ const fetchData = useCallback(async () => {
                 <div className="flex flex-col items-center text-center">
                   <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
                   <h3 className="text-lg font-semibold">Scheduling Failed</h3>
-                  <p className="text-sm text-gray-500 mt-1">Could not find valid time slots for the following courses:</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Could not find valid time slots for the following courses:
+                  </p>
                 </div>
                 <div className="max-h-40 overflow-y-auto rounded-lg border p-3 space-y-1">
                   {(result.failedCourses ?? []).map((c: string, i: number) => (
-                    <div key={i} className="text-sm font-mono">{c}</div>
+                    <div key={i} className="text-sm font-mono">
+                      {c}
+                    </div>
                   ))}
                 </div>
-                <p className="text-sm text-gray-500">Try reducing the number of courses per department/level or contact an administrator.</p>
+                <p className="text-sm text-gray-500">
+                  Try reducing the number of courses per department/level or
+                  contact an administrator.
+                </p>
                 <DialogFooter className="gap-2">
-                  <Button variant="outline" onClick={handleClose}>Close</Button>
-                  <Button onClick={() => { setResult(null); }}>Try Again</Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setResult(null);
+                    }}
+                  >
+                    Try Again
+                  </Button>
                 </DialogFooter>
               </>
             )}
@@ -252,7 +339,9 @@ const fetchData = useCallback(async () => {
           <div className="space-y-4 py-4">
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">{fetchError}</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {fetchError}
+              </h3>
               <Button variant="outline" onClick={fetchData} className="mt-4">
                 Retry
               </Button>
@@ -260,49 +349,87 @@ const fetchData = useCallback(async () => {
           </div>
         ) : (
           <>
-            <div className={`space-y-4 py-4 transition-opacity ${loading ? "opacity-60" : ""}`}>
+            <div
+              className={`space-y-4 py-4 transition-opacity ${loading ? "opacity-60" : ""}`}
+            >
               <div className="rounded-lg border-l-[3px] border-amber-600 bg-amber-50 py-3 px-4 text-sm text-amber-800">
-                This will delete all auto-generated schedules for the selected scope and regenerate them. Manual overrides and fixed slots will be preserved.
+                This will delete all auto-generated schedules for the selected
+                scope and regenerate them. Manual overrides and fixed slots will
+                be preserved.
               </div>
               <div className="grid gap-4">
                 <div>
                   <Label>Semester</Label>
-                  <Select value={semester} onValueChange={(v) => setSemester(v as Semester)} disabled={loading || loadingData}>
-                    <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={semester}
+                    onValueChange={(v) => setSemester(v as Semester)}
+                    disabled={loading || loadingData}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={Semester.FIRST}>First Semester</SelectItem>
-                      <SelectItem value={Semester.SECOND}>Second Semester</SelectItem>
+                      <SelectItem value={Semester.FIRST}>
+                        First Semester
+                      </SelectItem>
+                      <SelectItem value={Semester.SECOND}>
+                        Second Semester
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>Session</Label>
-                  <Select value={activeSessionId} onValueChange={setActiveSessionId} disabled={loading || loadingData}>
+                  <Select
+                    value={activeSessionId}
+                    onValueChange={setActiveSessionId}
+                    disabled={loading || loadingData}
+                  >
                     <SelectTrigger className="mt-1.5">
-                      <SelectValue placeholder={loadingData ? "Loading…" : "Select session"} />
+                      <SelectValue
+                        placeholder={
+                          loadingData ? "Loading…" : "Select session"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {sessions.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {!isHod && (
+                {hodDeptCode && (
+                  <div>
+                    <Label>Department</Label>
+                    <div className="mt-1.5 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                      {hodDeptName ?? hodDeptCode}
+                    </div>
+                  </div>
+                )}
+                {!hodDeptCode && !isHod && (
                   <div>
                     <Label>Department scope</Label>
                     <Select
                       value={departmentCode || "__all__"}
-                      onValueChange={(v) => setDepartmentCode(v === "__all__" ? "" : v)}
+                      onValueChange={(v) =>
+                        setDepartmentCode(v === "__all__" ? "" : v)
+                      }
                       disabled={loading || loadingData}
                     >
                       <SelectTrigger className="mt-1.5">
                         <SelectValue placeholder="All Unlocked Departments" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__all__">All Unlocked Departments</SelectItem>
+                        <SelectItem value="__all__">
+                          All Unlocked Departments
+                        </SelectItem>
                         {departments.map((d) => (
-                          <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
+                          <SelectItem key={d.code} value={d.code}>
+                            {d.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -317,14 +444,26 @@ const fetchData = useCallback(async () => {
                   </div>
                 )}
               </div>
-              {serverError && (
-                <ServerErrorBanner message={serverError} />
-              )}
+              {serverError && <ServerErrorBanner message={serverError} />}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-              <Button onClick={() => setShowGenerateConfirm(true)} disabled={loading || loadingData} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate Schedules"}
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => setShowGenerateConfirm(true)}
+                disabled={loading || loadingData}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Generate Schedules"
+                )}
               </Button>
             </DialogFooter>
           </>

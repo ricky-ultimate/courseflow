@@ -59,7 +59,8 @@ export default function DepartmentDetailsPage() {
   const canEditCourse = (c: Course) =>
     !!(isAdmin || (isHod && user?.departmentCode === c.departmentCode));
   const canGenerateSchedule = !!(
-    isAdmin || (isHod && user?.departmentCode === code)
+    isAdmin ||
+    (isHod && user?.departmentCode === code)
   );
 
   const fetchDetails = useCallback(() => {
@@ -73,30 +74,45 @@ export default function DepartmentDetailsPage() {
           const raw = response.data as { data?: Department } | Department;
           const dept =
             (raw as { data?: Department }).data ?? (raw as Department);
-          if (!dept?.name) { setFetchError("Invalid department data"); return; }
+          if (!dept?.name) {
+            setFetchError("Invalid department data");
+            return;
+          }
           setDepartment(dept);
           setCourses(
-            Array.isArray((dept as any).courses) ? (dept as any).courses : []
+            Array.isArray((dept as any).courses) ? (dept as any).courses : [],
           );
         } else {
           setFetchError(response.error || "Failed to fetch department details");
         }
       })
-      .catch((e) => setFetchError(e instanceof Error ? e.message : "Failed to fetch department details"))
+      .catch((e) =>
+        setFetchError(
+          e instanceof Error ? e.message : "Failed to fetch department details",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [code]);
 
-  useEffect(() => { if (code) fetchDetails(); }, [code, fetchDetails]);
+  useEffect(() => {
+    if (code) fetchDetails();
+  }, [code, fetchDetails]);
 
   useEffect(() => {
-    apiClient.getAcademicSessions({ limit: 50 }).then((res) => {
-      const r = getItemsFromResponse<AcademicSession>(res);
-      if (r) setSessions(r.items);
-    }).catch(() => {});
-    apiClient.getDepartments({ limit: 100 }).then((res) => {
-      const r = getItemsFromResponse<Department>(res);
-      if (r) setDepartments(r.items);
-    }).catch(() => {});
+    apiClient
+      .getAcademicSessions({ limit: 50 })
+      .then((res) => {
+        const r = getItemsFromResponse<AcademicSession>(res);
+        if (r) setSessions(r.items);
+      })
+      .catch(() => {});
+    apiClient
+      .getDepartments({ limit: 100 })
+      .then((res) => {
+        const r = getItemsFromResponse<Department>(res);
+        if (r) setDepartments(r.items);
+      })
+      .catch(() => {});
   }, []);
 
   const openDetail = async (course: Course) => {
@@ -115,7 +131,9 @@ export default function DepartmentDetailsPage() {
   const handleLockToggle = async () => {
     if (!department) return;
     const prevLocked = department.isScheduleLocked;
-    setDepartment((d) => d ? { ...d, isScheduleLocked: !d.isScheduleLocked } : null);
+    setDepartment((d) =>
+      d ? { ...d, isScheduleLocked: !d.isScheduleLocked } : null,
+    );
     setLockLoading(true);
     try {
       const fn = prevLocked
@@ -128,15 +146,23 @@ export default function DepartmentDetailsPage() {
             ? `Schedule unlocked for ${department.name}.`
             : `Schedule locked for ${department.name}.`,
         });
-        apiClient.getDepartmentByCode(department.code).then((r) => {
-          if (r.success && r.data) setDepartment(r.data as Department);
-        }).catch(() => {});
+        apiClient
+          .getDepartmentByCode(department.code)
+          .then((r) => {
+            if (r.success && r.data) setDepartment(r.data as Department);
+          })
+          .catch(() => {});
       } else {
-        setDepartment((d) => d ? { ...d, isScheduleLocked: prevLocked } : null);
-        toast({ title: (res as any).error ?? "Failed", variant: "destructive" });
+        setDepartment((d) =>
+          d ? { ...d, isScheduleLocked: prevLocked } : null,
+        );
+        toast({
+          title: (res as any).error ?? "Failed",
+          variant: "destructive",
+        });
       }
     } catch {
-      setDepartment((d) => d ? { ...d, isScheduleLocked: prevLocked } : null);
+      setDepartment((d) => (d ? { ...d, isScheduleLocked: prevLocked } : null));
       toast({ title: "Failed", variant: "destructive" });
     } finally {
       setLockLoading(false);
@@ -177,7 +203,10 @@ export default function DepartmentDetailsPage() {
     return (
       <div>
         <Button variant="ghost" asChild className="mb-4">
-          <Link href="/departments"><ArrowLeft className="h-4 w-4 mr-2" />Departments</Link>
+          <Link href="/departments">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Departments
+          </Link>
         </Button>
         <ErrorState entity="department details" onRetry={fetchDetails} />
       </div>
@@ -189,7 +218,10 @@ export default function DepartmentDetailsPage() {
       <div className="text-center py-12">
         <p className="text-muted-foreground">Department not found</p>
         <Button variant="outline" asChild className="mt-4">
-          <Link href="/departments"><ArrowLeft className="h-4 w-4 mr-2" />Departments</Link>
+          <Link href="/departments">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Departments
+          </Link>
         </Button>
       </div>
     );
@@ -198,7 +230,10 @@ export default function DepartmentDetailsPage() {
   return (
     <div className="space-y-8">
       <Button variant="ghost" asChild className="mb-4">
-        <Link href="/departments"><ArrowLeft className="h-4 w-4 mr-2" />Departments</Link>
+        <Link href="/departments">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Departments
+        </Link>
       </Button>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -215,11 +250,13 @@ export default function DepartmentDetailsPage() {
         </Badge>
         {department.isScheduleLocked ? (
           <Badge className="bg-amber-100 text-amber-700">
-            <Lock className="h-3 w-3 mr-1" />Locked
+            <Lock className="h-3 w-3 mr-1" />
+            Locked
           </Badge>
         ) : (
           <Badge className="bg-green-100 text-green-700">
-            <Unlock className="h-3 w-3 mr-1" />Unlocked
+            <Unlock className="h-3 w-3 mr-1" />
+            Unlocked
           </Badge>
         )}
       </div>
@@ -252,7 +289,7 @@ export default function DepartmentDetailsPage() {
         onOpenChange={setGenerateModalOpen}
         departmentCode={code}
         departmentName={department.name}
-        isHod={!!(isHod && !isAdmin)}
+        isHod={false}
         onSuccess={() => {}}
       />
 
@@ -263,8 +300,15 @@ export default function DepartmentDetailsPage() {
       />
 
       {/* Course detail sheet */}
-      <Sheet open={!!detailCourse} onOpenChange={(o) => !o && setDetailCourse(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-[480px] overflow-y-auto" hideCloseOnMobile>
+      <Sheet
+        open={!!detailCourse}
+        onOpenChange={(o) => !o && setDetailCourse(null)}
+      >
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-[480px] overflow-y-auto"
+          hideCloseOnMobile
+        >
           <SheetHeader className="md:sr-only">
             <Button
               variant="ghost"

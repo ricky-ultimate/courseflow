@@ -5,19 +5,42 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
 import { Course, DayOfWeek, Schedule } from "@/types";
-import { WEEKDAYS, DAY_LABELS, SLOT_MAP, WEDNESDAY_SLOT_MAP } from "@/lib/constants";
+import {
+  WEEKDAYS,
+  DAY_LABELS,
+  SLOT_MAP,
+  WEDNESDAY_SLOT_MAP,
+} from "@/lib/constants";
 
 const scheduleModalSchema = z
   .object({
@@ -53,7 +76,13 @@ export interface CreateScheduleModalProps {
 }
 
 export function CreateScheduleModal({
-  open, onOpenChange, onSuccess, prefill = {}, editSchedule, activeSessionId, existingSchedules = [],
+  open,
+  onOpenChange,
+  onSuccess,
+  prefill = {},
+  editSchedule,
+  activeSessionId,
+  existingSchedules = [],
 }: CreateScheduleModalProps) {
   const isEdit = !!editSchedule;
   const { toast } = useToast();
@@ -67,12 +96,18 @@ export function CreateScheduleModal({
   const form = useForm<ScheduleModalFormValues>({
     resolver: zodResolver(scheduleModalSchema),
     mode: "onBlur",
-    defaultValues: { courseCode: "", dayOfWeek: "", startTime: "", endTime: "", isFixed: false },
+    defaultValues: {
+      courseCode: "",
+      dayOfWeek: "",
+      startTime: "",
+      endTime: "",
+      isFixed: false,
+    },
   });
 
   const fetchCourses = useCallback(async () => {
     try {
-      const res = await apiClient.getCourses({ limit: 200 });
+      const res = await apiClient.getCourses({ limit: 10000 });
       const r = getItemsFromResponse<Course>(res);
       if (r) setCourses(r.items);
     } catch {
@@ -93,7 +128,10 @@ export function CreateScheduleModal({
         endTime: editSchedule.endTime,
         isFixed: editSchedule.isFixed ?? false,
       });
-    } else if (open && (prefill.courseCode || prefill.dayOfWeek || prefill.startTime)) {
+    } else if (
+      open &&
+      (prefill.courseCode || prefill.dayOfWeek || prefill.startTime)
+    ) {
       form.reset({
         courseCode: prefill.courseCode ?? "",
         dayOfWeek: prefill.dayOfWeek ?? "",
@@ -102,7 +140,14 @@ export function CreateScheduleModal({
         isFixed: false,
       });
     }
-  }, [open, editSchedule, prefill.courseCode, prefill.dayOfWeek, prefill.startTime, form]);
+  }, [
+    open,
+    editSchedule,
+    prefill.courseCode,
+    prefill.dayOfWeek,
+    prefill.startTime,
+    form,
+  ]);
 
   const dayOfWeek = form.watch("dayOfWeek");
   const startTime = form.watch("startTime");
@@ -110,7 +155,8 @@ export function CreateScheduleModal({
 
   const availableEndTimes: string[] = (() => {
     if (!startTime) return [];
-    const map = dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
+    const map =
+      dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
     return map[startTime] ?? [];
   })();
 
@@ -121,19 +167,27 @@ export function CreateScheduleModal({
   }, [startTime, dayOfWeek, availableEndTimes, endTime, form]);
 
   const availableStartTimes = Object.keys(
-    dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP
+    dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP,
   );
 
-  const filteredCourses = query.trim().length >= 1
-    ? courses.filter((c) => {
-        const q = query.toLowerCase();
-        return (c.code ?? "").toLowerCase().includes(q) || (c.name ?? "").toLowerCase().includes(q);
-      })
-    : courses.slice(0, 30);
+  const filteredCourses =
+    query.trim().length >= 1
+      ? courses.filter((c) => {
+          const q = query.toLowerCase();
+          return (
+            (c.code ?? "").toLowerCase().includes(q) ||
+            (c.name ?? "").toLowerCase().includes(q)
+          );
+        })
+      : courses.slice(0, 30);
 
   const courseCode = form.watch("courseCode");
   const selectedCourse = courses.find((c) => c.code === courseCode);
-  const displayValue = comboboxOpen ? query : (selectedCourse ? `${selectedCourse.code} - ${selectedCourse.name}` : "");
+  const displayValue = comboboxOpen
+    ? query
+    : selectedCourse
+      ? `${selectedCourse.code} - ${selectedCourse.name}`
+      : "";
 
   const handleSubmit = form.handleSubmit(async (data) => {
     setServerError("");
@@ -151,7 +205,9 @@ export function CreateScheduleModal({
           handleClose();
           onSuccess?.();
         } else {
-          setServerError((res as { error?: string }).error ?? "Failed to update");
+          setServerError(
+            (res as { error?: string }).error ?? "Failed to update",
+          );
         }
       } else {
         const res = await apiClient.createSchedule({
@@ -166,18 +222,28 @@ export function CreateScheduleModal({
           handleClose();
           onSuccess?.();
         } else {
-          setServerError((res as { error?: string }).error ?? "Failed to create");
+          setServerError(
+            (res as { error?: string }).error ?? "Failed to create",
+          );
         }
       }
     } catch {
-      setServerError(isEdit ? "Failed to update schedule" : "Failed to create schedule");
+      setServerError(
+        isEdit ? "Failed to update schedule" : "Failed to create schedule",
+      );
     } finally {
       setLoading(false);
     }
   });
 
   const handleClose = () => {
-    form.reset({ courseCode: "", dayOfWeek: "", startTime: "", endTime: "", isFixed: false });
+    form.reset({
+      courseCode: "",
+      dayOfWeek: "",
+      startTime: "",
+      endTime: "",
+      isFixed: false,
+    });
     setQuery("");
     setComboboxOpen(false);
     onOpenChange(false);
@@ -187,13 +253,20 @@ export function CreateScheduleModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="md:max-w-[480px]" onSwipeDown={handleClose}>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Schedule" : "Create Schedule"}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit Schedule" : "Create Schedule"}
+          </DialogTitle>
           <DialogDescription>
-            {isEdit ? "Update the schedule details." : "Add a manual schedule to the timetable."}
+            {isEdit
+              ? "Update the schedule details."
+              : "Add a manual schedule to the timetable."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit} className={`space-y-4 transition-opacity ${loading ? "opacity-60" : ""}`}>
+          <form
+            onSubmit={handleSubmit}
+            className={`space-y-4 transition-opacity ${loading ? "opacity-60" : ""}`}
+          >
             {serverError && <ServerErrorBanner message={serverError} />}
 
             <FormField
@@ -207,28 +280,49 @@ export function CreateScheduleModal({
                       <Input
                         placeholder="Search by code or name..."
                         value={displayValue}
-                        onChange={(e) => { setQuery(e.target.value); setComboboxOpen(true); }}
+                        onChange={(e) => {
+                          setQuery(e.target.value);
+                          setComboboxOpen(true);
+                        }}
                         onFocus={() => setComboboxOpen(true)}
-                        onKeyDown={(e) => e.key === "Escape" && setComboboxOpen(false)}
+                        onKeyDown={(e) =>
+                          e.key === "Escape" && setComboboxOpen(false)
+                        }
                         disabled={loading || isEdit}
-                        className={isEdit ? "bg-gray-50 cursor-not-allowed" : ""}
+                        className={
+                          isEdit ? "bg-gray-50 cursor-not-allowed" : ""
+                        }
                       />
                       {comboboxOpen && (
                         <>
-                          <div className="fixed inset-0 z-40" aria-hidden onClick={() => setComboboxOpen(false)} />
+                          <div
+                            className="fixed inset-0 z-40"
+                            aria-hidden
+                            onClick={() => setComboboxOpen(false)}
+                          />
                           <div className="absolute z-50 mt-1 w-full rounded-lg border bg-white shadow-lg max-h-48 overflow-y-auto">
                             {filteredCourses.length === 0 ? (
-                              <div className="px-3 py-6 text-center text-sm text-gray-500">No matches</div>
+                              <div className="px-3 py-6 text-center text-sm text-gray-500">
+                                No matches
+                              </div>
                             ) : (
                               filteredCourses.map((c) => (
                                 <button
                                   key={c.code}
                                   type="button"
                                   className="w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                                  onClick={() => { field.onChange(c.code); setQuery(""); setComboboxOpen(false); }}
+                                  onClick={() => {
+                                    field.onChange(c.code);
+                                    setQuery("");
+                                    setComboboxOpen(false);
+                                  }}
                                 >
-                                  <span className="font-mono text-xs">{c.code}</span>
-                                  <span className="text-gray-600 truncate">{c.name}</span>
+                                  <span className="font-mono text-xs">
+                                    {c.code}
+                                  </span>
+                                  <span className="text-gray-600 truncate">
+                                    {c.name}
+                                  </span>
                                 </button>
                               ))
                             )}
@@ -258,11 +352,15 @@ export function CreateScheduleModal({
                     disabled={loading}
                   >
                     <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {WEEKDAYS.map((d) => (
-                        <SelectItem key={d} value={d}>{DAY_LABELS[d]}</SelectItem>
+                        <SelectItem key={d} value={d}>
+                          {DAY_LABELS[d]}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -287,12 +385,20 @@ export function CreateScheduleModal({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={!dayOfWeek ? "Select day first" : "Select start time"} />
+                        <SelectValue
+                          placeholder={
+                            !dayOfWeek
+                              ? "Select day first"
+                              : "Select start time"
+                          }
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {availableStartTimes.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -310,16 +416,27 @@ export function CreateScheduleModal({
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={loading || !startTime || availableEndTimes.length === 0}
+                    disabled={
+                      loading || !startTime || availableEndTimes.length === 0
+                    }
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={!startTime ? "Select start time first" : "Select end time"} />
+                        <SelectValue
+                          placeholder={
+                            !startTime
+                              ? "Select start time first"
+                              : "Select end time"
+                          }
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {availableEndTimes.map((t) => {
-                        const startHour = parseInt(startTime.split(":")[0] ?? "0", 10);
+                        const startHour = parseInt(
+                          startTime.split(":")[0] ?? "0",
+                          10,
+                        );
                         const endHour = parseInt(t.split(":")[0] ?? "0", 10);
                         const duration = endHour - startHour;
                         return (
@@ -335,13 +452,19 @@ export function CreateScheduleModal({
               )}
             />
 
-            {!isEdit && courseCode && activeSessionId && existingSchedules.some(
-              (s) => s.courseCode === courseCode && s.sessionId === activeSessionId
-            ) && (
-              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                This course already has a schedule. Creating will add an additional slot.
-              </p>
-            )}
+            {!isEdit &&
+              courseCode &&
+              activeSessionId &&
+              existingSchedules.some(
+                (s) =>
+                  s.courseCode === courseCode &&
+                  s.sessionId === activeSessionId,
+              ) && (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  This course already has a schedule. Creating will add an
+                  additional slot.
+                </p>
+              )}
 
             <FormField
               control={form.control}
@@ -358,7 +481,8 @@ export function CreateScheduleModal({
                     />
                   </FormControl>
                   <FormLabel className="cursor-pointer text-sm font-normal">
-                    Pin this slot (isFixed) — Fix this slot so auto-generation never moves it.
+                    Pin this slot (isFixed) — Fix this slot so auto-generation
+                    never moves it.
                   </FormLabel>
                   <FormMessage />
                 </FormItem>
@@ -366,9 +490,22 @@ export function CreateScheduleModal({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : isEdit ? "Save Changes" : "Create Schedule"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isEdit ? (
+                  "Save Changes"
+                ) : (
+                  "Create Schedule"
+                )}
               </Button>
             </DialogFooter>
           </form>

@@ -65,6 +65,8 @@ import { ErrorState } from "@/components/state/error-state";
 import { FilterBar } from "../ui/filter-bar";
 import { FilterSelect } from "../ui/filter-select";
 
+const DEPT_NONE = "__none__";
+
 const USER_LIST_AVATAR_COLORS = [
   "bg-slate-400",
   "bg-blue-400",
@@ -284,13 +286,14 @@ export function UsersPage({ role }: UsersPageProps) {
     setSaveError("");
     try {
       setSaving(true);
+      const deptCode = data.departmentCode === DEPT_NONE ? undefined : (data.departmentCode || undefined);
       if (editingUser) {
         const payload: UpdateUserData = {
           matricNO: data.matricNO.trim(),
           email: data.email.trim(),
           name: data.name?.trim() || undefined,
           role: data.role,
-          departmentCode: data.departmentCode || undefined,
+          departmentCode: deptCode,
           phone: data.phone?.trim() || undefined,
         };
         const res = await apiClient.updateUser(editingUser.id, payload);
@@ -308,7 +311,7 @@ export function UsersPage({ role }: UsersPageProps) {
           password: data.password!,
           name: data.name?.trim(),
           role: data.role,
-          departmentCode: data.departmentCode || undefined,
+          departmentCode: deptCode,
           phone: data.phone?.trim(),
         };
         const res = await apiClient.createUser(payload);
@@ -336,7 +339,7 @@ export function UsersPage({ role }: UsersPageProps) {
     setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, isActive: true } : x)));
     try {
       setActionLoading(true);
-      const res = await apiClient.updateUser(u.id, { isActive: true });
+      const res = await apiClient.updateUser(u.id, { name: u.name ?? undefined, role: u.role, isActive: true });
       if (res.success) {
         toast({ title: "User activated." });
       } else {
@@ -358,7 +361,7 @@ export function UsersPage({ role }: UsersPageProps) {
     setDeactivateUser(null);
     try {
       setActionLoading(true);
-      const res = await apiClient.updateUser(deactivateUser.id, { isActive: false });
+      const res = await apiClient.updateUser(deactivateUser.id, { name: deactivateUser.name ?? undefined, role: deactivateUser.role, isActive: false });
       if (res.success) {
         toast({ title: "User deactivated." });
         return true;
@@ -729,12 +732,16 @@ export function UsersPage({ role }: UsersPageProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Department</FormLabel>
-                      <Select value={field.value || ""} onValueChange={field.onChange} disabled={saving}>
+                      <Select
+                        value={field.value || DEPT_NONE}
+                        onValueChange={(v) => field.onChange(v === DEPT_NONE ? "" : v)}
+                        disabled={saving}
+                      >
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value={DEPT_NONE}>None</SelectItem>
                           {departments.map((d) => (
                             <SelectItem key={d.id} value={d.code}>{d.name}</SelectItem>
                           ))}
