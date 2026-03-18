@@ -179,7 +179,7 @@ export function CreateScheduleModal({
             (c.name ?? "").toLowerCase().includes(q)
           );
         })
-      : courses.slice(0, 30);
+      : courses
 
   const courseCode = form.watch("courseCode");
   const selectedCourse = courses.find((c) => c.code === courseCode);
