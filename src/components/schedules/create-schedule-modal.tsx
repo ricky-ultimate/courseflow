@@ -105,15 +105,28 @@ export function CreateScheduleModal({
     },
   });
 
-  const fetchCourses = useCallback(async () => {
+  const fetchCourses = useCallback(async (searchTerm?: string) => {
     try {
-      const res = await apiClient.getCourses({ limit: 10000 });
+      const res = await apiClient.getCourses({
+        limit: 50,
+        searchTerm: searchTerm || undefined,
+      });
       const r = getItemsFromResponse<Course>(res);
       if (r) setCourses(r.items);
     } catch {
       setCourses([]);
     }
   }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (comboboxOpen) {
+        fetchCourses(query);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query, comboboxOpen, fetchCourses]);
 
   useEffect(() => {
     if (open) fetchCourses();
@@ -171,15 +184,7 @@ export function CreateScheduleModal({
   );
 
   const filteredCourses =
-    query.trim().length >= 1
-      ? courses.filter((c) => {
-          const q = query.toLowerCase();
-          return (
-            (c.code ?? "").toLowerCase().includes(q) ||
-            (c.name ?? "").toLowerCase().includes(q)
-          );
-        })
-      : courses
+    query.trim().length > 0 ? courses : courses.slice(0, 50);
 
   const courseCode = form.watch("courseCode");
   const selectedCourse = courses.find((c) => c.code === courseCode);
