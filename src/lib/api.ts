@@ -111,7 +111,7 @@ class ApiClient {
 
   async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
 
@@ -164,7 +164,7 @@ class ApiClient {
 
   private async uploadFile(
     endpoint: string,
-    file: File
+    file: File,
   ): Promise<ApiResponse<any>> {
     const formData = new FormData();
     formData.append("file", file);
@@ -266,7 +266,7 @@ class ApiClient {
   private buildQuery(params?: Record<string, any>): string {
     if (!params) return "";
     const clean = Object.fromEntries(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== null)
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null),
     );
     const qs = new URLSearchParams(clean as any).toString();
     return qs ? `?${qs}` : "";
@@ -446,6 +446,10 @@ class ApiClient {
     return this.request("/courses/without-schedules");
   }
 
+  getCoursesWithoutExams() {
+    return this.request("/exams/without-exams");
+  }
+
   getCourseStatistics() {
     return this.request("/courses/statistics");
   }
@@ -592,11 +596,11 @@ class ApiClient {
   }
 
   generateExamTimetable(data: GenerateExamTimetableData) {
-  return this.request('/exams/generate', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
+    return this.request("/exams/generate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
 
   // ─── Complaints ────────────────────────────────────────────────────────────
 

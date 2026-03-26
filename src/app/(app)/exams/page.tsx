@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +23,7 @@ import { ExamForm } from "@/components/exams/exam-form";
 import { ExamFilters } from "@/components/exams/exam-filters";
 import { ExamTable } from "@/components/exams/exam-table";
 import { ExamStudentView } from "@/components/exams/exam-student-view";
+import { UnscheduledExamsPanel } from "@/components/exams/unscheduled-exams-panel";
 import { useExams, useExamMutations } from "@/hooks/use-exams";
 import { Exam, Course, VenueType, ICT_VENUES, Level } from "@/types";
 import { GenerateExamTimetableModal } from "@/components/exams/generate-exam-timetable-modal";
@@ -96,6 +97,8 @@ export default function ExamsPage() {
   const [editExam, setEditExam] = useState<Exam | null>(null);
   const [deleteExam, setDeleteExam] = useState<Exam | null>(null);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [unscheduledKey, setUnscheduledKey] = useState(0);
+  const prefillCourseCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -185,6 +188,20 @@ export default function ExamsPage() {
   const resetCreateForm = () => {
     createForm.reset(defaultFormValues);
     setCreateError("");
+    prefillCourseCodeRef.current = null;
+  };
+
+  const openCreateWithPrefill = (courseCode: string) => {
+    prefillCourseCodeRef.current = courseCode;
+    createForm.reset({ ...defaultFormValues, courseCode });
+    setCreateError("");
+    setIsCreateOpen(true);
+  };
+
+  const handleCreateSuccess = () => {
+    setIsCreateOpen(false);
+    resetCreateForm();
+    setUnscheduledKey((k) => k + 1);
   };
 
   if (isStudent) {
@@ -236,7 +253,12 @@ export default function ExamsPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => {
+                prefillCourseCodeRef.current = null;
+                createForm.reset(defaultFormValues);
+                setCreateError("");
+                setIsCreateOpen(true);
+              }}
               className="bg-indigo-600 hover:bg-indigo-700 rounded-full"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -245,6 +267,13 @@ export default function ExamsPage() {
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <UnscheduledExamsPanel
+          key={unscheduledKey}
+          onScheduleExam={openCreateWithPrefill}
+        />
+      )}
 
       <ExamFilters
         searchInput={searchInput}
@@ -328,7 +357,12 @@ export default function ExamsPage() {
           {isAdmin && (
             <Button
               className="mt-5 bg-indigo-600 hover:bg-indigo-700"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => {
+                prefillCourseCodeRef.current = null;
+                createForm.reset(defaultFormValues);
+                setCreateError("");
+                setIsCreateOpen(true);
+              }}
             >
               <Plus className="h-4 w-4 mr-2" />
               Schedule Exam
@@ -398,10 +432,7 @@ export default function ExamsPage() {
             onSubmit={createForm.handleSubmit((data) => {
               const selected =
                 courses.find((c) => c.code === data.courseCode) ?? null;
-              handleCreate(data, selected, () => {
-                setIsCreateOpen(false);
-                resetCreateForm();
-              });
+              handleCreate(data, selected, handleCreateSuccess);
             })}
           />
         </DialogContent>
@@ -444,6 +475,7 @@ export default function ExamsPage() {
               handleEditSubmit(editExam, data, selected, () => {
                 openForEditExamIdRef.current = null;
                 setEditExam(null);
+                setUnscheduledKey((k) => k + 1);
               });
             })}
           />
@@ -459,13 +491,21 @@ export default function ExamsPage() {
         iconClassName="bg-red-500 text-white"
         confirmLabel="Delete"
         confirmVariant="destructive"
-        onConfirm={() => handleDelete(deleteExam!, () => setDeleteExam(null))}
+        onConfirm={() =>
+          handleDelete(deleteExam!, () => {
+            setDeleteExam(null);
+            setUnscheduledKey((k) => k + 1);
+          })
+        }
         loading={actionLoading}
       />
       <GenerateExamTimetableModal
         open={generateModalOpen}
         onOpenChange={setGenerateModalOpen}
-        onSuccess={refetch}
+        onSuccess={() => {
+          refetch();
+          setUnscheduledKey((k) => k + 1);
+        }}
       />
     </div>
   );
