@@ -20,17 +20,25 @@ import { Label } from "@/components/ui/label";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
-import { AcademicSession, Department, Semester } from "@/types";
+import { AcademicSession, Department, Level, Semester } from "@/types";
 import { getItemsFromResponse } from "@/lib/utils";
 import { RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
+const LEVEL_OPTIONS = [
+  { value: Level.LEVEL_100, label: "100 Level" },
+  { value: Level.LEVEL_200, label: "200 Level" },
+  { value: Level.LEVEL_300, label: "300 Level" },
+  { value: Level.LEVEL_400, label: "400 Level" },
+  { value: Level.LEVEL_500, label: "500 Level" },
+];
+
 interface GenerateScheduleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
-  departmentCode?: string; // For HOD: read-only own department
+  departmentCode?: string;
   departmentName?: string;
   isHod?: boolean;
 }
@@ -49,6 +57,7 @@ export function GenerateScheduleModal({
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [semester, setSemester] = useState<Semester>(Semester.FIRST);
   const [departmentCode, setDepartmentCode] = useState<string>("");
+  const [level, setLevel] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -62,6 +71,7 @@ export function GenerateScheduleModal({
     scheduled?: number;
     preserved?: number;
     skipped?: number;
+    level?: string | null;
     failedCourses?: string[];
     message?: string;
   } | null>(null);
@@ -73,7 +83,6 @@ export function GenerateScheduleModal({
     setLoadingData(true);
 
     try {
-      // Fetch sessions and active session together — unrelated to departments
       const [sessRes, activeRes] = await Promise.all([
         apiClient.getAcademicSessions({ limit: 50 }),
         apiClient.getActiveAcademicSession(),
@@ -97,14 +106,12 @@ export function GenerateScheduleModal({
       setLoadingData(false);
     }
 
-    // Fetch departments separately so a session failure can't suppress them
     if (!isHod) {
       try {
         const deptRes = await apiClient.getDepartments({ limit: 100 });
         const deptResult = getItemsFromResponse<Department>(deptRes);
         setDepartments(deptResult?.items ?? []);
       } catch {
-        // Non-fatal: department selector just won't have options
         setDepartments([]);
       }
     }
@@ -123,6 +130,7 @@ export function GenerateScheduleModal({
         semester,
         sessionId: activeSessionId || undefined,
         departmentCode: departmentCode || undefined,
+        level: (level || undefined) as Level | undefined,
       });
       if (res.success && res.data) {
         const d = res.data as any;
@@ -135,6 +143,7 @@ export function GenerateScheduleModal({
           scheduled: scheduledCount,
           preserved: d.preservedOverrides ?? d.preserved,
           skipped: d.skippedLockedDepartments ?? d.skipped,
+          level: d.level ?? null,
         });
         toast({
           title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.`,
@@ -177,6 +186,8 @@ export function GenerateScheduleModal({
     setResult(null);
     onOpenChange(false);
   };
+
+  const levelLabel = LEVEL_OPTIONS.find((l) => l.value === level)?.label;
 
   return (
     <Dialog
@@ -224,6 +235,14 @@ export function GenerateScheduleModal({
                       {semester === Semester.FIRST ? "First" : "Second"}
                     </span>
                   </div>
+                  {result.level && (
+                    <div className="flex justify-between">
+                      <span>Level</span>
+                      <span className="font-medium">
+                        {LEVEL_OPTIONS.find((l) => l.value === result.level)?.label ?? result.level}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>Total Courses</span>
                     <span className="font-medium">
@@ -248,7 +267,7 @@ export function GenerateScheduleModal({
                     <div className="flex justify-between">
                       <span>Skipped</span>
                       <span className="font-medium">
-                        {result.skipped} locked{" "}
+                        {result.skipped}{" "}
                         {result.skipped === 1 ? "department" : "departments"}
                       </span>
                     </div>
@@ -291,13 +310,7 @@ export function GenerateScheduleModal({
                   <Button variant="outline" onClick={handleClose}>
                     Close
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setResult(null);
-                    }}
-                  >
-                    Try Again
-                  </Button>
+                  <Button onClick={() => setResult(null)}>Try Again</Button>
                 </DialogFooter>
               </>
             ) : (
@@ -324,13 +337,7 @@ export function GenerateScheduleModal({
                   <Button variant="outline" onClick={handleClose}>
                     Close
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setResult(null);
-                    }}
-                  >
-                    Try Again
-                  </Button>
+                  <Button onClick={() => setResult(null)}>Try Again</Button>
                 </DialogFooter>
               </>
             )}
@@ -387,9 +394,7 @@ export function GenerateScheduleModal({
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue
-                        placeholder={
-                          loadingData ? "Loading…" : "Select session"
-                        }
+                        placeholder={loadingData ? "Loading..." : "Select session"}
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -401,15 +406,14 @@ export function GenerateScheduleModal({
                     </SelectContent>
                   </Select>
                 </div>
-                {hodDeptCode && (
+                {hodDeptCode ? (
                   <div>
                     <Label>Department</Label>
                     <div className="mt-1.5 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
                       {hodDeptName ?? hodDeptCode}
                     </div>
                   </div>
-                )}
-                {!hodDeptCode && !isHod && (
+                ) : (
                   <div>
                     <Label>Department scope</Label>
                     <Select
@@ -435,14 +439,26 @@ export function GenerateScheduleModal({
                     </Select>
                   </div>
                 )}
-                {isHod && hodDeptCode && (
-                  <div>
-                    <Label>Department</Label>
-                    <div className="mt-1.5 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                      {hodDeptName ?? hodDeptCode}
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <Label>Level (optional)</Label>
+                  <Select
+                    value={level || "__all__"}
+                    onValueChange={(v) => setLevel(v === "__all__" ? "" : v)}
+                    disabled={loading || loadingData}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="All Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Levels</SelectItem>
+                      {LEVEL_OPTIONS.map((l) => (
+                        <SelectItem key={l.value} value={l.value}>
+                          {l.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {serverError && <ServerErrorBanner message={serverError} />}
             </div>
@@ -474,7 +490,7 @@ export function GenerateScheduleModal({
         open={showGenerateConfirm}
         onOpenChange={(o) => !o && setShowGenerateConfirm(false)}
         title="Generate schedules?"
-        description="This will delete all auto-generated schedules for the selected scope and regenerate them. Manual overrides and fixed slots will be preserved."
+        description={`This will delete all auto-generated schedules for the selected scope${level ? ` (${levelLabel})` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`}
         icon={RefreshCw}
         iconClassName="bg-indigo-500 text-white"
         confirmLabel="Generate"
