@@ -512,6 +512,10 @@ class ApiClient {
     return this.request(`/schedules/${id}`, { method: "DELETE" });
   }
 
+  toggleScheduleFixed(id: string) {
+    return this.request(`/schedules/${id}/toggle-fixed`, { method: 'PATCH' });
+  }
+
   generateSchedules(data: GenerateScheduleData) {
     return this.request("/schedules/generate", {
       method: "POST",
