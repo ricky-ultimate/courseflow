@@ -198,6 +198,26 @@ export interface Exam {
   updatedAt: string;
 }
 
+export interface GenerateExamTimetableData {
+  semester: Semester;
+  sessionId?: string;
+  departmentCode?: string;
+  level?: Level;
+  college?: College;
+}
+
+export interface GenerateExamTimetableResult {
+  sessionId: string;
+  sessionName: string;
+  semester: Semester;
+  departmentCode: string | null;
+  level: Level | null;
+  college: College | null;
+  totalCourses: number;
+  scheduledExams: number;
+  skippedCourses: string[];
+}
+
 export interface Complaint {
   id: string;
   userId?: string | null;
@@ -352,6 +372,7 @@ export interface GenerateScheduleData {
   semester: Semester;
   sessionId?: string;
   departmentCode?: string;
+  level?: Level;
 }
 
 export interface CreateAcademicSessionData {
