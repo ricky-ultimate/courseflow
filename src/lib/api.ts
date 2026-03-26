@@ -24,6 +24,7 @@ import {
   DepartmentFilterParams,
   ExamFilterParams,
   ComplaintStatus,
+  GenerateExamTimetableData,
 } from "@/types";
 
 const API_BASE_URL = "https://courseflow-backend-s16i.onrender.com/api/v1";
@@ -589,6 +590,13 @@ class ApiClient {
   deleteExam(id: string) {
     return this.request(`/exams/${id}`, { method: "DELETE" });
   }
+
+  generateExamTimetable(data: GenerateExamTimetableData) {
+  return this.request('/exams/generate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
 
   // ─── Complaints ────────────────────────────────────────────────────────────
 

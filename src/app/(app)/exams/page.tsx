@@ -15,8 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ClipboardList, Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ClipboardList, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/state/error-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -26,6 +25,7 @@ import { ExamTable } from "@/components/exams/exam-table";
 import { ExamStudentView } from "@/components/exams/exam-student-view";
 import { useExams, useExamMutations } from "@/hooks/use-exams";
 import { Exam, Course, VenueType, ICT_VENUES, Level } from "@/types";
+import { GenerateExamTimetableModal } from "@/components/exams/generate-exam-timetable-modal";
 
 function isCbtCourse(course: Course | null | undefined): boolean {
   if (!course) return false;
@@ -56,7 +56,7 @@ function createExamSchema(courses: Course[]) {
         const [eh, em] = d.endTime.split(":").map(Number);
         return (eh ?? 0) * 60 + (em ?? 0) > (sh ?? 0) * 60 + (sm ?? 0);
       },
-      { message: "End time must be after start time", path: ["endTime"] }
+      { message: "End time must be after start time", path: ["endTime"] },
     )
     .superRefine((data, ctx) => {
       const course = courses.find((c) => c.code === data.courseCode);
@@ -95,6 +95,7 @@ export default function ExamsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editExam, setEditExam] = useState<Exam | null>(null);
   const [deleteExam, setDeleteExam] = useState<Exam | null>(null);
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -104,15 +105,24 @@ export default function ExamsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const { exams, courses, sessions, loading, refetching, total, totalPages, fetchError, refetch } =
-    useExams({
-      sessionId,
-      semester,
-      page,
-      limit,
-      isStudent: !!isStudent,
-      departmentCode: user?.departmentCode,
-    });
+  const {
+    exams,
+    courses,
+    sessions,
+    loading,
+    refetching,
+    total,
+    totalPages,
+    fetchError,
+    refetch,
+  } = useExams({
+    sessionId,
+    semester,
+    page,
+    limit,
+    isStudent: !!isStudent,
+    departmentCode: user?.departmentCode,
+  });
 
   usePageLoadReporter(loading);
 
@@ -194,7 +204,10 @@ export default function ExamsPage() {
         onSemesterChange={setSemester}
         studentLevelFilter={studentLevelFilter}
         onStudentLevelFilterChange={setStudentLevelFilter}
-        onRetry={() => { setFiltersOpen(false); refetch(); }}
+        onRetry={() => {
+          setFiltersOpen(false);
+          refetch();
+        }}
       />
     );
   }
@@ -211,14 +224,25 @@ export default function ExamsPage() {
           </p>
         </div>
         {isAdmin && (
-          <Button
-            size="sm"
-            onClick={() => setIsCreateOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 rounded-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule Exam
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setGenerateModalOpen(true)}
+              className="rounded-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Auto-Generate
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setIsCreateOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule Exam
+            </Button>
+          </div>
         )}
       </div>
 
@@ -241,7 +265,10 @@ export default function ExamsPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <ErrorState
             entity="exams"
-            onRetry={() => { setFiltersOpen(false); refetch(); }}
+            onRetry={() => {
+              setFiltersOpen(false);
+              refetch();
+            }}
           />
         </div>
       ) : loading ? (
@@ -250,8 +277,19 @@ export default function ExamsPage() {
             <table className="w-full">
               <thead className="bg-white border-b">
                 <tr className="text-left text-sm text-gray-500">
-                  {["Date", "Time", "Course", "Level", "Venue", "Students", "College", "Invigilators"].map((h) => (
-                    <th key={h} className="p-3">{h}</th>
+                  {[
+                    "Date",
+                    "Time",
+                    "Course",
+                    "Level",
+                    "Venue",
+                    "Students",
+                    "College",
+                    "Invigilators",
+                  ].map((h) => (
+                    <th key={h} className="p-3">
+                      {h}
+                    </th>
                   ))}
                   {isAdmin && <th className="p-3 text-right">Actions</th>}
                 </tr>
@@ -261,7 +299,9 @@ export default function ExamsPage() {
                   <tr key={i} className="border-t">
                     {[90, 80, 140, 60, 70, 32, 60, 100].map((w, j) => (
                       <td key={j} className="p-3">
-                        <div className={`h-6 bg-gray-200 animate-pulse rounded w-[${w}px]`} />
+                        <div
+                          className={`h-6 bg-gray-200 animate-pulse rounded w-[${w}px]`}
+                        />
                       </td>
                     ))}
                     {isAdmin && (
@@ -279,8 +319,12 @@ export default function ExamsPage() {
         <div className="relative rounded-2xl border border-slate-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <ClipboardList className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-base font-semibold text-gray-700">No exams scheduled</h3>
-          <p className="text-sm text-gray-400 mt-2">Schedule exams for the active session.</p>
+          <h3 className="text-base font-semibold text-gray-700">
+            No exams scheduled
+          </h3>
+          <p className="text-sm text-gray-400 mt-2">
+            Schedule exams for the active session.
+          </p>
           {isAdmin && (
             <Button
               className="mt-5 bg-indigo-600 hover:bg-indigo-700"
@@ -298,9 +342,7 @@ export default function ExamsPage() {
             exams={filteredExams}
             courses={courses}
             isAdmin={!!isAdmin}
-            onEdit={(exam) =>
-              openEditExam(exam, editForm.reset, setEditExam)
-            }
+            onEdit={(exam) => openEditExam(exam, editForm.reset, setEditExam)}
             onDelete={setDeleteExam}
           />
         </div>
@@ -313,22 +355,35 @@ export default function ExamsPage() {
           total={total}
           limit={limit}
           onPageChange={setPage}
-          onLimitChange={(v) => { setLimit(v); setPage(1); }}
+          onLimitChange={(v) => {
+            setLimit(v);
+            setPage(1);
+          }}
           resultsLabel="exams"
         />
       )}
 
       <Dialog
         open={isCreateOpen}
-        onOpenChange={(o) => { if (!o) { setIsCreateOpen(false); resetCreateForm(); } }}
+        onOpenChange={(o) => {
+          if (!o) {
+            setIsCreateOpen(false);
+            resetCreateForm();
+          }
+        }}
       >
         <DialogContent
           className="md:max-w-[560px]"
-          onSwipeDown={() => { setIsCreateOpen(false); resetCreateForm(); }}
+          onSwipeDown={() => {
+            setIsCreateOpen(false);
+            resetCreateForm();
+          }}
         >
           <DialogHeader>
             <DialogTitle>Schedule Exam</DialogTitle>
-            <DialogDescription>Select course, venue, date and time.</DialogDescription>
+            <DialogDescription>
+              Select course, venue, date and time.
+            </DialogDescription>
           </DialogHeader>
           <ExamForm
             form={createForm}
@@ -336,10 +391,17 @@ export default function ExamsPage() {
             submitting={creating}
             error={createError}
             submitLabel="Schedule Exam"
-            onCancel={() => { setIsCreateOpen(false); resetCreateForm(); }}
+            onCancel={() => {
+              setIsCreateOpen(false);
+              resetCreateForm();
+            }}
             onSubmit={createForm.handleSubmit((data) => {
-              const selected = courses.find((c) => c.code === data.courseCode) ?? null;
-              handleCreate(data, selected, () => { setIsCreateOpen(false); resetCreateForm(); });
+              const selected =
+                courses.find((c) => c.code === data.courseCode) ?? null;
+              handleCreate(data, selected, () => {
+                setIsCreateOpen(false);
+                resetCreateForm();
+              });
             })}
           />
         </DialogContent>
@@ -347,11 +409,19 @@ export default function ExamsPage() {
 
       <Dialog
         open={!!editExam}
-        onOpenChange={(o) => { if (!o) { openForEditExamIdRef.current = null; setEditExam(null); } }}
+        onOpenChange={(o) => {
+          if (!o) {
+            openForEditExamIdRef.current = null;
+            setEditExam(null);
+          }
+        }}
       >
         <DialogContent
           className="md:max-w-[560px]"
-          onSwipeDown={() => { openForEditExamIdRef.current = null; setEditExam(null); }}
+          onSwipeDown={() => {
+            openForEditExamIdRef.current = null;
+            setEditExam(null);
+          }}
         >
           <DialogHeader>
             <DialogTitle>Edit Exam</DialogTitle>
@@ -363,10 +433,14 @@ export default function ExamsPage() {
             submitting={editLoading}
             error={editError}
             submitLabel="Update Exam"
-            onCancel={() => { openForEditExamIdRef.current = null; setEditExam(null); }}
+            onCancel={() => {
+              openForEditExamIdRef.current = null;
+              setEditExam(null);
+            }}
             onSubmit={editForm.handleSubmit((data) => {
               if (!editExam) return;
-              const selected = courses.find((c) => c.code === data.courseCode) ?? null;
+              const selected =
+                courses.find((c) => c.code === data.courseCode) ?? null;
               handleEditSubmit(editExam, data, selected, () => {
                 openForEditExamIdRef.current = null;
                 setEditExam(null);
@@ -387,6 +461,11 @@ export default function ExamsPage() {
         confirmVariant="destructive"
         onConfirm={() => handleDelete(deleteExam!, () => setDeleteExam(null))}
         loading={actionLoading}
+      />
+      <GenerateExamTimetableModal
+        open={generateModalOpen}
+        onOpenChange={setGenerateModalOpen}
+        onSuccess={refetch}
       />
     </div>
   );
