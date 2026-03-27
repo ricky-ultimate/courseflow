@@ -3,9 +3,21 @@
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Unlock, ArrowLeft, Pencil, Trash2, Loader2 } from "lucide-react";
+import {
+  Lock,
+  Unlock,
+  ArrowLeft,
+  Pencil,
+  Trash2,
+  Loader2,
+  Clock,
+  Calendar,
+  User,
+  Building2,
+  GraduationCap,
+} from "lucide-react";
 import { Schedule, Semester } from "@/types";
-import { DAY_LABELS } from "@/lib/constants";
+import { DAY_LABELS, LEVEL_PILL } from "@/lib/constants";
 import { useState } from "react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -47,8 +59,8 @@ export function ScheduleDetailSheet({
         const updated = res.data as Schedule;
         toast({
           title: updated.isFixed
-            ? "Slot pinned. Auto-generation will no longer move it."
-            : "Slot unpinned. Auto-generation may reassign it.",
+            ? "Slot pinned — auto-generation will not move it."
+            : "Slot unpinned — auto-generation may reassign it.",
         });
         onFixedToggled?.(updated);
       } else {
@@ -63,6 +75,10 @@ export function ScheduleDetailSheet({
       setTogglingFixed(false);
     }
   };
+
+  const course = schedule.course;
+  const levelLabel = course?.level?.replace("LEVEL_", "") ?? null;
+  const levelPill = course?.level ? LEVEL_PILL[course.level] : "";
 
   return (
     <Sheet open={!!schedule} onOpenChange={(o) => !o && onClose()}>
@@ -81,36 +97,42 @@ export function ScheduleDetailSheet({
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </SheetHeader>
-        <div className="pt-12 md:pt-0 space-y-6">
-          <div>
-            <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-              {schedule.course?.code ?? schedule.courseCode}
-            </span>
-            <h2 className="text-xl font-semibold mt-2">
-              {schedule.course?.name ?? "—"}
-            </h2>
+
+        <div className="pt-12 md:pt-0 flex flex-col gap-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
+                  {course?.code ?? schedule.courseCode}
+                </span>
+                {levelLabel && (
+                  <Badge variant="secondary" className={`text-xs ${levelPill}`}>
+                    {levelLabel}L
+                  </Badge>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 leading-snug">
+                {course?.name ?? schedule.courseCode}
+              </h2>
+              {course?.departmentCode && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-sm text-gray-500">
+                    {course.departmentCode}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <p className="text-lg font-semibold">
-              {DAY_LABELS[schedule.dayOfWeek]}, {schedule.startTime} –{" "}
-              {schedule.endTime}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {sessionName || schedule.sessionId} &middot;{" "}
-              {schedule.semester === Semester.FIRST ? "First" : "Second"}{" "}
-              Semester
-            </p>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {schedule.isFixed ? (
-              <Badge className="bg-indigo-100 text-indigo-700">
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
                 <Lock className="h-3 w-3 mr-1" />
                 Pinned
               </Badge>
             ) : schedule.isManualOverride ? (
-              <Badge className="bg-amber-100 text-amber-700">
+              <Badge className="bg-amber-100 text-amber-700 border-amber-200">
                 Manual Override
               </Badge>
             ) : (
@@ -118,57 +140,107 @@ export function ScheduleDetailSheet({
                 Auto-generated
               </Badge>
             )}
+            <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+              {schedule.semester === Semester.FIRST
+                ? "First Semester"
+                : "Second Semester"}
+            </Badge>
           </div>
 
-          <div className="rounded-lg border p-4 space-y-2">
-            <p className="text-sm">
-              <span className="text-gray-500">Level:</span>{" "}
-              <Badge variant="secondary" className="text-xs">
-                {schedule.course?.level?.replace("LEVEL_", "") ?? "—"}
-              </Badge>
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Department:</span>{" "}
-              <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                {schedule.course?.departmentCode ?? "—"}
+          <div className="rounded-xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-semibold text-gray-700">
+                Time Slot
               </span>
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Lecturer:</span>{" "}
-              {schedule.course?.lecturer?.name &&
-              schedule.course?.lecturer?.email
-                ? `${schedule.course.lecturer.name} (${schedule.course.lecturer.email})`
-                : (schedule.course?.lecturer?.name ??
-                  schedule.course?.lecturer?.email ??
-                  "—")}
-            </p>
+              {sessionName && (
+                <span className="ml-auto text-xs text-gray-400 bg-white border border-gray-200 rounded px-2 py-0.5">
+                  {sessionName}
+                </span>
+              )}
+            </div>
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Day
+                </span>
+                <span className="text-sm font-semibold text-gray-800">
+                  {DAY_LABELS[schedule.dayOfWeek]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Time
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-sm font-semibold text-gray-800">
+                    {schedule.startTime} – {schedule.endTime}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {course?.lecturer && (
+            <div className="rounded-xl border border-gray-100 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-semibold text-gray-700">
+                  Lecturer
+                </span>
+              </div>
+              <div className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-semibold text-indigo-700 shrink-0">
+                    {(course.lecturer.name ??
+                      course.lecturer.email ??
+                      "?")[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {course.lecturer.name ?? course.lecturer.email}
+                    </p>
+                    {course.lecturer.name && (
+                      <p className="text-xs text-gray-500 truncate">
+                        {course.lecturer.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {canToggleFixed && (
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 space-y-2">
-              <p className="text-sm font-medium text-gray-700">Pin this slot</p>
-              <p className="text-xs text-gray-500">
-                {schedule.isFixed
-                  ? "This slot is pinned. The auto-generation algorithm will never move or delete it. Unpin to allow reassignment."
-                  : "Pin this slot to prevent the auto-generation algorithm from ever moving or deleting it."}
-              </p>
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  {schedule.isFixed ? "Slot is pinned" : "Pin this slot"}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {schedule.isFixed
+                    ? "Auto-generation will never move or delete this slot. Unpin to allow reassignment."
+                    : "Prevent auto-generation from moving or deleting this slot."}
+                </p>
+              </div>
               <Button
                 variant={schedule.isFixed ? "outline" : "default"}
                 size="sm"
                 className={
                   schedule.isFixed
-                    ? "border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+                    ? "border-indigo-300 text-indigo-700 hover:bg-indigo-100 bg-white"
                     : "bg-indigo-600 hover:bg-indigo-700 text-white"
                 }
                 onClick={handleToggleFixed}
                 disabled={togglingFixed}
               >
                 {togglingFixed ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : schedule.isFixed ? (
-                  <Unlock className="h-4 w-4 mr-2" />
+                  <Unlock className="h-3.5 w-3.5 mr-1.5" />
                 ) : (
-                  <Lock className="h-4 w-4 mr-2" />
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />
                 )}
                 {schedule.isFixed ? "Unpin slot" : "Pin slot"}
               </Button>
@@ -176,13 +248,13 @@ export function ScheduleDetailSheet({
           )}
 
           {canMutate && (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2 pt-2">
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full justify-start gap-2 h-10"
                 onClick={() => onEdit(schedule)}
               >
-                <Pencil className="h-4 w-4 mr-2" />
+                <Pencil className="h-4 w-4" />
                 Edit Schedule
               </Button>
               <span
@@ -191,15 +263,14 @@ export function ScheduleDetailSheet({
                     ? "This slot is pinned. Contact an admin to remove it."
                     : undefined
                 }
-                className="block"
               >
                 <Button
                   variant="outline"
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                  className="w-full justify-start gap-2 h-10 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                   onClick={() => onDelete(schedule)}
                   disabled={!canDelete}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-4 w-4" />
                   Delete Schedule
                 </Button>
               </span>
