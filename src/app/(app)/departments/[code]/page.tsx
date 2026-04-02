@@ -27,6 +27,7 @@ import { DepartmentInfoCards } from "@/components/departments/department-info-ca
 import { DepartmentCoursesSection } from "@/components/departments/department-courses-section";
 import { DepartmentEditModal } from "@/components/departments/department-edit-modal";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
+import { COLLEGE_BADGE } from "@/lib/constants";
 
 export default function DepartmentDetailsPage() {
   const params = useParams();
@@ -241,24 +242,12 @@ export default function DepartmentDetailsPage() {
         <Badge
           variant="outline"
           className={
-            department.college === College.CBAS
-              ? "bg-blue-100 text-blue-700 border-blue-200"
-              : "bg-purple-100 text-purple-700 border-purple-200"
+            COLLEGE_BADGE[department.college] ??
+            "bg-gray-100 text-gray-700 border-gray-200"
           }
         >
           {department.college}
         </Badge>
-        {department.isScheduleLocked ? (
-          <Badge className="bg-amber-100 text-amber-700">
-            <Lock className="h-3 w-3 mr-1" />
-            Locked
-          </Badge>
-        ) : (
-          <Badge className="bg-green-100 text-green-700">
-            <Unlock className="h-3 w-3 mr-1" />
-            Unlocked
-          </Badge>
-        )}
       </div>
 
       <DepartmentInfoCards

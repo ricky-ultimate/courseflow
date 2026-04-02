@@ -249,8 +249,8 @@ export function GenerateExamTimetableModal({
             >
               <div className="rounded-lg border-l-[3px] border-amber-600 bg-amber-50 py-3 px-4 text-sm text-amber-800">
                 This will delete and regenerate all exam schedules for the
-                selected scope, spreading them across the 3 weeks before
-                session end.
+                selected scope, spreading them across the 3 weeks before session
+                end.
               </div>
               <div className="grid gap-4">
                 <div>
@@ -352,6 +352,7 @@ export function GenerateExamTimetableModal({
                       <SelectItem value="__all__">All Colleges</SelectItem>
                       <SelectItem value={College.CBAS}>CBAS</SelectItem>
                       <SelectItem value={College.CHMS}>CHMS</SelectItem>
+                      <SelectItem value={College.CAHS}>CAHS</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

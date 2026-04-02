@@ -42,6 +42,7 @@ export enum Level {
 export enum College {
   CBAS = "CBAS",
   CHMS = "CHMS",
+  CAHS = "CAHS",
 }
 
 export enum Semester {
