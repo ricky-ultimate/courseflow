@@ -121,12 +121,6 @@ export function Navigation() {
       icon: ClipboardList,
       show: isAdmin,
     },
-    {
-      title: 'Verification Codes',
-      href: '/verification-codes',
-      icon: ClipboardList,
-      show: isAdmin,
-    },
   ]
 
   const MobileNavigation = () => (

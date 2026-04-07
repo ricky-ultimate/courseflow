@@ -15,7 +15,6 @@ import {
   Clock,
   ClipboardList,
   MessageCircle,
-  KeyRound,
   Settings,
   X,
   Activity,
@@ -99,12 +98,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/complaints",
     icon: MessageCircle,
     visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
-  },
-  {
-    label: "Verification Codes",
-    href: "/verification-codes",
-    icon: KeyRound,
-    visibleTo: [Role.ADMIN],
   },
   { label: "Health", href: "/health", icon: Activity, visibleTo: [Role.ADMIN] },
 ];

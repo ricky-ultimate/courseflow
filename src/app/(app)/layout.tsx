@@ -10,7 +10,6 @@ const ROUTE_ROLES: Record<string, Role[]> = {
   "/sessions": [Role.ADMIN],
   "/lecturers": [Role.ADMIN, Role.HOD],
   "/students": [Role.ADMIN, Role.HOD],
-  "/verification-codes": [Role.ADMIN],
   "/health": [Role.ADMIN],
   "/courses/create": [Role.ADMIN, Role.HOD],
   "/schedules/create": [Role.ADMIN, Role.HOD],
