@@ -10,7 +10,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -31,11 +37,13 @@ const registerSchema = z
     name: z.string(),
     matricNO: z.string().min(1, "Matric / Staff number is required"),
     email: z.string().min(1, "Email is required").email("Invalid email format"),
-    password: z.string().min(1, "Password is required").min(6, "Password must be at least 6 characters"),
+    password: z
+      .string()
+      .min(1, "Password is required")
+      .min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     role: z.nativeEnum(Role),
     departmentCode: z.string(),
-    verificationCode: z.string(),
     phone: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -44,10 +52,11 @@ const registerSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.role !== Role.ADMIN && !data.departmentCode?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please select your department", path: ["departmentCode"] });
-    }
-    if ([Role.LECTURER, Role.HOD, Role.ADMIN].includes(data.role) && !data.verificationCode?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Verification code is required", path: ["verificationCode"] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select your department",
+        path: ["departmentCode"],
+      });
     }
   });
 
@@ -76,14 +85,12 @@ export default function RegisterPage() {
       confirmPassword: "",
       role: Role.STUDENT,
       departmentCode: "",
-      verificationCode: "",
       phone: "",
     },
   });
 
   const role = form.watch("role");
   const needsDepartment = role !== Role.ADMIN;
-  const needsVerificationCode = [Role.LECTURER, Role.HOD, Role.ADMIN].includes(role);
   const needsPhone = role === Role.LECTURER || role === Role.HOD;
 
   const fetchDepartments = async () => {
@@ -108,7 +115,6 @@ export default function RegisterPage() {
     if (role === Role.ADMIN) {
       form.setValue("departmentCode", "");
     }
-    form.setValue("verificationCode", "");
     form.setValue("phone", "");
   }, [role, form]);
 
@@ -122,7 +128,6 @@ export default function RegisterPage() {
         password: data.password,
         name: data.name.trim() || undefined,
         role: data.role,
-        verificationCode: needsVerificationCode ? data.verificationCode.trim() : undefined,
         departmentCode: needsDepartment ? data.departmentCode : undefined,
         phone: data.phone.trim() || undefined,
       };
@@ -143,11 +148,16 @@ export default function RegisterPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Create your account</h1>
-        <p className="text-sm text-gray-500 mt-1">Fill in your details to get started</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Fill in your details to get started
+        </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={handleSubmit} className={`space-y-5 transition-opacity ${isLoading ? "opacity-60" : ""}`}>
+        <form
+          onSubmit={handleSubmit}
+          className={`space-y-5 transition-opacity ${isLoading ? "opacity-60" : ""}`}
+        >
           {serverError && <ServerErrorBanner message={serverError} />}
           <FormField
             control={form.control}
@@ -223,9 +233,15 @@ export default function RegisterPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center text-gray-500"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </FormControl>
@@ -258,7 +274,11 @@ export default function RegisterPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Role</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={isLoading}>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isLoading}
+                >
                   <FormControl>
                     <SelectTrigger className="text-base min-h-[44px]">
                       <SelectValue placeholder="Select role" />
@@ -306,7 +326,13 @@ export default function RegisterPage() {
                               Loading departments…
                             </span>
                           ) : (
-                            <SelectValue placeholder={deptError ? "Failed to load departments. Retry." : "Select department..."} />
+                            <SelectValue
+                              placeholder={
+                                deptError
+                                  ? "Failed to load departments. Retry."
+                                  : "Select department..."
+                              }
+                            />
                           )}
                         </SelectTrigger>
                       </FormControl>
@@ -319,7 +345,10 @@ export default function RegisterPage() {
                             </span>
                           </SelectItem>
                         ) : deptError ? (
-                          <SelectItem value="__retry__" className="text-indigo-600 font-medium cursor-pointer">
+                          <SelectItem
+                            value="__retry__"
+                            className="text-indigo-600 font-medium cursor-pointer"
+                          >
                             Failed to load departments. Retry.
                           </SelectItem>
                         ) : (
@@ -331,32 +360,6 @@ export default function RegisterPage() {
                         )}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <div
-            className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-            style={{ gridTemplateRows: needsVerificationCode ? "1fr" : "0fr" }}
-          >
-            <div className="overflow-hidden">
-              <FormField
-                control={form.control}
-                name="verificationCode"
-                render={({ field }) => (
-                  <FormItem className="pt-0">
-                    <FormLabel>Verification code *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="XXXX-XXXX"
-                        className="text-base min-h-[44px]"
-                        disabled={isLoading}
-                        {...field}
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -390,15 +393,26 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isLoading}>
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
+          <Button
+            type="submit"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Create account"
+            )}
           </Button>
         </form>
       </Form>
 
       <p className="text-center text-sm text-gray-500">
         Already have an account?{" "}
-        <Link href="/login" className="text-indigo-600 font-medium hover:underline">
+        <Link
+          href="/login"
+          className="text-indigo-600 font-medium hover:underline"
+        >
           Sign in
         </Link>
       </p>

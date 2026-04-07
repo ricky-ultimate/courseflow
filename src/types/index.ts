@@ -234,21 +234,6 @@ export interface Complaint {
   updatedAt: string;
 }
 
-export interface VerificationCode {
-  id: string;
-  code: string;
-  role: Role;
-  description?: string | null;
-  isActive: boolean;
-  usageCount: number;
-  maxUsage?: number | null;
-  expiresAt?: string | null;
-  createdBy: string;
-  creator?: Pick<User, "id" | "name" | "email" | "role">;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface GenerateScheduleResult {
   sessionId: string;
   sessionName: string;
@@ -408,18 +393,6 @@ export interface CreateComplaintData {
   department: string;
   subject: string;
   message: string;
-}
-
-export interface CreateVerificationCodeData {
-  code: string;
-  role: Role;
-  description?: string;
-  maxUsage?: number;
-  expiresAt?: string;
-}
-
-export interface UpdateVerificationCodeData extends Partial<CreateVerificationCodeData> {
-  isActive?: boolean;
 }
 
 export interface CreateUserData {

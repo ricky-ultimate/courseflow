@@ -1,6 +1,5 @@
 import {
   ApiResponse,
-  PaginatedResponse,
   CreateAcademicSessionData,
   UpdateAcademicSessionData,
   CreateExamData,
@@ -13,8 +12,6 @@ import {
   UpdateScheduleData,
   GenerateScheduleData,
   CreateComplaintData,
-  CreateVerificationCodeData,
-  UpdateVerificationCodeData,
   CreateUserData,
   UpdateUserData,
   RegisterData,
@@ -303,36 +300,6 @@ class ApiClient {
     return this.request("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ token, newPassword }),
-    });
-  }
-
-  // ─── Verification Codes ────────────────────────────────────────────────────
-
-  getVerificationCodes() {
-    return this.request("/auth/verification-codes");
-  }
-
-  getVerificationCodeById(id: string) {
-    return this.request(`/auth/verification-codes/${id}`);
-  }
-
-  createVerificationCode(data: CreateVerificationCodeData) {
-    return this.request("/auth/verification-codes", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  updateVerificationCode(id: string, data: UpdateVerificationCodeData) {
-    return this.request(`/auth/verification-codes/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
-  }
-
-  deleteVerificationCode(id: string) {
-    return this.request(`/auth/verification-codes/${id}`, {
-      method: "DELETE",
     });
   }
 
