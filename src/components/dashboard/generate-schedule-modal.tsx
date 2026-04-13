@@ -96,6 +96,9 @@ export function GenerateScheduleModal({
     failedCourses?: string[];
     message?: string;
     isUniversityCourseError?: boolean;
+    batchErrors?: Array<{ departmentCode: string; message: string }>;
+    totalDepartments?: number;
+    processedDepartments?: number;
   } | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -148,16 +151,30 @@ export function GenerateScheduleModal({
     setResult(null);
     setServerError("");
     setUniversityCourseCodes([]);
+
+    const isBatch = !departmentCode && !hodDeptCode && !isHod;
+
     try {
-      const res = await apiClient.generateSchedules({
-        semester,
-        sessionId: activeSessionId || undefined,
-        departmentCode: departmentCode || undefined,
-        level: (level || undefined) as Level | undefined,
-      });
+      const res = isBatch
+        ? await apiClient.generateSchedulesBatch({
+            semester,
+            sessionId: activeSessionId || undefined,
+            level: (level || undefined) as Level | undefined,
+          })
+        : await apiClient.generateSchedules({
+            semester,
+            sessionId: activeSessionId || undefined,
+            departmentCode: departmentCode || hodDeptCode || undefined,
+            level: (level || undefined) as Level | undefined,
+          });
+
       if (res.success && res.data) {
         const d = res.data as any;
         const scheduledCount = d.scheduledCourses ?? d.scheduled ?? 0;
+        const batchErrors = d.errors as
+          | Array<{ departmentCode: string; message: string }>
+          | undefined;
+
         setResult({
           success: true,
           session: d.sessionName ?? d.session ?? activeSessionId,
@@ -167,6 +184,9 @@ export function GenerateScheduleModal({
           preserved: d.preservedOverrides ?? d.preserved,
           skipped: d.skippedLockedDepartments ?? d.skipped,
           level: d.level ?? null,
+          batchErrors: batchErrors?.length ? batchErrors : undefined,
+          totalDepartments: d.totalDepartments,
+          processedDepartments: d.processedDepartments,
         });
         toast({
           title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.`,
@@ -222,6 +242,7 @@ export function GenerateScheduleModal({
   };
 
   const levelLabel = LEVEL_OPTIONS.find((l) => l.value === level)?.label;
+  const isBatch = !departmentCode && !hodDeptCode && !isHod;
 
   return (
     <>
@@ -252,7 +273,9 @@ export function GenerateScheduleModal({
                   <div className="flex flex-col items-center text-center">
                     <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
                     <h3 className="text-lg font-semibold">
-                      Schedule Generation Complete
+                      {result.batchErrors?.length
+                        ? "Schedule Generation Completed with Warnings"
+                        : "Schedule Generation Complete"}
                     </h3>
                   </div>
                   <div className="rounded-lg border bg-gray-50 p-4 space-y-2 text-sm">
@@ -279,6 +302,15 @@ export function GenerateScheduleModal({
                         </span>
                       </div>
                     )}
+                    {result.totalDepartments != null && (
+                      <div className="flex justify-between">
+                        <span>Departments Processed</span>
+                        <span className="font-medium">
+                          {result.processedDepartments} /{" "}
+                          {result.totalDepartments}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span>Total Courses</span>
                       <span className="font-medium">
@@ -301,7 +333,7 @@ export function GenerateScheduleModal({
                     )}
                     {result.skipped != null && result.skipped > 0 && (
                       <div className="flex justify-between">
-                        <span>Skipped</span>
+                        <span>Skipped (locked)</span>
                         <span className="font-medium">
                           {result.skipped}{" "}
                           {result.skipped === 1 ? "department" : "departments"}
@@ -309,6 +341,27 @@ export function GenerateScheduleModal({
                       </div>
                     )}
                   </div>
+                  {result.batchErrors && result.batchErrors.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1">
+                      <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">
+                        Departments with scheduling errors (
+                        {result.batchErrors.length})
+                      </p>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {result.batchErrors.map((e) => (
+                          <div
+                            key={e.departmentCode}
+                            className="flex items-start gap-2 text-xs text-amber-800"
+                          >
+                            <span className="font-mono font-semibold shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">
+                              {e.departmentCode}
+                            </span>
+                            <span className="truncate">{e.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={handleClose}>
                       Close
@@ -450,11 +503,20 @@ export function GenerateScheduleModal({
               <div
                 className={`space-y-4 py-4 transition-opacity ${loading ? "opacity-60" : ""}`}
               >
-                <div className="rounded-lg border-l-[3px] border-amber-600 bg-amber-50 py-3 px-4 text-sm text-amber-800">
-                  This will delete all auto-generated schedules for the selected
-                  scope and regenerate them. Manual overrides and fixed slots
-                  will be preserved.
-                </div>
+                {isBatch ? (
+                  <div className="rounded-lg border-l-[3px] border-blue-600 bg-blue-50 py-3 px-4 text-sm text-blue-800">
+                    System-wide generation processes each department
+                    independently to avoid timeouts. University courses are
+                    scheduled first, then departmental courses in sequence. This
+                    may take a moment.
+                  </div>
+                ) : (
+                  <div className="rounded-lg border-l-[3px] border-amber-600 bg-amber-50 py-3 px-4 text-sm text-amber-800">
+                    This will delete all auto-generated schedules for the
+                    selected scope and regenerate them. Manual overrides and
+                    fixed slots will be preserved.
+                  </div>
+                )}
                 <div className="grid gap-4">
                   <div>
                     <Label>Semester</Label>
@@ -521,7 +583,7 @@ export function GenerateScheduleModal({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__all__">
-                            All Unlocked Departments
+                            All Unlocked Departments (Batched)
                           </SelectItem>
                           {departments.map((d) => (
                             <SelectItem key={d.code} value={d.code}>
@@ -583,7 +645,11 @@ export function GenerateScheduleModal({
           open={showGenerateConfirm}
           onOpenChange={(o) => !o && setShowGenerateConfirm(false)}
           title="Generate schedules?"
-          description={`This will delete all auto-generated schedules for the selected scope${level ? ` (${levelLabel})` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`}
+          description={
+            isBatch
+              ? `This will process all unlocked departments sequentially${levelLabel ? ` for ${levelLabel}` : ""} and regenerate their auto-generated schedules. Manual overrides and fixed slots will be preserved. Departments that fail to schedule will be listed in the results.`
+              : `This will delete all auto-generated schedules for the selected scope${level ? ` (${levelLabel})` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`
+          }
           icon={RefreshCw}
           iconClassName="bg-indigo-500 text-white"
           confirmLabel="Generate"
