@@ -447,6 +447,25 @@ class ApiClient {
     return this.uploadFile("/courses/bulk/upload", file);
   }
 
+  getCourseAliases() {
+    return this.request("/course-aliases");
+  }
+
+  getCourseAliasesForCourse(code: string) {
+    return this.request(`/course-aliases/course/${code}`);
+  }
+
+  createCourseAlias(data: { primaryCode: string; aliasCode: string }) {
+    return this.request("/course-aliases", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteCourseAlias(id: string) {
+    return this.request(`/course-aliases/${id}`, { method: "DELETE" });
+  }
+
   // ─── Schedules ─────────────────────────────────────────────────────────────
 
   getSchedules(params?: ScheduleFilterParams) {
@@ -480,11 +499,18 @@ class ApiClient {
   }
 
   toggleScheduleFixed(id: string) {
-    return this.request(`/schedules/${id}/toggle-fixed`, { method: 'PATCH' });
+    return this.request(`/schedules/${id}/toggle-fixed`, { method: "PATCH" });
   }
 
   generateSchedules(data: GenerateScheduleData) {
     return this.request("/schedules/generate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  generateSchedulesBatch(data: GenerateScheduleData) {
+    return this.request("/schedules/generate/batch", {
       method: "POST",
       body: JSON.stringify(data),
     });

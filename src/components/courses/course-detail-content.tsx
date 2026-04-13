@@ -18,6 +18,7 @@ import { Course, AcademicSession, Department, Semester, Level } from "@/types";
 import { getInitials } from "@/lib/utils";
 import { LEVEL_PILL } from "@/lib/constants";
 import { CourseEditModal } from "@/components/courses/course-edit-modal";
+import { CourseAliasPanel } from "./course-alias-panel";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -264,6 +265,7 @@ export function CourseDetailContent({
           </div>
         </div>
       </div>
+      <CourseAliasPanel courseCode={course.code} canEdit={canEdit} />
 
       <CourseEditModal
         course={editOpen ? course : null}

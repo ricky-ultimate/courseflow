@@ -147,13 +147,35 @@ export interface Course {
   departmentCode: string;
   department?: Department;
   lecturerId?: string | null;
-  lecturer?: Pick<User, "id" | "name" | "email" | "phone" | "departmentCode"> | null;
+  lecturer?: Pick<
+    User,
+    "id" | "name" | "email" | "phone" | "departmentCode"
+  > | null;
   isGeneral: boolean;
   isLocked: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
   schedules?: Schedule[];
+}
+
+export interface CourseAlias {
+  id: string;
+  primaryCode: string;
+  aliasCode: string;
+  createdAt: string;
+  primaryCourse?: {
+    code: string;
+    name: string;
+    departmentCode: string;
+    level?: Level;
+  };
+  aliasCourse?: {
+    code: string;
+    name: string;
+    departmentCode: string;
+    level?: Level;
+  };
 }
 
 export interface AcademicSession {
@@ -359,6 +381,19 @@ export interface GenerateScheduleData {
   sessionId?: string;
   departmentCode?: string;
   level?: Level;
+}
+
+export interface BatchGenerateScheduleResult {
+  sessionId: string;
+  sessionName: string;
+  semester: Semester;
+  totalDepartments: number;
+  processedDepartments: number;
+  skippedLockedDepartments: number;
+  totalCourses: number;
+  scheduledCourses: number;
+  preservedOverrides: number;
+  errors: Array<{ departmentCode: string; message: string }>;
 }
 
 export interface CreateAcademicSessionData {
