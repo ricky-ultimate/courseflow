@@ -157,6 +157,14 @@ export interface Course {
   createdAt: string;
   updatedAt: string;
   schedules?: Schedule[];
+  primaryAliases?: Array<{
+    id: string;
+    aliasCourse: { code: string; name: string; departmentCode: string };
+  }>;
+  aliasOf?: Array<{
+    id: string;
+    primaryCourse: { code: string; name: string; departmentCode: string };
+  }>;
 }
 
 export interface CourseAlias {

@@ -19,6 +19,7 @@ import { getInitials } from "@/lib/utils";
 import { LEVEL_PILL } from "@/lib/constants";
 import { CourseEditModal } from "@/components/courses/course-edit-modal";
 import { CourseAliasPanel } from "./course-alias-panel";
+import { CourseAliasBadges } from "./course-alias-badges";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -72,6 +73,7 @@ export function CourseDetailContent({
               <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
                 {course.code}
               </span>
+              <CourseAliasBadges course={course} />
               <Badge
                 variant="secondary"
                 className={`text-xs ${LEVEL_PILL[course.level] ?? ""}`}

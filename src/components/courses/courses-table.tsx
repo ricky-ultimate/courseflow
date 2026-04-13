@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, Trash2, Lock } from "lucide-react";
 import { Course, Semester } from "@/types";
 import { LEVEL_PILL } from "@/lib/constants";
+import { CourseAliasBadges } from "./course-alias-badges";
 
 interface CoursesTableProps {
   courses: Course[];
@@ -48,9 +49,12 @@ export function CoursesTable({
                 onClick={() => onView(c)}
               >
                 <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                    {c.code}
-                  </span>
+                  <div className="space-y-1">
+                    <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {c.code}
+                    </span>
+                    <CourseAliasBadges course={c} compact />
+                  </div>
                 </td>
                 <td className="p-3 text-sm">{c.name}</td>
                 <td className="p-3">
