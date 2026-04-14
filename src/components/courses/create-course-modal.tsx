@@ -25,7 +25,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,7 +33,7 @@ import {
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { LecturerCombobox } from "@/components/courses/lecturer-combobox";
 import { CourseAliasPanel } from "@/components/courses/course-alias-panel";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
@@ -192,28 +191,39 @@ export function CreateCourseModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="md:max-w-[560px] max-h-[90vh] overflow-y-auto"
-        onSwipeDown={handleClose}
-      >
+      <DialogContent className="sm:max-w-[560px]" onSwipeDown={handleClose}>
         <DialogHeader>
-          <DialogTitle>New Course</DialogTitle>
-          <DialogDescription>Add a new course to the system.</DialogDescription>
+          <DialogTitle>
+            {createdCourse ? "Course Created" : "New Course"}
+          </DialogTitle>
+          {!createdCourse && (
+            <DialogDescription>
+              Add a new course to the system.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         {createdCourse ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-              <p className="text-sm font-medium text-green-800">
-                {createdCourse.code} created. You can link cross-listed courses
-                below, or close to continue.
-              </p>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+              <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-green-800">
+                  {createdCourse.code} — {createdCourse.name}
+                </p>
+                <p className="text-xs text-green-700 mt-0.5">
+                  Created successfully. Link cross-listed courses below if
+                  needed.
+                </p>
+              </div>
             </div>
             {(isAdmin || isHod) && (
               <CourseAliasPanel courseCode={createdCourse.code} canEdit />
             )}
             <DialogFooter>
-              <Button onClick={handleClose}>Done</Button>
+              <Button onClick={handleClose} className="w-full sm:w-auto">
+                Done
+              </Button>
             </DialogFooter>
           </div>
         ) : (
@@ -238,11 +248,11 @@ export function CreateCourseModal({
                           placeholder="e.g. CS101"
                           maxLength={7}
                           disabled={loading}
+                          className="font-mono"
                           {...field}
                           onChange={(e) =>
                             field.onChange(e.target.value.toUpperCase())
                           }
-                          className="font-mono"
                         />
                       </FormControl>
                       <FormMessage />
@@ -260,7 +270,7 @@ export function CreateCourseModal({
                       <FormControl>
                         <Input
                           type="number"
-                          placeholder="e.g. 3"
+                          placeholder="3"
                           min={1}
                           max={6}
                           disabled={loading}
@@ -310,7 +320,7 @@ export function CreateCourseModal({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select level" />
+                            <SelectValue placeholder="Select" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -344,10 +354,8 @@ export function CreateCourseModal({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="FIRST">First Semester</SelectItem>
-                          <SelectItem value="SECOND">
-                            Second Semester
-                          </SelectItem>
+                          <SelectItem value="FIRST">First</SelectItem>
+                          <SelectItem value="SECOND">Second</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -425,7 +433,7 @@ export function CreateCourseModal({
                     <FormControl>
                       <Textarea
                         placeholder="Optional course description..."
-                        rows={3}
+                        rows={2}
                         maxLength={2000}
                         disabled={loading}
                         {...field}
@@ -437,7 +445,7 @@ export function CreateCourseModal({
               />
 
               {isAdmin && (
-                <div className="flex items-center gap-6 pt-1">
+                <div className="flex items-center gap-6">
                   <FormField
                     control={form.control}
                     name="isGeneral"

@@ -119,13 +119,10 @@ export function CreateScheduleModal({
   }, []);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (comboboxOpen) {
-        fetchCourses(query);
-      }
+    const delay = setTimeout(() => {
+      if (comboboxOpen) fetchCourses(query);
     }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(delay);
   }, [query, comboboxOpen, fetchCourses]);
 
   useEffect(() => {
@@ -160,7 +157,6 @@ export function CreateScheduleModal({
     prefill.dayOfWeek,
     prefill.startTime,
     form,
-    courses,
   ]);
 
   const dayOfWeek = form.watch("dayOfWeek");
@@ -184,23 +180,21 @@ export function CreateScheduleModal({
   const availableStartTimes = Object.keys(
     dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP,
   );
-
   const filteredCourses =
     query.trim().length > 0 ? courses : courses.slice(0, 50);
-
   const selectedCourse = courses.find((c) => c.code === courseCode);
   const displayValue = comboboxOpen
     ? query
     : selectedCourse
-      ? `${selectedCourse.code} - ${selectedCourse.name}`
+      ? `${selectedCourse.code} — ${selectedCourse.name}`
       : courseCode
         ? courseCode
         : "";
 
   const handleSubmit = form.handleSubmit(async (data) => {
     setServerError("");
+    setLoading(true);
     try {
-      setLoading(true);
       if (isEdit && editSchedule) {
         const res = await apiClient.updateSchedule(editSchedule.id, {
           dayOfWeek: data.dayOfWeek as DayOfWeek,
@@ -259,7 +253,7 @@ export function CreateScheduleModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="md:max-w-[480px]" onSwipeDown={handleClose}>
+      <DialogContent className="sm:max-w-[480px]" onSwipeDown={handleClose}>
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Edit Schedule" : "Create Schedule"}
@@ -282,7 +276,9 @@ export function CreateScheduleModal({
               name="courseCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Course *</FormLabel>
+                  <FormLabel>
+                    Course <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <div ref={containerRef} className="relative">
                       <Input
@@ -328,7 +324,7 @@ export function CreateScheduleModal({
                                     setComboboxOpen(false);
                                   }}
                                 >
-                                  <span className="font-mono text-xs">
+                                  <span className="font-mono text-xs text-indigo-600">
                                     {c.code}
                                   </span>
                                   <span className="text-gray-600 truncate">
@@ -352,7 +348,9 @@ export function CreateScheduleModal({
               name="dayOfWeek"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Day of week *</FormLabel>
+                  <FormLabel>
+                    Day <span className="text-red-500">*</span>
+                  </FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={(v) => {
@@ -380,88 +378,84 @@ export function CreateScheduleModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="startTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start time *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      form.setValue("endTime", "");
-                    }}
-                    disabled={loading || !dayOfWeek}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            !dayOfWeek
-                              ? "Select day first"
-                              : "Select start time"
-                          }
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableStartTimes.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="endTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End time *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={
-                      loading || !startTime || availableEndTimes.length === 0
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            !startTime
-                              ? "Select start time first"
-                              : "Select end time"
-                          }
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableEndTimes.map((t) => {
-                        const startHour = parseInt(
-                          startTime.split(":")[0] ?? "0",
-                          10,
-                        );
-                        const endHour = parseInt(t.split(":")[0] ?? "0", 10);
-                        const duration = endHour - startHour;
-                        return (
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Start <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        form.setValue("endTime", "");
+                      }}
+                      disabled={loading || !dayOfWeek}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={!dayOfWeek ? "Day first" : "Select"}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableStartTimes.map((t) => (
                           <SelectItem key={t} value={t}>
-                            {t} ({duration}hr)
+                            {t}
                           </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      End <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={
+                        loading || !startTime || availableEndTimes.length === 0
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={!startTime ? "Start first" : "Select"}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableEndTimes.map((t) => {
+                          const startH = parseInt(
+                            startTime.split(":")[0] ?? "0",
+                            10,
+                          );
+                          const endH = parseInt(t.split(":")[0] ?? "0", 10);
+                          return (
+                            <SelectItem key={t} value={t}>
+                              {t} ({endH - startH}hr)
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {!isEdit &&
               courseCode &&
@@ -481,7 +475,7 @@ export function CreateScheduleModal({
               control={form.control}
               name="isFixed"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2">
+                <FormItem className="flex items-center gap-2">
                   <FormControl>
                     <input
                       type="checkbox"
@@ -492,8 +486,7 @@ export function CreateScheduleModal({
                     />
                   </FormControl>
                   <FormLabel className="cursor-pointer text-sm font-normal">
-                    Pin this slot (isFixed) — Fix this slot so auto-generation
-                    never moves it.
+                    Pin this slot — auto-generation will never move it
                   </FormLabel>
                   <FormMessage />
                 </FormItem>

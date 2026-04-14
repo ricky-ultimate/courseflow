@@ -93,8 +93,8 @@ export function DepartmentEditModal({
   const handleSubmit = form.handleSubmit(async (data) => {
     if (!dept) return;
     setError("");
+    setSaving(true);
     try {
-      setSaving(true);
       const res = await apiClient.updateDepartment(dept.code, {
         name: data.name,
         code: data.code,
@@ -106,7 +106,9 @@ export function DepartmentEditModal({
         toast({ title: "Department updated." });
         onClose();
         onSuccess();
-      } else setError((res as { error?: string }).error ?? "Failed to update");
+      } else {
+        setError((res as { error?: string }).error ?? "Failed to update");
+      }
     } catch {
       setError("Update failed");
     } finally {
@@ -116,7 +118,7 @@ export function DepartmentEditModal({
 
   return (
     <Dialog open={!!dept} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="md:max-w-[520px]" onSwipeDown={() => onClose()}>
+      <DialogContent className="sm:max-w-[520px]" onSwipeDown={onClose}>
         <DialogHeader>
           <DialogTitle>Edit Department</DialogTitle>
           <DialogDescription>Update department details.</DialogDescription>
@@ -127,63 +129,55 @@ export function DepartmentEditModal({
             className={`space-y-4 transition-opacity ${saving ? "opacity-60" : ""}`}
           >
             {error && <ServerErrorBanner message={error} />}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department name</FormLabel>
-                  <FormControl>
-                    <Input maxLength={100} disabled={saving} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department code</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="font-mono"
-                      disabled={saving}
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(e.target.value.toUpperCase().slice(0, 4))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={3}
-                      maxLength={1000}
-                      disabled={saving}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="col-span-2 sm:col-span-1">
+                    <FormLabel>
+                      Name <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input maxLength={100} disabled={saving} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem className="col-span-2 sm:col-span-1">
+                    <FormLabel>
+                      Code <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        className="font-mono"
+                        disabled={saving}
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value.toUpperCase().slice(0, 4),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="college"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>College</FormLabel>
+                  <FormLabel>
+                    College <span className="text-red-500">*</span>
+                  </FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
@@ -212,10 +206,28 @@ export function DepartmentEditModal({
             />
             <FormField
               control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={2}
+                      maxLength={1000}
+                      disabled={saving}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="hodId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Head of Department (Optional)</FormLabel>
+                  <FormLabel>Head of Department</FormLabel>
                   <FormControl>
                     <HodCombobox
                       value={field.value ?? ""}
@@ -232,7 +244,7 @@ export function DepartmentEditModal({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onClose()}
+                onClick={onClose}
                 disabled={saving}
               >
                 Cancel

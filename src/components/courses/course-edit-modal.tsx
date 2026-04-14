@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,6 @@ export function CourseEditModal({
     setFetchError(null);
     setServerError("");
     setLoading(true);
-
     fetchDepartments().then(() => {
       form.reset({
         name: course.name,
@@ -167,10 +167,7 @@ export function CourseEditModal({
 
   return (
     <Dialog open={!!course} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        className="md:max-w-[560px] max-h-[90vh] overflow-y-auto"
-        onSwipeDown={onClose}
-      >
+      <DialogContent className="sm:max-w-[560px]" onSwipeDown={onClose}>
         <DialogHeader>
           <DialogTitle>Edit Course — {course?.code}</DialogTitle>
           <DialogDescription>
@@ -187,9 +184,12 @@ export function CourseEditModal({
             }}
           />
         ) : loading ? (
-          <div className="space-y-4 py-4 animate-pulse">
+          <div className="space-y-3 py-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-10 bg-gray-100 rounded-lg" />
+              <div
+                key={i}
+                className="h-10 bg-gray-100 rounded-lg animate-pulse"
+              />
             ))}
           </div>
         ) : (
@@ -214,7 +214,9 @@ export function CourseEditModal({
                   name="credits"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Credits *</FormLabel>
+                      <FormLabel>
+                        Credits <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -235,7 +237,9 @@ export function CourseEditModal({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Course Name *</FormLabel>
+                    <FormLabel>
+                      Course Name <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input maxLength={200} disabled={saving} {...field} />
                     </FormControl>
@@ -250,7 +254,9 @@ export function CourseEditModal({
                   name="level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Level *</FormLabel>
+                      <FormLabel>
+                        Level <span className="text-red-500">*</span>
+                      </FormLabel>
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
@@ -278,7 +284,9 @@ export function CourseEditModal({
                   name="semester"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Semester *</FormLabel>
+                      <FormLabel>
+                        Semester <span className="text-red-500">*</span>
+                      </FormLabel>
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
@@ -290,11 +298,9 @@ export function CourseEditModal({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={Semester.FIRST}>
-                            First Semester
-                          </SelectItem>
+                          <SelectItem value={Semester.FIRST}>First</SelectItem>
                           <SelectItem value={Semester.SECOND}>
-                            Second Semester
+                            Second
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -309,7 +315,9 @@ export function CourseEditModal({
                 name="departmentCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department *</FormLabel>
+                    <FormLabel>
+                      Department <span className="text-red-500">*</span>
+                    </FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={(v) => {
@@ -366,7 +374,7 @@ export function CourseEditModal({
                     <FormLabel>Overview</FormLabel>
                     <FormControl>
                       <Textarea
-                        rows={3}
+                        rows={2}
                         maxLength={2000}
                         disabled={saving}
                         {...field}
@@ -378,7 +386,7 @@ export function CourseEditModal({
               />
 
               {isAdmin && (
-                <div className="flex items-center gap-6 pt-1">
+                <div className="flex items-center gap-6">
                   <FormField
                     control={form.control}
                     name="isGeneral"
@@ -422,24 +430,23 @@ export function CourseEditModal({
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2 border-t">
+              <DialogFooter className="pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onClose}
                   disabled={saving}
-                  className="flex-1"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving} className="flex-1">
+                <Button type="submit" disabled={saving}>
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     "Save Changes"
                   )}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           </Form>
         )}

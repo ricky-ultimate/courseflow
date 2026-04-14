@@ -17,6 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -32,14 +33,11 @@ import { Loader2 } from "lucide-react";
 const complaintSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   department: z.string().min(1, "Department is required"),
-  subject: z
-    .string()
-    .min(5, "Subject must be 5–200 characters")
-    .max(200, "Subject must be 5–200 characters"),
+  subject: z.string().min(5, "Subject must be at least 5 characters").max(200),
   message: z
     .string()
-    .min(10, "Message must be 10–1000 characters")
-    .max(1000, "Message must be 10–1000 characters"),
+    .min(10, "Message must be at least 10 characters")
+    .max(1000),
 });
 
 type ComplaintFormValues = z.infer<typeof complaintSchema>;
@@ -86,8 +84,8 @@ export function ComplaintSubmitDialog({
   const handleSubmit = form.handleSubmit(async (data) => {
     setSubmitError("");
     if (!user?.email) return;
+    setSubmitting(true);
     try {
-      setSubmitting(true);
       const res = await apiClient.createComplaint({
         name: data.name,
         email: user.email,
@@ -115,11 +113,14 @@ export function ComplaintSubmitDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="md:max-w-[520px]"
+        className="sm:max-w-[520px]"
         onSwipeDown={() => onOpenChange(false)}
       >
         <DialogHeader>
           <DialogTitle>Submit Complaint</DialogTitle>
+          <DialogDescription>
+            Describe your issue and we will get back to you.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -127,35 +128,41 @@ export function ComplaintSubmitDialog({
             className={`space-y-4 transition-opacity ${submitting ? "opacity-60" : ""}`}
           >
             {submitError && <ServerErrorBanner message={submitError} />}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full name *</FormLabel>
-                  <FormControl>
-                    <Input disabled={submitting} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={user?.email ?? ""}
-                readOnly
-                className="bg-gray-50"
-                disabled={submitting}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Full name <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input disabled={submitting} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={user?.email ?? ""}
+                  readOnly
+                  className="bg-gray-50 text-gray-500"
+                  disabled
+                />
+              </div>
             </div>
             <FormField
               control={form.control}
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department *</FormLabel>
+                  <FormLabel>
+                    Department <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g. Computer Science"
@@ -172,7 +179,9 @@ export function ComplaintSubmitDialog({
               name="subject"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Subject * (5–200 chars)</FormLabel>
+                  <FormLabel>
+                    Subject <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Brief description"
@@ -190,19 +199,23 @@ export function ComplaintSubmitDialog({
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Message * (10–1000 chars)</FormLabel>
+                  <FormLabel>
+                    Message <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea
-                      rows={5}
+                      rows={4}
                       maxLength={1000}
                       disabled={submitting}
                       {...field}
                     />
                   </FormControl>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {field.value.length}/1000
-                  </p>
-                  <FormMessage />
+                  <div className="flex justify-between items-center">
+                    <FormMessage />
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {field.value.length}/1000
+                    </span>
+                  </div>
                 </FormItem>
               )}
             />
