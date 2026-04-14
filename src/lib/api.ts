@@ -656,6 +656,40 @@ class ApiClient {
   livenessCheck() {
     return this.request("/health/liveness");
   }
+
+  // ──────────────────────────────────────────────────────────────
+  getCurrentUserSilent() {
+    return this.requestSilent("/auth/me");
+  }
+
+  private async requestSilent<T>(endpoint: string): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.message || `HTTP ${response.status}`,
+          statusCode: response.status,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      const data = await response.json();
+      return this.normalizeResponse(data, endpoint);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+        statusCode: 0,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

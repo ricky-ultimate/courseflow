@@ -16,11 +16,11 @@ const ROUTE_ROLES: Record<string, Role[]> = {
   "/departments/create": [Role.ADMIN],
 };
 
-const PUBLIC_ROUTES = ["/courses", "/schedules", "/departments"];
+const PUBLIC_ROUTES = ["/courses", "/schedules", "/departments", "/colleges"];
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
+    (route) => pathname === route || pathname.startsWith(route + "/"),
   );
 }
 
@@ -38,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!isAuthenticated && isPublicRoute(pathname)) return;
+    if (isPublicRoute(pathname)) return;
     if (!isAuthenticated) {
       router.replace("/login");
       return;
@@ -52,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, loading, pathname, user, router]);
 
-  if (loading) {
+  if (loading && !isPublicRoute(pathname)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-pulse flex flex-col gap-4 w-48">
