@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
@@ -21,13 +20,13 @@ import {
 import { CoursesTable } from "@/components/courses/courses-table";
 import { CoursesMobileList } from "@/components/courses/courses-mobile-list";
 import { CourseUploadModal } from "@/components/courses/course-upload-modal";
+import { CreateCourseModal } from "@/components/courses/create-course-modal";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { Button as Btn } from "@/components/ui/button";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
 
 export default function CoursesPage() {
-  const router = useRouter();
   const { isAdmin, isHod, user } = useAuth();
   const { toast } = useToast();
 
@@ -52,6 +51,7 @@ export default function CoursesPage() {
   const [limit, setLimit] = useState(25);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deleteCourse, setDeleteCourse] = useState<Course | null>(null);
@@ -238,7 +238,7 @@ export default function CoursesPage() {
               <Button
                 size="sm"
                 className="rounded-full bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => router.push("/courses/create")}
+                onClick={() => setIsCreateOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Course
@@ -338,10 +338,10 @@ export default function CoursesPage() {
               <tbody>
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <tr key={i} className="border-t">
-                    {[80, "3/4", 70, 100, 32, 60, 120, 60, 80].map((w, j) => (
+                    {[80, 140, 70, 100, 32, 60, 120, 60, 80].map((w, j) => (
                       <td key={j} className="p-3">
                         <div
-                          className={`h-6 bg-gray-200 animate-pulse rounded ${typeof w === "string" ? `w-${w}` : `w-[${w}px]`}`}
+                          className={`h-6 bg-gray-200 animate-pulse rounded w-[${w}px]`}
                         />
                       </td>
                     ))}
@@ -361,12 +361,10 @@ export default function CoursesPage() {
           <p className="text-sm text-gray-400 mt-2">
             Try adjusting your filters or add a new course.
           </p>
-          {(isAdmin || isHod) && (
-            <Button
-              className="mt-5"
-              onClick={() => router.push("/courses/create")}
-            >
-              <Plus className="h-4 w-4 mr-2" />+ New Course
+          {isStaff && (
+            <Button className="mt-5" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Course
             </Button>
           )}
         </div>
@@ -445,6 +443,14 @@ export default function CoursesPage() {
           ) : null}
         </SheetContent>
       </Sheet>
+
+      <CreateCourseModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={() => {
+          fetchCourses();
+        }}
+      />
 
       <CourseUploadModal
         open={isUploadOpen}
