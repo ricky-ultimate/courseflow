@@ -26,6 +26,7 @@ import {
 
 const API_BASE_URL = "https://courseflow-backend-s16i.onrender.com/api/v1";
 
+
 type On401Callback = () => void;
 type On403Callback = () => void;
 type OnNetworkErrorCallback = (retry: () => Promise<ApiResponse<any>>) => void;
@@ -464,6 +465,10 @@ class ApiClient {
 
   deleteCourseAlias(id: string) {
     return this.request(`/course-aliases/${id}`, { method: "DELETE" });
+  }
+
+  getUniversityCoursesWithoutSchedules() {
+    return this.request('/courses/without-schedules/university');
   }
 
   // ─── Schedules ─────────────────────────────────────────────────────────────

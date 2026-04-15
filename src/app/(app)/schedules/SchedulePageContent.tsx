@@ -20,6 +20,7 @@ import { MobileTimetable } from "@/components/schedules/mobile-timetable";
 import { ScheduleDetailSheet } from "@/components/schedules/schedule-detail-sheet";
 import { CreateScheduleModal } from "@/components/schedules/create-schedule-modal";
 import { UnscheduledCoursesPanel } from "@/components/schedules/unscheduled-courses-panel";
+import { UnscheduledUniversityCoursesPanel } from "@/components/schedules/unscheduled-university-courses-panel";
 import { ScheduleFilterBar } from "@/components/schedules/schedule-filter-bar";
 import { ScheduleAgendaView } from "@/components/schedules/schedule-agenda-view";
 import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu";
@@ -273,14 +274,24 @@ export default function SchedulePageContent() {
       </div>
 
       {canMutateSchedules && (
-        <UnscheduledCoursesPanel
-          key={unscheduledKey}
-          onAddSchedule={(courseCode) => {
-            setEditSchedule(null);
-            setCreateModalPrefill({ courseCode });
-            setCreateModalOpen(true);
-          }}
-        />
+        <>
+          <UnscheduledUniversityCoursesPanel
+            refreshKey={unscheduledKey}
+            onScheduleCourse={(courseCode) => {
+              setEditSchedule(null);
+              setCreateModalPrefill({ courseCode });
+              setCreateModalOpen(true);
+            }}
+          />
+          <UnscheduledCoursesPanel
+            key={unscheduledKey}
+            onAddSchedule={(courseCode) => {
+              setEditSchedule(null);
+              setCreateModalPrefill({ courseCode });
+              setCreateModalOpen(true);
+            }}
+          />
+        </>
       )}
 
       <ScheduleFilterBar
