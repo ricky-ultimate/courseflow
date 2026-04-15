@@ -468,7 +468,7 @@ class ApiClient {
   }
 
   getUniversityCoursesWithoutSchedules() {
-    return this.request('/courses/without-schedules/university');
+    return this.request("/courses/without-schedules/university");
   }
 
   // ─── Schedules ─────────────────────────────────────────────────────────────
@@ -676,6 +676,15 @@ class ApiClient {
     try {
       const response = await fetch(url, { headers });
       if (!response.ok) {
+        if (response.status === 401) {
+          this.setToken(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("user");
+          }
+          if (this.on401) {
+            this.on401();
+          }
+        }
         const errorData = await response.json().catch(() => ({}));
         return {
           success: false,

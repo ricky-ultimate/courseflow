@@ -87,22 +87,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const validateToken = async () => {
       const token = apiClient.getToken();
       if (token) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser) as User;
+            if (parsedUser && parsedUser.id) {
+              setUser(parsedUser);
+            }
+          } catch {}
+        }
         try {
           const response = await apiClient.getCurrentUserSilent();
           let userData: User | null = null;
           if (response.success && response.data != null) {
             const raw = response.data as { user?: User } | User;
             userData = (raw as { user?: User }).user ?? (raw as User);
-            if (userData && !("id" in userData)) userData = null;
-          }
-          if (userData) {
-            setUser(userData);
-            localStorage.setItem("user", JSON.stringify(userData));
-          } else {
-            logout();
+            if (userData && "id" in userData) {
+              setUser(userData);
+              localStorage.setItem("user", JSON.stringify(userData));
+            } else {
+              if (!storedUser) {
+                logout();
+              }
+            }
           }
         } catch {
-          logout();
+          if (!storedUser) {
+            logout();
+          }
         }
       }
       setLoading(false);
@@ -119,9 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.login(data.email, data.password);
       if (response.success && response.data) {
         const authData = response.data as AuthResponse;
-        setUser(authData.user as User);
+        const userData = authData.user as User;
+        setUser(userData);
         apiClient.setToken(authData.access_token);
-        localStorage.setItem("user", JSON.stringify(authData.user as User));
+        localStorage.setItem("user", JSON.stringify(userData));
         return { success: true };
       }
       return { success: false, error: response.error || "Invalid credentials" };
@@ -140,9 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.register(data);
       if (response.success && response.data) {
         const authData = response.data as AuthResponse;
-        setUser(authData.user as User);
+        const userData = authData.user as User;
+        setUser(userData);
         apiClient.setToken(authData.access_token);
-        localStorage.setItem("user", JSON.stringify(authData.user as User));
+        localStorage.setItem("user", JSON.stringify(userData));
         return { success: true };
       }
       return { success: false, error: response.error || "Registration failed" };
