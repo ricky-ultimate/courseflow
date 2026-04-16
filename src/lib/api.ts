@@ -707,6 +707,39 @@ class ApiClient {
             };
         }
     }
+
+    // ───────────────────────Data Management───────────────────────────────────────
+    deleteAllSchedules() {
+        return this.request('/admin/schedules', { method: 'DELETE' });
+    }
+
+    deleteAllExamSchedules() {
+        return this.request('/admin/exam-schedules', { method: 'DELETE' });
+    }
+
+    deleteAllCourses() {
+        return this.request('/admin/courses', { method: 'DELETE' });
+    }
+
+    deleteAllDepartments() {
+        return this.request('/admin/departments', { method: 'DELETE' });
+    }
+
+    deleteAllData() {
+        return this.request('/admin/all', { method: 'DELETE' });
+    }
+
+    seedDepartments() {
+        return this.request('/admin/seed/departments', { method: 'POST' });
+    }
+
+    seedCourses() {
+        return this.request('/admin/seed/courses', { method: 'POST' });
+    }
+
+    seedAll() {
+        return this.request('/admin/seed/all', { method: 'POST' });
+    }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
