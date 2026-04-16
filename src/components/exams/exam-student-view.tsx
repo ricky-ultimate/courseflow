@@ -7,13 +7,7 @@ import { FilterBar } from "@/components/ui/filter-bar";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { ErrorState } from "@/components/state/error-state";
 import { ClipboardList, CalendarDays, MapPin } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
 import { Exam, Course, AcademicSession, Semester, Level } from "@/types";
 import { VENUE_LABELS, LEVEL_PILL } from "@/lib/constants";
 
@@ -109,7 +103,7 @@ export function ExamStudentView({
     }
     if (studentLevelFilter !== "all") {
       result = result.filter(
-        (exam) => (exam.course?.level ?? "") === studentLevelFilter
+        (exam) => (exam.course?.level ?? "") === studentLevelFilter,
       );
     }
     return result;
@@ -122,7 +116,7 @@ export function ExamStudentView({
       [...filtered]
         .filter((e) => e.date >= today)
         .sort((a, b) => a.date.localeCompare(b.date)),
-    [filtered, today]
+    [filtered, today],
   );
 
   const pastExams = useMemo(
@@ -130,7 +124,7 @@ export function ExamStudentView({
       [...filtered]
         .filter((e) => e.date < today)
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [filtered, today]
+    [filtered, today],
   );
 
   return (
@@ -290,10 +284,10 @@ function ExamGroup({
               !showCountdown
                 ? "border-gray-200 opacity-70"
                 : isToday
-                ? "border-red-200 bg-red-50/30"
-                : isSoon
-                ? "border-amber-200"
-                : "border-gray-200"
+                  ? "border-red-200 bg-red-50/30"
+                  : isSoon
+                    ? "border-amber-200"
+                    : "border-gray-200"
             }`}
           >
             <div className="flex items-start justify-between gap-3">

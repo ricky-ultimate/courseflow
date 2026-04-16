@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { Course, Department, Semester } from "@/types";
+import { Course, Semester } from "@/types";
 import { LEVEL_PILL } from "@/lib/constants";
 
 interface DepartmentCoursesSectionProps {
@@ -41,7 +41,6 @@ export function DepartmentCoursesSection({
   courses,
   departmentCode,
   isAdmin,
-  isHod,
   canAddCourse,
   canGenerateSchedule,
   canEditCourse,
@@ -65,7 +64,9 @@ export function DepartmentCoursesSection({
           {canAddCourse && (
             <Button
               size="sm"
-              onClick={() => router.push(`/courses/create?department=${departmentCode}`)}
+              onClick={() =>
+                router.push(`/courses/create?department=${departmentCode}`)
+              }
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Course
@@ -78,11 +79,15 @@ export function DepartmentCoursesSection({
         <Card>
           <CardContent className="py-12 text-center">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No courses in this department</p>
+            <p className="text-muted-foreground">
+              No courses in this department
+            </p>
             {canAddCourse && (
               <Button
                 className="mt-4"
-                onClick={() => router.push(`/courses/create?department=${departmentCode}`)}
+                onClick={() =>
+                  router.push(`/courses/create?department=${departmentCode}`)
+                }
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Course
@@ -100,8 +105,12 @@ export function DepartmentCoursesSection({
                     <th className="p-3 w-[100px]">Code</th>
                     <th className="p-3">Name</th>
                     <th className="p-3 w-[100px]">Level</th>
-                    <th className="p-3 w-[80px] hidden lg:table-cell">Semester</th>
-                    <th className="p-3 w-[70px] hidden lg:table-cell text-center">Credits</th>
+                    <th className="p-3 w-[80px] hidden lg:table-cell">
+                      Semester
+                    </th>
+                    <th className="p-3 w-[70px] hidden lg:table-cell text-center">
+                      Credits
+                    </th>
                     <th className="p-3 w-[160px]">Lecturer</th>
                     <th className="p-3 w-[120px] text-right">Actions</th>
                   </tr>
@@ -116,7 +125,10 @@ export function DepartmentCoursesSection({
                       </td>
                       <td className="p-3 text-sm">{c.name}</td>
                       <td className="p-3">
-                        <Badge variant="secondary" className={LEVEL_PILL[c.level] ?? ""}>
+                        <Badge
+                          variant="secondary"
+                          className={LEVEL_PILL[c.level] ?? ""}
+                        >
                           {c.level.replace("LEVEL_", "")}
                         </Badge>
                       </td>
@@ -128,9 +140,11 @@ export function DepartmentCoursesSection({
                       </td>
                       <td className="p-3 text-sm">
                         {c.lecturer ? (
-                          c.lecturer.name ?? c.lecturer.email
+                          (c.lecturer.name ?? c.lecturer.email)
                         ) : (
-                          <span className="italic text-gray-400">Unassigned</span>
+                          <span className="italic text-gray-400">
+                            Unassigned
+                          </span>
                         )}
                       </td>
                       <td className="p-3 text-right">
@@ -148,7 +162,9 @@ export function DepartmentCoursesSection({
                               size="icon"
                               variant="ghost"
                               className="h-11 w-11"
-                              onClick={() => router.push(`/courses/${c.code}/edit`)}
+                              onClick={() =>
+                                router.push(`/courses/${c.code}/edit`)
+                              }
                             >
                               <Pencil className="h-5 w-5" />
                             </Button>
@@ -184,13 +200,20 @@ export function DepartmentCoursesSection({
                     <p className="font-mono text-sm font-semibold">{c.code}</p>
                     <p className="text-sm text-gray-600 truncate">{c.name}</p>
                   </div>
-                  <Badge variant="secondary" className={LEVEL_PILL[c.level] ?? ""}>
+                  <Badge
+                    variant="secondary"
+                    className={LEVEL_PILL[c.level] ?? ""}
+                  >
                     {c.level.replace("LEVEL_", "")}
                   </Badge>
                   <div data-menu onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-11 w-11 shrink-0"
+                        >
                           <MoreVertical className="h-5 w-5" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -200,7 +223,9 @@ export function DepartmentCoursesSection({
                         </DropdownMenuItem>
                         {canEditCourse(c) && (
                           <DropdownMenuItem
-                            onClick={() => router.push(`/courses/${c.code}/edit`)}
+                            onClick={() =>
+                              router.push(`/courses/${c.code}/edit`)
+                            }
                           >
                             Edit Course
                           </DropdownMenuItem>
@@ -221,24 +246,34 @@ export function DepartmentCoursesSection({
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {c.lecturer?.name ?? "Unassigned"} · {c.department?.name ?? c.departmentCode}
+                  {c.lecturer?.name ?? "Unassigned"} ·{" "}
+                  {c.department?.name ?? c.departmentCode}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {c.semester === Semester.FIRST ? "First" : "Second"} Semester · {c.credits}{" "}
-                  Credits
+                  {c.semester === Semester.FIRST ? "First" : "Second"} Semester
+                  · {c.credits} Credits
                 </p>
                 <div className="mt-3 pt-3 border-t flex justify-between items-center">
                   {c.isLocked ? (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-amber-700"
+                    >
                       <Lock className="h-3 w-3 mr-1" />
                       Locked
                     </Badge>
                   ) : c.isActive ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-700"
+                    >
                       Active
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                    <Badge
+                      variant="secondary"
+                      className="bg-gray-100 text-gray-600"
+                    >
                       Inactive
                     </Badge>
                   )}

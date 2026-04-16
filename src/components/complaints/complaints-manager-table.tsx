@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -18,7 +17,7 @@ import {
 import { Eye, MoreVertical } from "lucide-react";
 import { Complaint, ComplaintStatus } from "@/types";
 import { formatRelativeDate } from "@/lib/utils";
-import { ComplaintStatusBadge, STATUS_BADGES } from "./complaint-status-badge";
+import { ComplaintStatusBadge } from "./complaint-status-badge";
 
 interface ComplaintsManagerTableProps {
   complaints: Complaint[];

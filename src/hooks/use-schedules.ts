@@ -2,16 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActiveSessionInvalidateCount } from "@/contexts/ActiveSessionContext";
-import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
 import {
     AcademicSession,
     Department,
-    DayOfWeek,
-    Level,
     Schedule,
-    Semester,
 } from "@/types";
 
 export function useScheduleData() {
@@ -71,7 +67,6 @@ export interface ScheduleFilters {
 }
 
 export function useSchedules(filters: ScheduleFilters) {
-    const { toast } = useToast();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [loading, setLoading] = useState(true);
     const [refetching, setRefetching] = useState(false);

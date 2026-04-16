@@ -29,7 +29,7 @@ import {
   Semester,
 } from "@/types";
 import { getItemsFromResponse } from "@/lib/utils";
-import { ClipboardList, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 const LEVEL_OPTIONS = [
   { value: Level.LEVEL_100, label: "100 Level" },

@@ -3,8 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Unlock } from "lucide-react";
-import { Department, College } from "@/types";
+import { Department } from "@/types";
 import { getInitials } from "@/lib/utils";
 
 interface DepartmentInfoCardsProps {
@@ -20,7 +19,6 @@ interface DepartmentInfoCardsProps {
 export function DepartmentInfoCards({
   department,
   isAdmin,
-  isHod,
   canLockUnlock,
   lockLoading,
   onEdit,
@@ -66,7 +64,12 @@ export function DepartmentInfoCards({
             <div>
               <p className="text-sm text-gray-400 italic">Not assigned</p>
               {isAdmin && (
-                <Button variant="outline" size="sm" className="mt-2" onClick={onEdit}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={onEdit}
+                >
                   Assign HOD
                 </Button>
               )}

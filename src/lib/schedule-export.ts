@@ -1,4 +1,4 @@
-import type { Schedule, Course } from "@/types";
+import type { Schedule } from "@/types";
 import { DayOfWeek } from "@/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";

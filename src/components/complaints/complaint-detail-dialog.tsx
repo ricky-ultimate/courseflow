@@ -1,7 +1,6 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Complaint, ComplaintStatus } from "@/types";
-import { ComplaintStatusBadge, STATUS_BADGES } from "./complaint-status-badge";
+import { ComplaintStatusBadge } from "./complaint-status-badge";
 
 interface ComplaintDetailDialogProps {
   complaint: Complaint | null;

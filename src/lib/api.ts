@@ -72,7 +72,7 @@ class ApiClient {
         return this.token;
     }
 
-    private normalizeResponse(data: any, endpoint: string): ApiResponse<any> {
+    private normalizeResponse(data: any): ApiResponse<any> {
         if (data.user && data.access_token) {
             return { success: true, data, timestamp: new Date().toISOString() };
         }
@@ -87,8 +87,7 @@ class ApiClient {
                             page: data.page || 1,
                             limit: data.limit || 10,
                             total: data.total,
-                            totalPages:
-                                data.totalPages || Math.ceil(data.total / (data.limit || 10)),
+                            totalPages: data.totalPages || Math.ceil(data.total / (data.limit || 10)),
                             hasNext: (data.page || 1) < (data.totalPages || 1),
                             hasPrev: (data.page || 1) > 1,
                         },
@@ -145,7 +144,7 @@ class ApiClient {
             }
 
             const data = await response.json();
-            return this.normalizeResponse(data, endpoint);
+            return this.normalizeResponse(data);
         } catch (error) {
             if (this.onNetworkError) {
                 const retry = () => this.request<T>(endpoint, options);
@@ -199,7 +198,7 @@ class ApiClient {
             }
 
             const data = await response.json();
-            return this.normalizeResponse(data, endpoint);
+            return this.normalizeResponse(data);
         } catch (error) {
             if (this.onNetworkError) {
                 const retry = () => this.uploadFile(endpoint, file);
@@ -698,7 +697,7 @@ class ApiClient {
                 };
             }
             const data = await response.json();
-            return this.normalizeResponse(data, endpoint);
+            return this.normalizeResponse(data);
         } catch (error) {
             return {
                 success: false,

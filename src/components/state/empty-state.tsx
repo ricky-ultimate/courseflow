@@ -1,6 +1,4 @@
 "use client";
-
-import { Button } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
@@ -10,7 +8,12 @@ interface EmptyStateProps {
   action?: React.ReactNode;
 }
 
-export function EmptyState({ icon: Icon, title, subtitle, action }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  subtitle,
+  action,
+}: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <Icon className="h-16 w-16 text-gray-300 mb-4" />

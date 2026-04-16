@@ -14,7 +14,6 @@ import {
   Calendar,
   User,
   Building2,
-  GraduationCap,
 } from "lucide-react";
 import { Schedule, Semester } from "@/types";
 import { DAY_LABELS, LEVEL_PILL } from "@/lib/constants";

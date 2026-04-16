@@ -8,7 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { User, AuthResponse, LoginData, RegisterData, Role } from "@/types";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
 
   const logout = useCallback(() => {
     setUser(null);

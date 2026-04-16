@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
-import { College, Department } from "@/types";
+import { College } from "@/types";
 import { useColleges } from "@/hooks/use-colleges";
 import { CollegeCard } from "@/components/colleges/college-card";
 import { CollegeDepartmentsSheet } from "@/components/colleges/college-departments-sheet";
 import { ErrorState } from "@/components/state/error-state";
 
 export default function CollegesPage() {
-  const { isAdmin } = useAuth();
   const { colleges, loading, error, retry } = useColleges();
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
 

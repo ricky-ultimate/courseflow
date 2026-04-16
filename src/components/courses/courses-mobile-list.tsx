@@ -23,7 +23,6 @@ interface CoursesMobileListProps {
 
 export function CoursesMobileList({
   courses,
-  canEditCourse,
   isAdmin,
   onView,
   onDelete,
@@ -49,27 +48,46 @@ export function CoursesMobileList({
             </div>
             <p className="text-sm text-gray-600 mt-1">{c.name}</p>
             <p className="text-xs text-gray-500 mt-1">
-              {c.lecturer?.name ?? "Unassigned"} · {c.department?.name ?? c.departmentCode}
+              {c.lecturer?.name ?? "Unassigned"} ·{" "}
+              {c.department?.name ?? c.departmentCode}
             </p>
             <p className="text-xs text-gray-500">
-              {c.semester === Semester.FIRST ? "First" : "Second"} Semester · {c.credits} Credits
+              {c.semester === Semester.FIRST ? "First" : "Second"} Semester ·{" "}
+              {c.credits} Credits
             </p>
             <div className="mt-3 pt-3 border-t flex justify-between items-center">
               {c.isLocked ? (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                  <Lock className="h-3 w-3 mr-1" />Locked
+                <Badge
+                  variant="secondary"
+                  className="bg-amber-100 text-amber-700"
+                >
+                  <Lock className="h-3 w-3 mr-1" />
+                  Locked
                 </Badge>
               ) : c.isActive ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">Active</Badge>
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-700"
+                >
+                  Active
+                </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-600">Inactive</Badge>
+                <Badge
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-600"
+                >
+                  Inactive
+                </Badge>
               )}
               <div data-menu>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-11 w-11 touch-manipulation"
-                  onClick={(e) => { e.stopPropagation(); setMenuCourse(c); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuCourse(c);
+                  }}
                 >
                   <MoreVertical className="h-5 w-5" />
                   <span className="sr-only">Menu</span>
@@ -80,36 +98,46 @@ export function CoursesMobileList({
         ))}
       </div>
 
-      <Sheet open={!!menuCourse} onOpenChange={(o) => !o && setMenuCourse(null)}>
+      <Sheet
+        open={!!menuCourse}
+        onOpenChange={(o) => !o && setMenuCourse(null)}
+      >
         <SheetContent side="bottom" className="rounded-t-2xl">
           <SheetHeader>
             <SheetTitle>{menuCourse?.name ?? "Course actions"}</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-1 py-4">
-            {menuCourse && (() => {
-              const c = menuCourse;
-              const close = () => setMenuCourse(null);
-              return (
-                <>
-                  <button
-                    type="button"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
-                    onClick={() => { onView(c); close(); }}
-                  >
-                    View Details
-                  </button>
-                  {isAdmin && (
+            {menuCourse &&
+              (() => {
+                const c = menuCourse;
+                const close = () => setMenuCourse(null);
+                return (
+                  <>
                     <button
                       type="button"
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left w-full min-h-[52px] font-medium"
-                      onClick={() => { onDelete(c); close(); }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
+                      onClick={() => {
+                        onView(c);
+                        close();
+                      }}
                     >
-                      Delete Course
+                      View Details
                     </button>
-                  )}
-                </>
-              );
-            })()}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left w-full min-h-[52px] font-medium"
+                        onClick={() => {
+                          onDelete(c);
+                          close();
+                        }}
+                      >
+                        Delete Course
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
           </div>
         </SheetContent>
       </Sheet>

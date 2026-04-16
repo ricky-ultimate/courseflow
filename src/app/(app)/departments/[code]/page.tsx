@@ -1,21 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
-import { ArrowLeft, Lock, Unlock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
-import {
-  AcademicSession,
-  College,
-  Course,
-  Department,
-  Semester,
-} from "@/types";
+import { AcademicSession, Course, Department } from "@/types";
 import { Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
@@ -31,7 +25,6 @@ import { COLLEGE_BADGE } from "@/lib/constants";
 
 export default function DepartmentDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const { toast } = useToast();
   const { isAdmin, isHod, user } = useAuth();
   const code = params.code as string;

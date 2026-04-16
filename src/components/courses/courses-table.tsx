@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, Lock } from "lucide-react";
+import { Trash2, Lock } from "lucide-react";
 import { Course, Semester } from "@/types";
 import { LEVEL_PILL } from "@/lib/constants";
 import { CourseAliasBadges } from "./course-alias-badges";
@@ -17,7 +17,6 @@ interface CoursesTableProps {
 
 export function CoursesTable({
   courses,
-  canEditCourse,
   isAdmin,
   onView,
   onDelete,

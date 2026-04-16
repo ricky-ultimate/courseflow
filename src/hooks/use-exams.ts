@@ -98,7 +98,6 @@ export function useExams({
 }
 
 export function useExamMutations(
-  courses: Course[],
   refetch: () => void,
   exams: Exam[],
   page: number,

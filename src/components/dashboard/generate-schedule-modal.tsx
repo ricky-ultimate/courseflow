@@ -23,7 +23,6 @@ import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { AcademicSession, Department, Level, Semester } from "@/types";
 import { getItemsFromResponse } from "@/lib/utils";
 import {
-  RefreshCw,
   CheckCircle,
   AlertCircle,
   Loader2,

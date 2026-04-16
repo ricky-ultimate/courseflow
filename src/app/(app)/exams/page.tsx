@@ -166,14 +166,13 @@ export default function ExamsPage() {
     setCreateError,
     editLoading,
     editError,
-    setEditError,
     actionLoading,
     openForEditExamIdRef,
     openEditExam,
     handleCreate,
     handleEditSubmit,
     handleDelete,
-  } = useExamMutations(courses, refetch, exams, page, setPage);
+  } = useExamMutations(refetch, exams, page, setPage);
 
   const filteredExams = useMemo(() => {
     if (!debouncedSearch.trim()) return exams;

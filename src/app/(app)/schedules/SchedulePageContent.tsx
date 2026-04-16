@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { RefetchIndicator } from "@/components/ui/refetch-indicator";
@@ -29,9 +29,8 @@ import { ScheduleAgendaView } from "@/components/schedules/schedule-agenda-view"
 import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu";
 
 export default function SchedulePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isAdmin, isHod, user } = useAuth();
+  const { isAdmin, isHod, user } = useAuth();
   const { toast } = useToast();
   const canMutateSchedules = isAdmin || isHod;
 

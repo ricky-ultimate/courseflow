@@ -4,8 +4,6 @@ import { useState } from "react";
 import { DayOfWeek, Schedule } from "@/types";
 import {
   WEEKDAYS,
-  DAY_LABELS,
-  DEPT_STYLES,
   getDeptStyle,
 } from "@/lib/constants";
 

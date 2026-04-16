@@ -6,15 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Lock,
-  BookOpen,
   Calendar,
   User,
   Building2,
   Pencil,
   Clock,
-  GraduationCap,
 } from "lucide-react";
-import { Course, AcademicSession, Department, Semester, Level } from "@/types";
+import { Course, AcademicSession, Department, Semester } from "@/types";
 import { getInitials } from "@/lib/utils";
 import { LEVEL_PILL } from "@/lib/constants";
 import { CourseEditModal } from "@/components/courses/course-edit-modal";
