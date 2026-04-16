@@ -30,9 +30,10 @@ import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu"
 
 export default function SchedulePageContent() {
   const searchParams = useSearchParams();
-  const { isAdmin, isHod, user } = useAuth();
+  const { isAdmin, isHod, isLecturer, user } = useAuth();
   const { toast } = useToast();
   const canMutateSchedules = isAdmin || isHod;
+  const isTeacher = isHod || isLecturer;
 
   const {
     departments,
@@ -52,6 +53,8 @@ export default function SchedulePageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [unscheduledKey, setUnscheduledKey] = useState(0);
+  const [myClassesOnly, setMyClassesOnly] = useState(false);
+  const myClassesDefaultSet = useRef(false);
 
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
@@ -71,6 +74,14 @@ export default function SchedulePageContent() {
   const [editSchedule, setEditSchedule] = useState<Schedule | null>(null);
 
   const defaultFiltersApplied = useRef(false);
+
+  useEffect(() => {
+    if (!myClassesDefaultSet.current && user && isTeacher) {
+      setMyClassesOnly(true);
+      myClassesDefaultSet.current = true;
+    }
+  }, [user, isTeacher]);
+
   useEffect(() => {
     if (
       !defaultFiltersApplied.current &&
@@ -114,6 +125,8 @@ export default function SchedulePageContent() {
     setCurrentPage(1);
   };
 
+  const scheduleLimit = myClassesOnly ? 500 : limit;
+
   const {
     schedules,
     loading,
@@ -132,7 +145,7 @@ export default function SchedulePageContent() {
     semester: selectedSemester,
     sessionId: selectedSessionId,
     page: currentPage,
-    limit,
+    limit: scheduleLimit,
   });
 
   usePageLoadReporter(loading);
@@ -200,11 +213,15 @@ export default function SchedulePageContent() {
     setUnscheduledKey((k) => k + 1);
   }, [refetch]);
 
-  const filteredSchedules = schedules.filter(
+  const baseFilteredSchedules = schedules.filter(
     (s) =>
       s.course?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.course?.code.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const filteredSchedules = myClassesOnly
+    ? baseFilteredSchedules.filter((s) => s.course?.lecturer?.id === user?.id)
+    : baseFilteredSchedules;
 
   const handleReset = () => {
     setSearchTerm("");
@@ -214,6 +231,7 @@ export default function SchedulePageContent() {
     setSelectedDay("all");
     setSelectedSemester("all");
     setSelectedSessionId("");
+    setMyClassesOnly(false);
     setCurrentPage(1);
   };
 
@@ -224,6 +242,7 @@ export default function SchedulePageContent() {
     selectedProgramme !== "all",
     selectedLevel !== "all",
     viewMode === "timetable" && selectedDay !== "all",
+    myClassesOnly,
   ].filter(Boolean).length;
 
   return (
@@ -242,7 +261,7 @@ export default function SchedulePageContent() {
                   activeSession
                 )?.name ?? "Session"}
               </span>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-300">&bull;</span>
               <span>
                 {selectedSemester === Semester.FIRST
                   ? "First Semester"
@@ -346,6 +365,9 @@ export default function SchedulePageContent() {
         programmes={programmes}
         filterCount={filterCount}
         onClear={handleReset}
+        myClassesOnly={myClassesOnly}
+        onMyClassesOnlyChange={setMyClassesOnly}
+        showMyClassesFilter={isTeacher && !!user?.id}
       />
 
       <GenerateScheduleModal
@@ -431,7 +453,9 @@ export default function SchedulePageContent() {
           {refetching && <RefetchIndicator />}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm font-medium text-slate-500">
-              Showing {filteredSchedules.length} classes
+              Showing {filteredSchedules.length} class
+              {filteredSchedules.length !== 1 ? "es" : ""}
+              {myClassesOnly ? " you teach" : ""}
             </p>
             {filteredSchedules.length > 0 && (
               <ScheduleExportMenu
@@ -455,8 +479,9 @@ export default function SchedulePageContent() {
                 No schedules to display
               </h3>
               <p className="text-slate-500 mt-2 max-w-md">
-                No classes scheduled for the selected parameters. Adjust your
-                filters or generate a new timetable.
+                {myClassesOnly
+                  ? "You have no classes scheduled in this view. Toggle off the filter to see all schedules."
+                  : "No classes scheduled for the selected parameters. Adjust your filters or generate a new timetable."}
               </p>
             </div>
           ) : viewMode === "agenda" ? (
@@ -503,7 +528,7 @@ export default function SchedulePageContent() {
             </>
           )}
 
-          {total > 0 && (
+          {!myClassesOnly && total > 0 && (
             <div className="mt-8">
               <Pagination
                 page={currentPage}

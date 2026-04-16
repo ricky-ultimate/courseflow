@@ -42,6 +42,9 @@ interface ScheduleFilterBarProps {
   programmes: Programme[];
   filterCount: number;
   onClear: () => void;
+  myClassesOnly: boolean;
+  onMyClassesOnlyChange: (v: boolean) => void;
+  showMyClassesFilter: boolean;
 }
 
 export function ScheduleFilterBar({
@@ -62,6 +65,9 @@ export function ScheduleFilterBar({
   programmes,
   filterCount,
   onClear,
+  myClassesOnly,
+  onMyClassesOnlyChange,
+  showMyClassesFilter,
 }: ScheduleFilterBarProps) {
   const showProgramme =
     selectedDepartment !== "all" &&
@@ -81,6 +87,16 @@ export function ScheduleFilterBar({
       </div>
       <div className="h-6 w-px bg-slate-200 hidden sm:block" />
       <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar px-1">
+        {showMyClassesFilter && (
+          <button
+            type="button"
+            onClick={() => onMyClassesOnlyChange(!myClassesOnly)}
+            className={`shrink-0 text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${myClassesOnly ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}
+          >
+            My Classes
+          </button>
+        )}
+
         <Select
           value={selectedSessionId || "all"}
           onValueChange={(v) => onSessionChange(v === "all" ? "" : v)}
