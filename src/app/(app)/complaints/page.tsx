@@ -21,14 +21,15 @@ import { ComplaintSubmitDialog } from "@/components/complaints/complaint-submit-
 import { ComplaintDetailDialog } from "@/components/complaints/complaint-detail-dialog";
 
 export default function ComplaintsPage() {
-  const { isAdmin, isHod } = useAuth();
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
-  const isManager = isAdmin || isHod;
 
   const [activeTab, setActiveTab] = useState<"all" | ComplaintStatus>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [orderBy, setOrderBy] = useState<"newest" | "oldest">("newest");
-  const [detailComplaint, setDetailComplaint] = useState<Complaint | null>(null);
+  const [detailComplaint, setDetailComplaint] = useState<Complaint | null>(
+    null,
+  );
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
@@ -80,7 +81,7 @@ export default function ComplaintsPage() {
     }
   };
 
-  if (!isManager) {
+  if (!isAdmin) {
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -135,7 +136,7 @@ export default function ComplaintsPage() {
         />
         <ComplaintDetailDialog
           complaint={detailComplaint}
-          isAdmin={!!isAdmin}
+          isAdmin={false}
           statusLoading={statusLoading}
           onClose={() => setDetailComplaint(null)}
           onStatusChange={handleStatusChange}
@@ -185,13 +186,19 @@ export default function ComplaintsPage() {
             <table className="w-full">
               <thead className="bg-white border-b">
                 <tr className="text-left text-sm text-gray-500">
-                  {["#", "Name", "Department", "Subject", "Status", "Created", "Actions"].map(
-                    (h) => (
-                      <th key={h} className="p-3">
-                        {h}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "#",
+                    "Name",
+                    "Department",
+                    "Subject",
+                    "Status",
+                    "Created",
+                    "Actions",
+                  ].map((h) => (
+                    <th key={h} className="p-3">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -199,7 +206,9 @@ export default function ComplaintsPage() {
                   <tr key={i} className="border-t">
                     {[6, 28, 24, 40, 20, 24, 16].map((w, j) => (
                       <td key={j} className="p-3">
-                        <div className={`h-6 bg-gray-200 animate-pulse rounded w-${w}`} />
+                        <div
+                          className={`h-6 bg-gray-200 animate-pulse rounded w-${w}`}
+                        />
                       </td>
                     ))}
                   </tr>
@@ -212,7 +221,9 @@ export default function ComplaintsPage() {
         <div className="relative rounded-xl border border-gray-200 p-12 text-center">
           {refetching && <RefetchIndicator />}
           <MessageSquareWarning className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-base font-semibold text-gray-700">No complaints</h3>
+          <h3 className="text-base font-semibold text-gray-700">
+            No complaints
+          </h3>
           <p className="text-sm text-gray-400 mt-2">
             No complaints match the current filter.
           </p>
