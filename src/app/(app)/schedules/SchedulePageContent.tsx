@@ -21,7 +21,10 @@ import { ScheduleDetailSheet } from "@/components/schedules/schedule-detail-shee
 import { CreateScheduleModal } from "@/components/schedules/create-schedule-modal";
 import { UnscheduledCoursesPanel } from "@/components/schedules/unscheduled-courses-panel";
 import { UnscheduledUniversityCoursesPanel } from "@/components/schedules/unscheduled-university-courses-panel";
-import { ScheduleFilterBar } from "@/components/schedules/schedule-filter-bar";
+import {
+  ScheduleFilterBar,
+  Programme,
+} from "@/components/schedules/schedule-filter-bar";
 import { ScheduleAgendaView } from "@/components/schedules/schedule-agenda-view";
 import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu";
 
@@ -43,6 +46,7 @@ export default function SchedulePageContent() {
   const [viewMode, setViewMode] = useState<"timetable" | "agenda">("agenda");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("CSC");
+  const [selectedProgramme, setSelectedProgramme] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("LEVEL_300");
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] = useState<string>("FIRST");
@@ -50,6 +54,7 @@ export default function SchedulePageContent() {
   const [limit, setLimit] = useState(25);
   const [unscheduledKey, setUnscheduledKey] = useState(0);
 
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [detailSchedule, setDetailSchedule] = useState<Schedule | null>(null);
   const openForDetailRef = useRef<string | null>(null);
@@ -86,6 +91,30 @@ export default function SchedulePageContent() {
     }
   }, [sessions, departments]);
 
+  useEffect(() => {
+    if (!selectedDepartment || selectedDepartment === "all") {
+      setProgrammes([]);
+      setSelectedProgramme("all");
+      return;
+    }
+    apiClient
+      .getDepartmentProgrammes(selectedDepartment)
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setProgrammes(res.data as Programme[]);
+        } else {
+          setProgrammes([]);
+        }
+      })
+      .catch(() => setProgrammes([]));
+  }, [selectedDepartment]);
+
+  const handleDepartmentChange = (dept: string) => {
+    setSelectedDepartment(dept);
+    setSelectedProgramme("all");
+    setCurrentPage(1);
+  };
+
   const {
     schedules,
     loading,
@@ -98,6 +127,7 @@ export default function SchedulePageContent() {
   } = useSchedules({
     searchTerm,
     departmentCode: selectedDepartment,
+    programme: selectedProgramme,
     level: selectedLevel,
     day: selectedDay,
     semester: selectedSemester,
@@ -180,6 +210,7 @@ export default function SchedulePageContent() {
   const handleReset = () => {
     setSearchTerm("");
     setSelectedDepartment("all");
+    setSelectedProgramme("all");
     setSelectedLevel("all");
     setSelectedDay("all");
     setSelectedSemester("all");
@@ -191,6 +222,7 @@ export default function SchedulePageContent() {
     selectedSessionId && selectedSessionId !== "all",
     selectedSemester !== "all",
     selectedDepartment !== "all",
+    selectedProgramme !== "all",
     selectedLevel !== "all",
     viewMode === "timetable" && selectedDay !== "all",
   ].filter(Boolean).length;
@@ -302,11 +334,17 @@ export default function SchedulePageContent() {
         selectedSemester={selectedSemester}
         onSemesterChange={setSelectedSemester}
         selectedDepartment={selectedDepartment}
-        onDepartmentChange={setSelectedDepartment}
+        onDepartmentChange={handleDepartmentChange}
+        selectedProgramme={selectedProgramme}
+        onProgrammeChange={(v) => {
+          setSelectedProgramme(v);
+          setCurrentPage(1);
+        }}
         selectedLevel={selectedLevel}
         onLevelChange={setSelectedLevel}
         sessions={sessions}
         departments={departments}
+        programmes={programmes}
         filterCount={filterCount}
         onClear={handleReset}
       />
@@ -400,6 +438,8 @@ export default function SchedulePageContent() {
               <ScheduleExportMenu
                 filters={{
                   departmentCode: selectedDepartment,
+                  programme:
+                    selectedProgramme !== "all" ? selectedProgramme : undefined,
                   level: selectedLevel,
                   day: selectedDay,
                   searchTerm,

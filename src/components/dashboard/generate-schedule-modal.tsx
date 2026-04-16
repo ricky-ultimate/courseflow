@@ -40,6 +40,11 @@ const LEVEL_OPTIONS = [
   { value: Level.LEVEL_500, label: "500 Level" },
 ];
 
+interface Programme {
+  programme: string;
+  count: number;
+}
+
 function parseUniversityCourseCodes(message: string): string[] {
   const match = /university courses:\s*([^.]+)\./i.exec(message);
   if (!match || !match[1]) return [];
@@ -69,12 +74,15 @@ export function GenerateScheduleModal({
   const { toast } = useToast();
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [semester, setSemester] = useState<Semester>(Semester.FIRST);
   const [departmentCode, setDepartmentCode] = useState<string>("");
+  const [programme, setProgramme] = useState<string>("");
   const [level, setLevel] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingProgrammes, setLoadingProgrammes] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [serverError, setServerError] = useState("");
   const [confirmStep, setConfirmStep] = useState(false);
@@ -91,6 +99,7 @@ export function GenerateScheduleModal({
     scheduled?: number;
     preserved?: number;
     skipped?: number;
+    programme?: string | null;
     level?: string | null;
     failedCourses?: string[];
     message?: string;
@@ -99,6 +108,8 @@ export function GenerateScheduleModal({
     totalDepartments?: number;
     processedDepartments?: number;
   } | null>(null);
+
+  const activeDeptCode = hodDeptCode || departmentCode;
 
   const fetchData = useCallback(async () => {
     if (!open) return;
@@ -143,6 +154,32 @@ export function GenerateScheduleModal({
     }
   }, [open, fetchData]);
 
+  useEffect(() => {
+    const deptCode = activeDeptCode;
+    if (!deptCode || deptCode === "__all__") {
+      setProgrammes([]);
+      setProgramme("");
+      return;
+    }
+    setLoadingProgrammes(true);
+    apiClient
+      .getDepartmentProgrammes(deptCode)
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setProgrammes(res.data as Programme[]);
+        } else {
+          setProgrammes([]);
+        }
+      })
+      .catch(() => setProgrammes([]))
+      .finally(() => setLoadingProgrammes(false));
+  }, [activeDeptCode]);
+
+  const handleDepartmentChange = (v: string) => {
+    setDepartmentCode(v === "__all__" ? "" : v);
+    setProgramme("");
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setResult(null);
@@ -161,6 +198,7 @@ export function GenerateScheduleModal({
             sessionId: activeSessionId || undefined,
             departmentCode: departmentCode || hodDeptCode || undefined,
             level: (level || undefined) as Level | undefined,
+            programme: programme || undefined,
           });
       if (res.success && res.data) {
         const d = res.data as any;
@@ -176,6 +214,7 @@ export function GenerateScheduleModal({
           scheduled: scheduledCount,
           preserved: d.preservedOverrides ?? d.preserved,
           skipped: d.skippedLockedDepartments ?? d.skipped,
+          programme: (d.programme ?? programme) || null,
           level: d.level ?? null,
           batchErrors: batchErrors?.length ? batchErrors : undefined,
           totalDepartments: d.totalDepartments,
@@ -232,12 +271,15 @@ export function GenerateScheduleModal({
   const handleClose = () => {
     setResult(null);
     setConfirmStep(false);
+    setProgramme("");
     setUniversityCourseCodes([]);
     onOpenChange(false);
   };
 
   const levelLabel = LEVEL_OPTIONS.find((l) => l.value === level)?.label;
   const isBatch = !departmentCode && !hodDeptCode && !isHod;
+  const showProgrammeSelect =
+    !isBatch && !!activeDeptCode && programmes.length > 1;
 
   const renderForm = () => (
     <>
@@ -307,9 +349,7 @@ export function GenerateScheduleModal({
               <Label>Department scope</Label>
               <Select
                 value={departmentCode || "__all__"}
-                onValueChange={(v) =>
-                  setDepartmentCode(v === "__all__" ? "" : v)
-                }
+                onValueChange={handleDepartmentChange}
                 disabled={loading || loadingData}
               >
                 <SelectTrigger className="mt-1.5">
@@ -326,6 +366,39 @@ export function GenerateScheduleModal({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {showProgrammeSelect && (
+            <div>
+              <Label>Programme (optional)</Label>
+              <Select
+                value={programme || "__all__"}
+                onValueChange={(v) => setProgramme(v === "__all__" ? "" : v)}
+                disabled={loading || loadingData || loadingProgrammes}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue
+                    placeholder={
+                      loadingProgrammes ? "Loading..." : "All Programmes"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Programmes</SelectItem>
+                  {programmes.map((p) => (
+                    <SelectItem key={p.programme} value={p.programme}>
+                      {p.programme}
+                      <span className="ml-1.5 text-xs text-slate-400">
+                        ({p.count} courses)
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1.5">
+                Restrict generation to one programme within this department
+                without affecting others.
+              </p>
             </div>
           )}
           <div>
@@ -376,7 +449,7 @@ export function GenerateScheduleModal({
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {isBatch
             ? `This will process all unlocked departments sequentially${levelLabel ? ` for ${levelLabel}` : ""} and regenerate their auto-generated schedules. Manual overrides and fixed slots will be preserved.`
-            : `This will delete all auto-generated schedules for the selected scope${level ? ` (${levelLabel})` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`}
+            : `This will delete all auto-generated schedules for the selected scope${programme ? ` (${programme} programme)` : ""}${level ? `, ${levelLabel}` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`}
         </div>
         <div className="rounded-lg border bg-gray-50 p-3 text-sm space-y-1.5">
           <div className="flex justify-between">
@@ -397,6 +470,12 @@ export function GenerateScheduleModal({
               <span className="font-medium">
                 {hodDeptName ?? departmentCode ?? hodDeptCode}
               </span>
+            </div>
+          )}
+          {programme && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Programme</span>
+              <span className="font-medium">{programme}</span>
             </div>
           )}
           {level && (
@@ -470,6 +549,12 @@ export function GenerateScheduleModal({
                   <span className="font-medium">
                     {result.processedDepartments} / {result.totalDepartments}
                   </span>
+                </div>
+              )}
+              {result.programme && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Programme</span>
+                  <span className="font-medium">{result.programme}</span>
                 </div>
               )}
               <div className="flex justify-between">

@@ -22,6 +22,7 @@ import { Course, Schedule } from "@/types";
 interface ScheduleExportMenuProps {
   filters: {
     departmentCode: string;
+    programme?: string;
     level: string;
     day: string;
     searchTerm: string;
@@ -40,6 +41,12 @@ export function ScheduleExportMenu({
       const params: Record<string, unknown> = { page: 1, limit: 10000 };
       if (filters.departmentCode && filters.departmentCode !== "all")
         params.departmentCode = filters.departmentCode;
+      if (
+        filters.programme &&
+        filters.programme !== "all" &&
+        filters.departmentCode !== "all"
+      )
+        params.programme = filters.programme;
       if (filters.level && filters.level !== "all")
         params.level = filters.level;
       if (filters.day && filters.day !== "all") params.dayOfWeek = filters.day;

@@ -389,6 +389,7 @@ export interface GenerateScheduleData {
   sessionId?: string;
   departmentCode?: string;
   level?: Level;
+  programme?: string;
 }
 
 export interface BatchGenerateScheduleResult {

@@ -19,6 +19,11 @@ const LEVEL_OPTIONS = [
   { value: Level.LEVEL_500, label: "500 Level" },
 ];
 
+export interface Programme {
+  programme: string;
+  count: number;
+}
+
 interface ScheduleFilterBarProps {
   searchTerm: string;
   onSearchChange: (v: string) => void;
@@ -28,10 +33,13 @@ interface ScheduleFilterBarProps {
   onSemesterChange: (v: string) => void;
   selectedDepartment: string;
   onDepartmentChange: (v: string) => void;
+  selectedProgramme: string;
+  onProgrammeChange: (v: string) => void;
   selectedLevel: string;
   onLevelChange: (v: string) => void;
   sessions: AcademicSession[];
   departments: Department[];
+  programmes: Programme[];
   filterCount: number;
   onClear: () => void;
 }
@@ -45,13 +53,21 @@ export function ScheduleFilterBar({
   onSemesterChange,
   selectedDepartment,
   onDepartmentChange,
+  selectedProgramme,
+  onProgrammeChange,
   selectedLevel,
   onLevelChange,
   sessions,
   departments,
+  programmes,
   filterCount,
   onClear,
 }: ScheduleFilterBarProps) {
+  const showProgramme =
+    selectedDepartment !== "all" &&
+    !!selectedDepartment &&
+    programmes.length > 1;
+
   return (
     <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm w-full">
       <div className="relative flex-1 w-full">
@@ -106,6 +122,25 @@ export function ScheduleFilterBar({
             ))}
           </SelectContent>
         </Select>
+
+        {showProgramme && (
+          <Select value={selectedProgramme} onValueChange={onProgrammeChange}>
+            <SelectTrigger className="border-0 shadow-none bg-transparent hover:bg-slate-50 focus:ring-0 w-[130px]">
+              <SelectValue placeholder="Programme" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Programmes</SelectItem>
+              {programmes.map((p) => (
+                <SelectItem key={p.programme} value={p.programme}>
+                  {p.programme}
+                  <span className="ml-1.5 text-xs text-slate-400">
+                    ({p.count})
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <Select value={selectedLevel} onValueChange={onLevelChange}>
           <SelectTrigger className="border-0 shadow-none bg-transparent hover:bg-slate-50 focus:ring-0 w-[110px]">
