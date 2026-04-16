@@ -27,7 +27,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
 
 export default function CoursesPage() {
-  const { isAdmin, isHod, user } = useAuth();
+  const { isAdmin, isHod, isLecturer, user } = useAuth();
   const { toast } = useToast();
 
   const isStaff = isAdmin || isHod;
@@ -45,6 +45,8 @@ export default function CoursesPage() {
   const [level, setLevel] = useState<string>("all");
   const [semester, setSemester] = useState<string>("all");
   const [isGeneral, setIsGeneral] = useState(false);
+  const [myCoursesOnly, setMyCoursesOnly] = useState(false);
+  const myCoursesDefaultSet = useRef(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -57,6 +59,13 @@ export default function CoursesPage() {
   const [deleteCourse, setDeleteCourse] = useState<Course | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!myCoursesDefaultSet.current && user && (isHod || isLecturer)) {
+      setMyCoursesOnly(true);
+      myCoursesDefaultSet.current = true;
+    }
+  }, [user, isHod, isLecturer]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchInput), 300);
@@ -97,6 +106,7 @@ export default function CoursesPage() {
         ...(semester &&
           semester !== "all" && { semester: semester as Semester }),
         ...(isGeneral && { isGeneral: true }),
+        ...(myCoursesOnly && user?.id && { lecturerId: user.id }),
       };
       const res = await apiClient.getCourses(params);
       const r = getItemsFromResponse<Course>(res);
@@ -121,6 +131,8 @@ export default function CoursesPage() {
     level,
     semester,
     isGeneral,
+    myCoursesOnly,
+    user?.id,
     toast,
   ]);
 
@@ -133,6 +145,7 @@ export default function CoursesPage() {
     level !== "all",
     semester !== "all",
     isGeneral,
+    myCoursesOnly,
   ].filter(Boolean).length;
   const hasFilters = filterCount > 0;
 
@@ -141,6 +154,7 @@ export default function CoursesPage() {
     setLevel("all");
     setSemester("all");
     setIsGeneral(false);
+    setMyCoursesOnly(false);
     setPage(1);
   };
 
@@ -268,6 +282,9 @@ export default function CoursesPage() {
           setLimit(v);
           setPage(1);
         }}
+        myCoursesOnly={myCoursesOnly}
+        onMyCoursesOnlyChange={setMyCoursesOnly}
+        showMyCoursesFilter={!!(isHod || isLecturer) && !!user?.id}
       />
 
       <div className="md:hidden">
@@ -300,6 +317,9 @@ export default function CoursesPage() {
           setLimit(v);
           setPage(1);
         }}
+        myCoursesOnly={myCoursesOnly}
+        onMyCoursesOnlyChange={setMyCoursesOnly}
+        showMyCoursesFilter={!!(isHod || isLecturer) && !!user?.id}
       />
 
       {fetchError ? (
@@ -359,9 +379,11 @@ export default function CoursesPage() {
             No courses found
           </h3>
           <p className="text-sm text-gray-400 mt-2">
-            Try adjusting your filters or add a new course.
+            {myCoursesOnly
+              ? "You have no courses assigned. Toggle off the filter to see all courses."
+              : "Try adjusting your filters or add a new course."}
           </p>
-          {isStaff && (
+          {isStaff && !myCoursesOnly && (
             <Button className="mt-5" onClick={() => setIsCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Course
