@@ -2,13 +2,12 @@
 
 import { AlertCircle } from "lucide-react";
 
-/**
- * Spec 19.1: Server-side validation errors from response.error (comma-separated
- * from class-validator) displayed above submit button.
- */
 export function ServerErrorBanner({ message }: { message: string }) {
   if (!message?.trim()) return null;
-  const parts = message.split(",").map((s) => s.trim()).filter(Boolean);
+  const parts = message
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const display = parts.length > 1 ? parts.join(", ") : message.trim();
   return (
     <div

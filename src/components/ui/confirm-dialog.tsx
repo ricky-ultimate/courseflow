@@ -22,8 +22,13 @@ export interface ConfirmDialogProps {
   iconClassName?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  confirmVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  /** Spec 15: Override confirm button color (e.g. "bg-amber-600 hover:bg-amber-700 text-white") */
+  confirmVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   confirmClassName?: string;
   onConfirm: () => void | Promise<void | boolean>;
   loading?: boolean;
@@ -61,7 +66,7 @@ export function ConfirmDialog({
       <DialogContent
         className={cn(
           "sm:max-w-[400px]",
-          "max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:translate-y-0 max-sm:rounded-t-2xl max-sm:rounded-b-none"
+          "max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:translate-y-0 max-sm:rounded-t-2xl max-sm:rounded-b-none",
         )}
         onSwipeDown={() => onOpenChange(false)}
       >
@@ -70,7 +75,7 @@ export function ConfirmDialog({
             <div
               className={cn(
                 "mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full sm:mx-0",
-                iconClassName ?? "bg-gray-100"
+                iconClassName ?? "bg-gray-100",
               )}
             >
               <Icon className="h-5 w-5" />

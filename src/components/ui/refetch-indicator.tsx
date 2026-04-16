@@ -2,10 +2,6 @@
 
 import { Loader2 } from "lucide-react";
 
-/**
- * Spec 18.4: Small spinning indicator in the top-right corner of the content
- * card/table when re-fetching. Prevents layout shift.
- */
 export function RefetchIndicator() {
   return (
     <div

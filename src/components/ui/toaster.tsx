@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import {
   Toast,
   ToastClose,
@@ -8,18 +8,25 @@ import {
   ToastViewport,
   VARIANT_ICONS,
   VARIANT_ICON_CLASSES,
-} from "@/components/ui/toast"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        const Icon = VARIANT_ICONS[variant ?? "default"]
-        const iconClass = VARIANT_ICON_CLASSES[variant ?? "default"]
-        const message = description ?? title ?? ""
+      {toasts.map(function ({
+        id,
+        title,
+        description,
+        action,
+        variant,
+        ...props
+      }) {
+        const Icon = VARIANT_ICONS[variant ?? "default"];
+        const iconClass = VARIANT_ICON_CLASSES[variant ?? "default"];
+        const message = description ?? title ?? "";
 
         return (
           <Toast key={id} variant={variant} {...props}>
@@ -30,9 +37,9 @@ export function Toaster() {
             {action}
             <ToastClose />
           </Toast>
-        )
+        );
       })}
       <ToastViewport />
     </ToastProvider>
-  )
+  );
 }

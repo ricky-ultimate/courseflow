@@ -2,16 +2,7 @@
 
 import { Lock } from "lucide-react";
 
-/**
- * Spec 19.4: In-page amber banner for 403 Forbidden.
- * [Lock icon — amber] "You do not have permission to perform this action."
- * Do not redirect. Do not clear the token.
- */
-export function ForbiddenBanner({
-  onDismiss,
-}: {
-  onDismiss?: () => void;
-}) {
+export function ForbiddenBanner({ onDismiss }: { onDismiss?: () => void }) {
   return (
     <div
       className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800"

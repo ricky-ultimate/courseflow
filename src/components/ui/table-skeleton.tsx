@@ -10,9 +10,18 @@ interface TableSkeletonProps {
   className?: string;
 }
 
-export function TableSkeleton({ rows = 7, cols, className }: TableSkeletonProps) {
+export function TableSkeleton({
+  rows = 7,
+  cols,
+  className,
+}: TableSkeletonProps) {
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden", className)}>
+    <div
+      className={cn(
+        "rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden",
+        className,
+      )}
+    >
       <div className="overflow-x-auto">
         <table className="w-full">
           <tbody>
@@ -20,7 +29,12 @@ export function TableSkeleton({ rows = 7, cols, className }: TableSkeletonProps)
               <tr key={i} className="border-t">
                 {cols.map((col, j) => (
                   <td key={j} className="p-3">
-                    <div className={cn("h-6 bg-gray-200 animate-pulse rounded", col.className ?? "w-full")} />
+                    <div
+                      className={cn(
+                        "h-6 bg-gray-200 animate-pulse rounded",
+                        col.className ?? "w-full",
+                      )}
+                    />
                   </td>
                 ))}
               </tr>

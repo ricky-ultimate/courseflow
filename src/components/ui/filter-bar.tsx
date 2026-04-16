@@ -27,7 +27,7 @@ export function FilterBar({
     <div
       className={cn(
         "flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm w-full",
-        className
+        className,
       )}
     >
       {hasSearch && (
