@@ -79,7 +79,7 @@ export function CourseFilters({
             onClick={() => onMyCoursesOnlyChange(!myCoursesOnly)}
             className={`text-sm px-3 py-1.5 rounded-full font-medium transition-colors ${myCoursesOnly ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"}`}
           >
-            Courses I take
+            My Courses
           </button>
         )}
         <FilterSelect
@@ -138,13 +138,6 @@ export function CourseFilters({
   );
 }
 
-export function CourseFiltersMobile({}: Omit<
-  CourseFiltersProps,
-  "searchInput" | "onSearchChange" | "hasFilters"
->) {
-  return null;
-}
-
 export function CourseFiltersMobileDialog({
   departmentCode,
   onDepartmentChange,
@@ -185,7 +178,7 @@ export function CourseFiltersMobileDialog({
                 className="w-full mt-1.5"
                 onClick={() => onMyCoursesOnlyChange(!myCoursesOnly)}
               >
-                {myCoursesOnly ? "Courses I take (on)" : "Courses I take (off)"}
+                {myCoursesOnly ? "My Courses (on)" : "My Courses (off)"}
               </Button>
             </div>
           )}
