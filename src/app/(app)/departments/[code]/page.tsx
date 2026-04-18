@@ -271,7 +271,7 @@ export default function DepartmentDetailsPage() {
         onOpenChange={setGenerateModalOpen}
         departmentCode={code}
         departmentName={department.name}
-        isHod={false}
+        isHod={!!isHod}
         onSuccess={() => {}}
       />
 
