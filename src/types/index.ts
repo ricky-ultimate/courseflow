@@ -370,6 +370,7 @@ export interface CreateCourseData {
   lecturerId?: string;
   isGeneral?: boolean;
   isLocked?: boolean;
+  aliasOf?: string[];
 }
 
 export interface UpdateCourseData extends Partial<CreateCourseData> {}
