@@ -9,6 +9,7 @@ import {
   AcademicSession,
   Course,
   Department,
+  DayOfWeek,
   DepartmentStatistics,
   CourseStatistics,
   ScheduleStatistics,
@@ -76,14 +77,28 @@ export function useDashboard() {
         ? apiClient.getDepartmentByCode(user.departmentCode)
         : Promise.resolve({ success: false, data: null }),
     ]);
+
     if (dashRes.success && dashRes.data)
       setLecturerDashboard(dashRes.data as LecturerDashboard);
+
     if (deptRes.success && deptRes.data)
       setDepartment(deptRes.data as Department);
-    const sched = getItemsFromResponse<Schedule>(schedRes);
-    setLecturerSchedules(sched?.items ?? []);
-    const courses = getItemsFromResponse<Course>(coursesRes);
-    setLecturerCourses(courses?.items ?? []);
+
+    if (schedRes.success && schedRes.data) {
+      const schedData = schedRes.data as {
+        schedulesByDay?: Partial<Record<DayOfWeek, Schedule[]>>;
+      };
+      setLecturerSchedules(
+        (Object.values(schedData.schedulesByDay ?? {}) as Schedule[][]).flat(),
+      );
+    }
+
+    if (coursesRes.success && coursesRes.data) {
+      const courseData = coursesRes.data as { courses?: Course[] };
+      setLecturerCourses(
+        Array.isArray(courseData.courses) ? courseData.courses : [],
+      );
+    }
   }, [user?.departmentCode]);
 
   const fetchStudentData = useCallback(async () => {
