@@ -62,7 +62,7 @@ export function Topbar({ onMenuClick, className }: { onMenuClick?: () => void; c
                   <Bell className="h-5 w-5 text-gray-500" />
                 </Button>
                 <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", ROLE_BADGE_COLORS[user.role] ?? "bg-gray-100 text-gray-700")}>
-                  {user.role}
+                  {user.role.replace("_", " ")}
                 </span>
               </div>
 
