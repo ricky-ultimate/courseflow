@@ -28,6 +28,7 @@ export enum Role {
   STUDENT = "STUDENT",
   LECTURER = "LECTURER",
   HOD = "HOD",
+  COLLEGE_ADMIN = "COLLEGE_ADMIN",
   ADMIN = "ADMIN",
 }
 

@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isCollegeAdmin: boolean;
   isLecturer: boolean;
   isHod: boolean;
   isStudent: boolean;
@@ -174,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === Role.ADMIN,
+    isCollegeAdmin: user?.role === Role.COLLEGE_ADMIN,
     isLecturer: user?.role === Role.LECTURER,
     isHod: user?.role === Role.HOD,
     isStudent: user?.role === Role.STUDENT,
