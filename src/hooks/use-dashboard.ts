@@ -19,7 +19,8 @@ import {
 } from "@/types";
 
 export function useDashboard() {
-  const { isAdmin, isHod, isLecturer, isStudent, user } = useAuth();
+  const { isAdmin, isCollegeAdmin, isHod, isLecturer, isStudent, user } =
+    useAuth();
   const activeSessionInvalidateCount = useActiveSessionInvalidateCount();
 
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,29 @@ export function useDashboard() {
   const [exams, setExams] = useState<Exam[]>([]);
 
   const fetchAdminData = useCallback(async () => {
+    const [deptRes, courseRes, schedRes, sessionRes, pendingRes] =
+      await Promise.all([
+        apiClient.getDepartmentStatistics(),
+        apiClient.getCourseStatistics(),
+        apiClient.getScheduleStatistics(),
+        apiClient.getActiveAcademicSession(),
+        apiClient.getPendingComplaints(),
+      ]);
+    if (deptRes.success && deptRes.data)
+      setDeptStats(deptRes.data as DepartmentStatistics);
+    if (courseRes.success && courseRes.data)
+      setCourseStats(courseRes.data as CourseStatistics);
+    if (schedRes.success && schedRes.data)
+      setScheduleStats(schedRes.data as ScheduleStatistics);
+    if (sessionRes.success && sessionRes.data)
+      setActiveSession(sessionRes.data as AcademicSession);
+    if (pendingRes.success && Array.isArray(pendingRes.data))
+      setPendingCount((pendingRes.data as unknown[]).length);
+    else if (pendingRes.success && (pendingRes.data as any)?.data?.length)
+      setPendingCount((pendingRes.data as any).data.length);
+  }, []);
+
+  const fetchCollegeAdminData = useCallback(async () => {
     const [deptRes, courseRes, schedRes, sessionRes, pendingRes] =
       await Promise.all([
         apiClient.getDepartmentStatistics(),
@@ -118,6 +142,7 @@ export function useDashboard() {
       setError(null);
       try {
         if (isAdmin) await fetchAdminData();
+        else if (isCollegeAdmin) await fetchCollegeAdminData();
         else if (isHod || isLecturer) await fetchHodData();
         else if (isStudent) await fetchStudentData();
       } catch {
@@ -129,12 +154,14 @@ export function useDashboard() {
     run();
   }, [
     isAdmin,
+    isCollegeAdmin,
     isHod,
     isLecturer,
     isStudent,
     retryTrigger,
     activeSessionInvalidateCount,
     fetchAdminData,
+    fetchCollegeAdminData,
     fetchHodData,
     fetchStudentData,
   ]);
@@ -155,6 +182,6 @@ export function useDashboard() {
     lecturerSchedules,
     schedules,
     exams,
-    refetchAdmin: fetchAdminData,
+    refetchAdmin: isAdmin ? fetchAdminData : fetchCollegeAdminData,
   };
 }
