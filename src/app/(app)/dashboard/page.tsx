@@ -6,11 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageLoadReporter } from "@/contexts/PageLoadContext";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { apiClient } from "@/lib/api";
-import { Department } from "@/types";
+import { College, Department } from "@/types";
 import { Card } from "@/components/ui/card";
 import { GraduationCap } from "lucide-react";
 import { ErrorState } from "@/components/state/error-state";
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
+import { CollegeAdminDashboard } from "@/components/dashboard/college-admin-dashboard";
 import { HodLecturerDashboard } from "@/components/dashboard/hod-lecturer-dashboard";
 import { StudentDashboard } from "@/components/dashboard/student-dashboard";
 
@@ -22,7 +23,8 @@ function getGreeting(): string {
 }
 
 export default function DashboardPage() {
-  const { user, isAdmin, isLecturer, isHod, isStudent } = useAuth();
+  const { user, isAdmin, isCollegeAdmin, isLecturer, isHod, isStudent } =
+    useAuth();
   const { toast } = useToast();
   const [togglingLock, setTogglingLock] = useState(false);
 
@@ -140,6 +142,18 @@ export default function DashboardPage() {
         />
       )}
 
+      {isCollegeAdmin && (
+        <CollegeAdminDashboard
+          deptStats={deptStats}
+          courseStats={courseStats}
+          scheduleStats={scheduleStats}
+          activeSession={activeSession}
+          pendingCount={pendingCount}
+          collegeCode={(user?.collegeCode as College) ?? null}
+          onRefresh={refetchAdmin}
+        />
+      )}
+
       {(isHod || isLecturer) && lecturerDashboard && (
         <HodLecturerDashboard
           lecturerDashboard={lecturerDashboard}
@@ -154,7 +168,7 @@ export default function DashboardPage() {
 
       {isStudent && <StudentDashboard schedules={schedules} exams={exams} />}
 
-      {!isAdmin && !isHod && !isLecturer && !isStudent && (
+      {!isAdmin && !isCollegeAdmin && !isHod && !isLecturer && !isStudent && (
         <Card className="rounded-xl p-8 text-center">
           <GraduationCap className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h3 className="font-semibold">Welcome</h3>
