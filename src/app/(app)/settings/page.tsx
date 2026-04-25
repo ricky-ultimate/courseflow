@@ -31,6 +31,7 @@ interface DangerAction {
   label: string;
   description: string;
   confirmPhrase: string;
+  adminOnly?: boolean;
 }
 
 interface SeedAction {
@@ -74,6 +75,7 @@ const DANGER_ACTIONS: DangerAction[] = [
     description:
       "Permanently deletes all departments, courses, schedules, exam schedules and complaints. Users and academic sessions are preserved. This cannot be undone.",
     confirmPhrase: "delete all data",
+    adminOnly: true,
   },
 ];
 
@@ -82,13 +84,13 @@ const SEED_ACTIONS: SeedAction[] = [
     key: "departments",
     label: "Seed departments",
     description:
-      "Inserts all built-in departments that do not already exist. Existing records are left untouched.",
+      "Inserts built-in departments that do not already exist. Existing records are left untouched.",
   },
   {
     key: "courses",
     label: "Seed courses",
     description:
-      "Inserts all built-in courses for departments that are already present. Existing records are left untouched.",
+      "Inserts built-in courses for departments that are already present. Existing records are left untouched.",
   },
   {
     key: "all",
@@ -104,14 +106,20 @@ interface ConfirmState {
 }
 
 export default function SettingsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCollegeAdmin } = useAuth();
   const { toast } = useToast();
   usePageLoadReporter(false);
+
+  const canAccess = isAdmin || isCollegeAdmin;
 
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [dangerLoading, setDangerLoading] = useState<ActionKey | null>(null);
   const [seedLoading, setSeedLoading] = useState<SeedKey | null>(null);
   const [seedResults, setSeedResults] = useState<Record<string, string>>({});
+
+  const visibleDangerActions = DANGER_ACTIONS.filter(
+    (a) => !a.adminOnly || isAdmin,
+  );
 
   const openConfirm = (action: DangerAction) => {
     setConfirmState({ action, inputValue: "" });
@@ -186,7 +194,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!isAdmin) {
+  if (!canAccess) {
     return (
       <div className="max-w-[640px] mx-auto p-6 space-y-6">
         <h1 className="text-2xl font-semibold">Settings</h1>
@@ -266,7 +274,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <div className="rounded-xl border border-red-200 bg-white divide-y divide-red-100">
-          {DANGER_ACTIONS.map((action) => (
+          {visibleDangerActions.map((action) => (
             <div
               key={action.key}
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5"
