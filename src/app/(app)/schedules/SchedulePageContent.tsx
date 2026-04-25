@@ -30,9 +30,10 @@ import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu"
 
 export default function SchedulePageContent() {
   const searchParams = useSearchParams();
-  const { isAdmin, isHod, isLecturer, user } = useAuth();
+  const { isAdmin, isCollegeAdmin, isHod, isLecturer, user } = useAuth();
+  const canMutateSchedules = isAdmin || isCollegeAdmin || isHod;
+
   const { toast } = useToast();
-  const canMutateSchedules = isAdmin || isHod;
   const isTeacher = isHod || isLecturer;
 
   const {
