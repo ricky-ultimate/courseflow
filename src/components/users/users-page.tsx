@@ -113,6 +113,7 @@ const ROLE_LABELS: Record<Role, string> = {
   [Role.HOD]: "HOD",
   [Role.LECTURER]: "Lecturer",
   [Role.STUDENT]: "Student",
+  [Role.COLLEGE_ADMIN]: "College Admin"
 };
 
 type UsersPageRole = "LECTURER" | "STUDENT";
@@ -122,9 +123,10 @@ interface UsersPageProps {
 }
 
 export function UsersPage({ role }: UsersPageProps) {
-  const { user, isAdmin, isHod } = useAuth();
+  const { user, isAdmin, isCollegeAdmin, isHod } = useAuth();
   const { toast } = useToast();
   const isLecturers = role === "LECTURER";
+  const canManageUsers = isAdmin || isCollegeAdmin;
 
   const [users, setUsers] = useState<UserType[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -162,7 +164,7 @@ export function UsersPage({ role }: UsersPageProps) {
   });
 
   const fetchData = useCallback(async () => {
-    if (!isAdmin && !isHod) return;
+    if (!isAdmin && !isCollegeAdmin && !isHod) return;
     try {
       if (!hasFetchedRef.current) setLoading(true);
       else setRefetching(true);
@@ -399,7 +401,7 @@ export function UsersPage({ role }: UsersPageProps) {
     }
   };
 
-  if (!isAdmin && !isHod) {
+  if (!isAdmin && !isCollegeAdmin && !isHod) {
     return (
       <div className="text-center py-16">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
@@ -418,7 +420,7 @@ export function UsersPage({ role }: UsersPageProps) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{heading}</h1>
         </div>
-        {isAdmin && (
+        {canManageUsers && (
           <Button
             size="sm"
             onClick={openCreate}
@@ -473,7 +475,7 @@ export function UsersPage({ role }: UsersPageProps) {
                   <th className="p-3">Role</th>
                   <th className="p-3">Last Login</th>
                   <th className="p-3">Status</th>
-                  {isAdmin && <th className="p-3 text-right">Actions</th>}
+                  {canManageUsers && <th className="p-3 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -491,7 +493,7 @@ export function UsersPage({ role }: UsersPageProps) {
                     <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-16" /></td>
                     <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-20" /></td>
                     <td className="p-3"><div className="h-6 bg-gray-200 animate-pulse rounded w-14" /></td>
-                    {isAdmin && (
+                    {canManageUsers && (
                       <td className="p-3 text-right">
                         <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
                       </td>
