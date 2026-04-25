@@ -210,7 +210,7 @@ export function UsersPage({ role }: UsersPageProps) {
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [isAdmin, isHod, user?.departmentCode, departmentCode, showInactive, isLecturers, toast]);
+  }, [isAdmin, isHod, user?.departmentCode, departmentCode, showInactive, isLecturers,isCollegeAdmin, toast]);
 
   useEffect(() => {
     fetchData();
