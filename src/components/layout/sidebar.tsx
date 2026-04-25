@@ -41,7 +41,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
   },
   {
     label: "Academic Sessions",
@@ -53,21 +59,39 @@ const NAV_ITEMS: NavItem[] = [
     label: "Colleges",
     href: "/colleges",
     icon: School,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
     isPublic: true,
   },
   {
     label: "Departments",
     href: "/departments",
     icon: Building2,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
     isPublic: true,
   },
   {
     label: "Courses",
     href: "/courses",
     icon: BookOpen,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
     isPublic: true,
   },
   {
@@ -80,19 +104,25 @@ const NAV_ITEMS: NavItem[] = [
     label: "Lecturers",
     href: "/lecturers",
     icon: GraduationCap,
-    visibleTo: [Role.ADMIN],
+    visibleTo: [Role.ADMIN, Role.COLLEGE_ADMIN],
   },
   {
     label: "Students",
     href: "/students",
     icon: Users,
-    visibleTo: [Role.ADMIN],
+    visibleTo: [Role.ADMIN, Role.COLLEGE_ADMIN],
   },
   {
     label: "Schedules",
     href: "/schedules",
     icon: Clock,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
     isPublic: true,
   },
   {
@@ -105,15 +135,32 @@ const NAV_ITEMS: NavItem[] = [
     label: "Exams",
     href: "/exams",
     icon: ClipboardList,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
   },
   {
     label: "Complaints",
     href: "/complaints",
     icon: MessageCircle,
-    visibleTo: [Role.ADMIN, Role.HOD, Role.LECTURER, Role.STUDENT],
+    visibleTo: [
+      Role.ADMIN,
+      Role.COLLEGE_ADMIN,
+      Role.HOD,
+      Role.LECTURER,
+      Role.STUDENT,
+    ],
   },
-  { label: "Health", href: "/health", icon: Activity, visibleTo: [Role.ADMIN] },
+  {
+    label: "Health",
+    href: "/health",
+    icon: Activity,
+    visibleTo: [Role.ADMIN],
+  },
 ];
 
 export function Sidebar({
@@ -169,7 +216,7 @@ export function Sidebar({
                 ROLE_BADGE_COLORS[user.role] ?? "bg-gray-100 text-gray-700",
               )}
             >
-              {user.role}
+              {user.role.replace("_", " ")}
             </span>
           </div>
           {onClose && (
