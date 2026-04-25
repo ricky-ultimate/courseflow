@@ -83,7 +83,8 @@ function createExamSchema(courses: Course[]) {
 }
 
 export default function ExamsPage() {
-  const { isAdmin, isStudent, user } = useAuth();
+  const { isAdmin, isCollegeAdmin, isStudent, user } = useAuth();
+  const canAdminExams = isAdmin || isCollegeAdmin;
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -239,7 +240,7 @@ export default function ExamsPage() {
             Manage and browse all exam schedule listings
           </p>
         </div>
-        {isAdmin && (
+        {canAdminExams && (
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -267,7 +268,7 @@ export default function ExamsPage() {
         )}
       </div>
 
-      {isAdmin && (
+      {canAdminExams && (
         <UnscheduledExamsPanel
           key={unscheduledKey}
           onScheduleExam={openCreateWithPrefill}
@@ -319,7 +320,7 @@ export default function ExamsPage() {
                       {h}
                     </th>
                   ))}
-                  {isAdmin && <th className="p-3 text-right">Actions</th>}
+                  {canAdminExams && <th className="p-3 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -332,7 +333,7 @@ export default function ExamsPage() {
                         />
                       </td>
                     ))}
-                    {isAdmin && (
+                    {canAdminExams && (
                       <td className="p-3 text-right">
                         <div className="h-8 bg-gray-200 animate-pulse rounded w-16 ml-auto" />
                       </td>
@@ -353,7 +354,7 @@ export default function ExamsPage() {
           <p className="text-sm text-gray-400 mt-2">
             Schedule exams for the active session.
           </p>
-          {isAdmin && (
+          {canAdminExams && (
             <Button
               className="mt-5 bg-indigo-600 hover:bg-indigo-700"
               onClick={() => {
@@ -374,7 +375,7 @@ export default function ExamsPage() {
           <ExamTable
             exams={filteredExams}
             courses={courses}
-            isAdmin={!!isAdmin}
+            isAdmin={!!canAdminExams}
             onEdit={(exam) => openEditExam(exam, editForm.reset, setEditExam)}
             onDelete={setDeleteExam}
           />
