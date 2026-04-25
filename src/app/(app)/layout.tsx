@@ -8,14 +8,14 @@ import { Role } from "@/types";
 
 const ROUTE_ROLES: Record<string, Role[]> = {
   "/sessions": [Role.ADMIN],
-  "/lecturers": [Role.ADMIN],
-  "/students": [Role.ADMIN],
+  "/lecturers": [Role.ADMIN, Role.COLLEGE_ADMIN],
+  "/students": [Role.ADMIN, Role.COLLEGE_ADMIN],
   "/health": [Role.ADMIN],
   "/my-courses": [Role.ADMIN, Role.HOD, Role.LECTURER],
   "/upcoming-classes": [Role.ADMIN, Role.HOD, Role.LECTURER],
-  "/courses/create": [Role.ADMIN, Role.HOD],
-  "/schedules/create": [Role.ADMIN, Role.HOD],
-  "/departments/create": [Role.ADMIN],
+  "/courses/create": [Role.ADMIN, Role.HOD, Role.COLLEGE_ADMIN],
+  "/schedules/create": [Role.ADMIN, Role.HOD, Role.COLLEGE_ADMIN],
+  "/departments/create": [Role.ADMIN, Role.COLLEGE_ADMIN],
 };
 
 const PUBLIC_ROUTES = ["/courses", "/schedules", "/departments", "/colleges"];
