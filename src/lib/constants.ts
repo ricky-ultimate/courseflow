@@ -52,8 +52,9 @@ export const VENUE_LABELS: Record<VenueType, string> = {
 
 export const ROLE_BADGE_COLORS: Record<Role, string> = {
   [Role.ADMIN]: "bg-indigo-100 text-indigo-700",
-  [Role.HOD]: "bg-violet-100 text-violet-700",
-  [Role.LECTURER]: "bg-sky-100 text-sky-700",
+  [Role.COLLEGE_ADMIN]: "bg-violet-100 text-violet-700",
+  [Role.HOD]: "bg-sky-100 text-sky-700",
+  [Role.LECTURER]: "bg-teal-100 text-teal-700",
   [Role.STUDENT]: "bg-emerald-100 text-emerald-700",
 };
 
