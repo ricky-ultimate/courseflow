@@ -55,13 +55,13 @@ type CreateDepartmentFormValues = z.infer<typeof createDepartmentSchema>;
 
 export default function CreateDepartmentPage() {
   const router = useRouter();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isCollegeAdmin } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
   usePageLoadReporter(false);
 
-  const canCreate = isAdmin;
+  const canCreate = isAdmin || isCollegeAdmin;
 
   const form = useForm<CreateDepartmentFormValues>({
     resolver: zodResolver(createDepartmentSchema),
