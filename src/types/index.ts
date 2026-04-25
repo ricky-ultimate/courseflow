@@ -105,6 +105,7 @@ export interface User {
   role: Role;
   phone?: string | null;
   departmentCode?: string | null;
+  collegeCode?: College | null;
   department?: Pick<Department, "name" | "code" | "college"> | null;
   isActive: boolean;
   lastLoginAt?: string | null;
