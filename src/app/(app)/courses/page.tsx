@@ -27,10 +27,10 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
 
 export default function CoursesPage() {
-  const { isAdmin, isHod, isLecturer, user } = useAuth();
+  const { isAdmin, isHod, isLecturer, isCollegeAdmin, user } = useAuth();
   const { toast } = useToast();
 
-  const isStaff = isAdmin || isHod;
+  const isStaff = isAdmin || isCollegeAdmin || isHod;
   const [courses, setCourses] = useState<Course[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
