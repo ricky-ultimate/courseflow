@@ -35,8 +35,10 @@ import { DepartmentUploadModal } from "@/components/departments/department-uploa
 
 export default function DepartmentsPage() {
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCollegeAdmin } = useAuth();
   const { toast } = useToast();
+
+  const canManage = isAdmin || isCollegeAdmin;
 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,7 +195,7 @@ export default function DepartmentsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {canManage && (
             <>
               <Button
                 variant="ghost"
@@ -283,7 +285,7 @@ export default function DepartmentsPage() {
           <p className="text-sm text-gray-400 mt-2">
             Add your first department to get started.
           </p>
-          {isAdmin && (
+          {canManage && (
             <Button
               className="mt-5"
               onClick={() => router.push("/departments/create")}
@@ -299,8 +301,8 @@ export default function DepartmentsPage() {
             <DepartmentCard
               key={dept.id}
               dept={dept}
-              isAdmin={!!isAdmin}
-              canLockUnlock={!!isAdmin}
+              isAdmin={!!canManage}
+              canLockUnlock={!!canManage}
               onEdit={(d) => setEditDept(d)}
               onLock={(d) =>
                 setConfirmAction({ open: true, type: "lock", dept: d })
@@ -344,7 +346,7 @@ export default function DepartmentsPage() {
                     >
                       View Details
                     </button>
-                    {isAdmin && (
+                    {canManage && (
                       <button
                         type="button"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
@@ -356,7 +358,7 @@ export default function DepartmentsPage() {
                         Edit Department
                       </button>
                     )}
-                    {!d.isScheduleLocked && isAdmin && (
+                    {!d.isScheduleLocked && canManage && (
                       <button
                         type="button"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
@@ -372,7 +374,7 @@ export default function DepartmentsPage() {
                         Lock Schedule
                       </button>
                     )}
-                    {d.isScheduleLocked && isAdmin && (
+                    {d.isScheduleLocked && canManage && (
                       <button
                         type="button"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left w-full min-h-[52px] font-medium"
@@ -388,7 +390,7 @@ export default function DepartmentsPage() {
                         Unlock Schedule
                       </button>
                     )}
-                    {isAdmin && (
+                    {canManage && (
                       <button
                         type="button"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left w-full min-h-[52px] font-medium"
