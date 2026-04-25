@@ -27,7 +27,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
 
 export default function CoursesPage() {
-  const { isAdmin, isHod, isLecturer, isCollegeAdmin, user } = useAuth();
+  const { isAdmin, isCollegeAdmin, isHod, isLecturer, user } = useAuth();
   const { toast } = useToast();
 
   const isStaff = isAdmin || isCollegeAdmin || isHod;
@@ -215,7 +215,9 @@ export default function CoursesPage() {
   };
 
   const canEditCourse = (c: Course) =>
-    isAdmin || (isHod && user?.departmentCode === c.departmentCode);
+    isAdmin ||
+    isCollegeAdmin ||
+    (isHod && user?.departmentCode === c.departmentCode);
 
   return (
     <div className="space-y-4">
@@ -396,14 +398,14 @@ export default function CoursesPage() {
           <CoursesTable
             courses={courses}
             canEditCourse={canEditCourse}
-            isAdmin={!!isAdmin}
+            isAdmin={!!(isAdmin || isCollegeAdmin)}
             onView={openDetail}
             onDelete={setDeleteCourse}
           />
           <CoursesMobileList
             courses={courses}
             canEditCourse={canEditCourse}
-            isAdmin={!!isAdmin}
+            isAdmin={!!(isAdmin || isCollegeAdmin)}
             onView={openDetail}
             onDelete={setDeleteCourse}
           />
