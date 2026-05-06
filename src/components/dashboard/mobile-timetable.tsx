@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { DayOfWeek, Schedule } from "@/types";
-import {
-  WEEKDAYS,
-  getDeptStyle,
-} from "@/lib/constants";
+import { WEEKDAYS, getDeptStyle } from "@/lib/constants";
+import { Clock } from "lucide-react";
 
 const JS_DAY_TO_DOW: DayOfWeek[] = [
   DayOfWeek.SUNDAY,
@@ -38,6 +36,15 @@ export function DashboardMobileTimetable({
     .filter((s) => s.dayOfWeek === selectedDay)
     .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
 
+  if (schedules.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+        <p className="text-sm text-gray-500">No classes scheduled this week.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex gap-2 overflow-x-auto py-2 -mx-1">
@@ -59,7 +66,7 @@ export function DashboardMobileTimetable({
       <div className="mt-4 space-y-3">
         {daySchedules.length === 0 ? (
           <p className="text-sm text-gray-500 py-4 text-center">
-            No classes this day
+            No classes on {DAY_PILL_LABELS[selectedDay]}
           </p>
         ) : (
           daySchedules.map((s) => {
@@ -67,25 +74,30 @@ export function DashboardMobileTimetable({
             return (
               <div
                 key={s.id}
-                className={`rounded-lg p-3 min-h-[72px] ${style.bg} border-l-4 ${style.border}`}
+                className={`rounded-xl p-4 ${style.bg} border-l-4 ${style.border} shadow-sm`}
               >
-                <div className="flex justify-between items-start">
-                  <span className={`text-xs font-mono ${style.label}`}>
-                    {s.course?.departmentCode ?? "—"}
+                <div className="flex justify-between items-start mb-2">
+                  <span
+                    className={`text-xs font-mono font-semibold ${style.label}`}
+                  >
+                    {s.course?.code ?? s.courseCode}
                   </span>
                   {s.isManualOverride && (
-                    <span className="text-amber-600 text-xs">●</span>
+                    <span className="text-amber-600 text-xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Manual
+                    </span>
                   )}
                 </div>
-                <p className={`font-mono text-sm font-semibold ${style.text}`}>
-                  {s.course?.code ?? s.courseCode}
-                </p>
-                <p className="text-xs text-gray-600 truncate">
+                <p className="text-sm font-medium text-gray-800 truncate">
                   {s.course?.name ?? ""}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {s.startTime} – {s.endTime}
-                </p>
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    {s.startTime} – {s.endTime}
+                  </span>
+                </div>
               </div>
             );
           })
