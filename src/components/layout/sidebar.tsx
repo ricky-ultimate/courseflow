@@ -10,11 +10,9 @@ import {
   Calendar,
   Building2,
   BookOpen,
-  BookMarked,
   GraduationCap,
   Users,
   Clock,
-  CalendarDays,
   ClipboardList,
   MessageCircle,
   Settings,
@@ -95,12 +93,6 @@ const NAV_ITEMS: NavItem[] = [
     isPublic: true,
   },
   {
-    label: "My Courses",
-    href: "/my-courses",
-    icon: BookMarked,
-    visibleTo: [Role.LECTURER, Role.HOD],
-  },
-  {
     label: "Lecturers",
     href: "/lecturers",
     icon: GraduationCap,
@@ -124,12 +116,6 @@ const NAV_ITEMS: NavItem[] = [
       Role.STUDENT,
     ],
     isPublic: true,
-  },
-  {
-    label: "Upcoming Classes",
-    href: "/upcoming-classes",
-    icon: CalendarDays,
-    visibleTo: [Role.LECTURER, Role.HOD],
   },
   {
     label: "Exams",
