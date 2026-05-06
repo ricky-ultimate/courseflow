@@ -46,18 +46,18 @@ export default function SchedulePageContent() {
 
   const [viewMode, setViewMode] = useState<"timetable" | "agenda">("agenda");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("CSC");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedProgramme, setSelectedProgramme] = useState<string>("all");
-  const [selectedLevel, setSelectedLevel] = useState<string>("LEVEL_300");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] = useState<string>("FIRST");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [unscheduledKey, setUnscheduledKey] = useState(0);
-  const [myClassesOnly, setMyClassesOnly] = useState(false);
+  const [myClassesOnly, setMyClassesOnly] = useState(true);
   const myClassesDefaultSet = useRef(false);
 
-  const [programmes, setProgrammes] = useState<Programme[]>([]);
+  const [programmes] = useState<Programme[]>([]);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [detailSchedule, setDetailSchedule] = useState<Schedule | null>(null);
   const openForDetailRef = useRef<string | null>(null);
@@ -74,8 +74,6 @@ export default function SchedulePageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [editSchedule, setEditSchedule] = useState<Schedule | null>(null);
 
-  const defaultFiltersApplied = useRef(false);
-
   useEffect(() => {
     if (!myClassesDefaultSet.current && user && isTeacher) {
       setMyClassesOnly(true);
@@ -84,41 +82,10 @@ export default function SchedulePageContent() {
   }, [user, isTeacher]);
 
   useEffect(() => {
-    if (
-      !defaultFiltersApplied.current &&
-      sessions.length > 0 &&
-      departments.length > 0
-    ) {
-      const cscDept = departments.find(
-        (d) =>
-          d.code === "CS" ||
-          d.code === "CSC" ||
-          d.name.toLowerCase().includes("computer"),
-      );
-      if (cscDept) setSelectedDepartment(cscDept.code);
-      else if (departments.length > 0)
-        setSelectedDepartment(departments[0]!.code);
-      defaultFiltersApplied.current = true;
+    if (activeSession && selectedSessionId !== activeSession.id) {
+      setSelectedSessionId(activeSession.id);
     }
-  }, [sessions, departments]);
-
-  useEffect(() => {
-    if (!selectedDepartment || selectedDepartment === "all") {
-      setProgrammes([]);
-      setSelectedProgramme("all");
-      return;
-    }
-    apiClient
-      .getDepartmentProgrammes(selectedDepartment)
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setProgrammes(res.data as Programme[]);
-        } else {
-          setProgrammes([]);
-        }
-      })
-      .catch(() => setProgrammes([]));
-  }, [selectedDepartment]);
+  }, [activeSession, selectedSessionId, setSelectedSessionId]);
 
   const handleDepartmentChange = (dept: string) => {
     setSelectedDepartment(dept);
@@ -127,6 +94,8 @@ export default function SchedulePageContent() {
   };
 
   const scheduleLimit = myClassesOnly ? 500 : limit;
+
+  const effectiveLevel = myClassesOnly ? "all" : selectedLevel;
 
   const {
     schedules,
@@ -141,7 +110,7 @@ export default function SchedulePageContent() {
     searchTerm,
     departmentCode: selectedDepartment,
     programme: selectedProgramme,
-    level: selectedLevel,
+    level: effectiveLevel,
     day: selectedDay,
     semester: selectedSemester,
     sessionId: selectedSessionId,
@@ -237,7 +206,7 @@ export default function SchedulePageContent() {
   };
 
   const filterCount = [
-    selectedSessionId && selectedSessionId !== "all",
+    selectedSessionId && selectedSessionId !== activeSession?.id,
     selectedSemester !== "all",
     selectedDepartment !== "all",
     selectedProgramme !== "all",
@@ -464,7 +433,7 @@ export default function SchedulePageContent() {
                   departmentCode: selectedDepartment,
                   programme:
                     selectedProgramme !== "all" ? selectedProgramme : undefined,
-                  level: selectedLevel,
+                  level: effectiveLevel,
                   day: selectedDay,
                   searchTerm,
                 }}
@@ -477,11 +446,11 @@ export default function SchedulePageContent() {
             <div className="py-24 text-center flex flex-col items-center">
               <Clock className="h-16 w-16 text-slate-200 mb-6" />
               <h3 className="text-lg font-semibold text-slate-900">
-                No schedules to display
+                {myClassesOnly ? "No Classes Found" : "No schedules to display"}
               </h3>
               <p className="text-slate-500 mt-2 max-w-md">
                 {myClassesOnly
-                  ? "You have no classes scheduled in this view. Toggle off the filter to see all schedules."
+                  ? "You have no classes scheduled. When courses are assigned and schedules are generated, they will appear here."
                   : "No classes scheduled for the selected parameters. Adjust your filters or generate a new timetable."}
               </p>
             </div>
