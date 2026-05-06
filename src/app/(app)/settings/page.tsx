@@ -19,6 +19,7 @@ import { Loader2, AlertTriangle, Database, RefreshCw } from "lucide-react";
 
 type ActionKey =
   | "schedules"
+  | "schedules-except-general"
   | "exam-schedules"
   | "courses"
   | "departments"
@@ -76,6 +77,13 @@ const DANGER_ACTIONS: DangerAction[] = [
       "Permanently deletes all departments, courses, schedules, exam schedules and complaints. Users and academic sessions are preserved. This cannot be undone.",
     confirmPhrase: "delete all data",
     adminOnly: true,
+  },
+  {
+    key: "schedules-except-general",
+    label: "Delete all schedules (except general)",
+    description:
+      "Permanently removes every departmental schedule from every session while preserving general/university courses (GST, PIF, etc.). This cannot be undone.",
+    confirmPhrase: "delete schedules except general",
   },
 ];
 
@@ -140,6 +148,8 @@ export default function SettingsPage() {
         res = await apiClient.deleteAllSchedules();
       else if (action.key === "exam-schedules")
         res = await apiClient.deleteAllExamSchedules();
+      else if (action.key === "schedules-except-general")
+        res = await apiClient.deleteAllSchedulesExceptGeneral();
       else if (action.key === "courses")
         res = await apiClient.deleteAllCourses();
       else if (action.key === "departments")
