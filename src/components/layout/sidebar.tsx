@@ -11,7 +11,6 @@ import {
   Building2,
   BookOpen,
   GraduationCap,
-  Users,
   Clock,
   ClipboardList,
   MessageCircle,
@@ -96,12 +95,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Lecturers",
     href: "/lecturers",
     icon: GraduationCap,
-    visibleTo: [Role.ADMIN, Role.COLLEGE_ADMIN],
-  },
-  {
-    label: "Students",
-    href: "/students",
-    icon: Users,
     visibleTo: [Role.ADMIN, Role.COLLEGE_ADMIN],
   },
   {
