@@ -17,7 +17,7 @@ import {
   exportAsCSV,
   exportAsPNG,
 } from "@/lib/schedule-export";
-import { Course, Schedule } from "@/types";
+import { Schedule } from "@/types";
 
 interface ScheduleExportMenuProps {
   filters: {
@@ -26,6 +26,9 @@ interface ScheduleExportMenuProps {
     level: string;
     day: string;
     searchTerm: string;
+    sessionId?: string;
+    semester?: string;
+    lecturerId?: string;
   };
   fallbackSchedules: Schedule[];
 }
@@ -51,44 +54,29 @@ export function ScheduleExportMenu({
         params.level = filters.level;
       if (filters.day && filters.day !== "all") params.dayOfWeek = filters.day;
       if (filters.searchTerm) params.searchTerm = filters.searchTerm;
+      if (filters.sessionId) params.sessionId = filters.sessionId;
+      if (filters.semester && filters.semester !== "all")
+        params.semester = filters.semester;
 
       const response = await apiClient.getSchedules(params);
       const result = getItemsFromResponse<Schedule>(response);
       let allSchedules = result?.items ?? [];
 
-      const courseCodes = Array.from(
-        new Set(allSchedules.map((s) => s.courseCode).filter(Boolean)),
-      );
-      if (courseCodes.length > 0) {
-        try {
-          const coursesResponse = await apiClient.getCourses({ limit: 10000 });
-          const coursesResult = getItemsFromResponse<Course>(coursesResponse);
-          const courses = coursesResult?.items ?? [];
-          if (courses.length > 0) {
-            const courseMap = new Map<string, Course>();
-            courses.forEach((c) => c.code && courseMap.set(c.code, c));
-            allSchedules = allSchedules.map((schedule) => {
-              if (
-                schedule.courseCode &&
-                courseMap.has(schedule.courseCode) &&
-                schedule.course
-              ) {
-                const enriched = courseMap.get(schedule.courseCode)!;
-                return {
-                  ...schedule,
-                  course: {
-                    ...schedule.course,
-                    lecturer: enriched.lecturer ?? schedule.course.lecturer,
-                  },
-                } as Schedule;
-              }
-              return schedule;
-            });
-          }
-        } catch {
-          // proceed with unenriched schedules
-        }
+      if (filters.lecturerId) {
+        allSchedules = allSchedules.filter(
+          (s) => s.course?.lecturerId === filters.lecturerId,
+        );
       }
+
+      if (filters.searchTerm) {
+        const term = filters.searchTerm.toLowerCase();
+        allSchedules = allSchedules.filter(
+          (s) =>
+            (s.course?.name ?? "").toLowerCase().includes(term) ||
+            (s.course?.code ?? "").toLowerCase().includes(term),
+        );
+      }
+
       return allSchedules;
     } catch {
       return fallbackSchedules;
@@ -101,27 +89,23 @@ export function ScheduleExportMenu({
   ) => {
     try {
       toast({
-        title: "Preparing Export",
-        description: "Fetching all schedules...",
+        title: "Preparing export...",
       });
       const allSchedules = await fetchAllSchedulesForExport();
       if (!allSchedules.length) {
         toast({
-          title: "No Schedules",
-          description: "There are no schedules to export",
+          title: "No schedules to export",
           variant: "destructive",
         });
         return;
       }
       await fn(allSchedules);
       toast({
-        title: "Export Successful",
-        description: `Timetable exported as ${label} (${allSchedules.length} schedules)`,
+        title: `Exported ${allSchedules.length} schedule${allSchedules.length !== 1 ? "s" : ""} as ${label}`,
       });
     } catch {
       toast({
-        title: "Export Error",
-        description: `An error occurred while exporting ${label}`,
+        title: `Failed to export as ${label}`,
         variant: "destructive",
       });
     }
