@@ -9,7 +9,7 @@ import { Role } from "@/types";
 const ROUTE_ROLES: Record<string, Role[]> = {
   "/sessions": [Role.ADMIN],
   "/lecturers": [Role.ADMIN, Role.COLLEGE_ADMIN],
-  "/students": [Role.ADMIN, Role.COLLEGE_ADMIN],
+  "/students": [Role.ADMIN],
   "/health": [Role.ADMIN],
   "/my-courses": [Role.ADMIN, Role.HOD, Role.LECTURER],
   "/upcoming-classes": [Role.ADMIN, Role.HOD, Role.LECTURER],
