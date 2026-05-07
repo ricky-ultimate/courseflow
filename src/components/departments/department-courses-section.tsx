@@ -41,7 +41,6 @@ export function DepartmentCoursesSection({
   isAdmin,
   canAddCourse,
   canGenerateSchedule,
-  canEditCourse,
   onView,
   onDelete,
   onGenerateSchedule,
