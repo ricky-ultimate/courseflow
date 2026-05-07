@@ -15,7 +15,6 @@ const ROUTE_ROLES: Record<string, Role[]> = {
   "/upcoming-classes": [Role.ADMIN, Role.HOD, Role.LECTURER],
   "/courses/create": [Role.ADMIN, Role.HOD, Role.COLLEGE_ADMIN],
   "/schedules/create": [Role.ADMIN, Role.HOD, Role.COLLEGE_ADMIN],
-  "/departments/create": [Role.ADMIN, Role.COLLEGE_ADMIN],
 };
 
 const PUBLIC_ROUTES = ["/courses", "/schedules", "/departments", "/colleges"];
