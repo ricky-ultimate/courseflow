@@ -50,6 +50,13 @@ const DANGER_ACTIONS: DangerAction[] = [
     confirmPhrase: "delete all schedules",
   },
   {
+    key: "schedules-except-general",
+    label: "Delete all schedules (except general)",
+    description:
+      "Permanently removes every departmental schedule from every session while preserving general/university courses (GST, PIF, etc.). This cannot be undone.",
+    confirmPhrase: "delete schedules except general",
+  },
+  {
     key: "exam-schedules",
     label: "Delete all exam schedules",
     description:
@@ -77,13 +84,6 @@ const DANGER_ACTIONS: DangerAction[] = [
       "Permanently deletes all departments, courses, schedules, exam schedules and complaints. Users and academic sessions are preserved. This cannot be undone.",
     confirmPhrase: "delete all data",
     adminOnly: true,
-  },
-  {
-    key: "schedules-except-general",
-    label: "Delete all schedules (except general)",
-    description:
-      "Permanently removes every departmental schedule from every session while preserving general/university courses (GST, PIF, etc.). This cannot be undone.",
-    confirmPhrase: "delete schedules except general",
   },
 ];
 
