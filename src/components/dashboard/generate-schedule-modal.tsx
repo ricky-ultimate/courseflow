@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,17 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import { AcademicSession, Department, Level, Semester } from "@/types";
 import { getItemsFromResponse } from "@/lib/utils";
-import {
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  CalendarPlus,
-} from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, CalendarPlus } from "lucide-react";
 import Link from "next/link";
 import { UniversityCoursesScheduleModal } from "@/components/schedules/university-courses-schedule-modal";
 
@@ -44,6 +40,21 @@ interface Programme {
   count: number;
 }
 
+const BATCH_STEPS = [
+  "Initialising session",
+  "Scheduling university courses",
+  "Processing departments",
+  "Resolving conflicts",
+  "Finalising timetable",
+];
+
+const SINGLE_STEPS = [
+  "Loading courses",
+  "Running scheduling algorithm",
+  "Applying constraints",
+  "Saving schedules",
+];
+
 function parseUniversityCourseCodes(message: string): string[] {
   const match = /university courses:\s*([^.]+)\./i.exec(message);
   if (!match || !match[1]) return [];
@@ -51,6 +62,52 @@ function parseUniversityCourseCodes(message: string): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+interface GenerateProgressPanelProps {
+  isBatch: boolean;
+  elapsedSeconds: number;
+  progress: number;
+  stepLabel: string;
+}
+
+function GenerateProgressPanel({
+  isBatch,
+  elapsedSeconds,
+  progress,
+  stepLabel,
+}: GenerateProgressPanelProps) {
+  const mins = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+  const elapsedLabel =
+    mins > 0 ? `${mins}m ${secs}s elapsed` : `${secs}s elapsed`;
+
+  return (
+    <div className="space-y-5 py-2">
+      <div className="flex items-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-indigo-600 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-gray-900">
+            {isBatch
+              ? "Generating schedules for all departments"
+              : "Generating schedules"}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{stepLabel}</p>
+        </div>
+      </div>
+      <Progress value={progress} />
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>{Math.round(progress)}% complete</span>
+        <span>{elapsedLabel}</span>
+      </div>
+      {isBatch && (
+        <p className="text-xs text-gray-500 border border-gray-100 rounded-lg px-3 py-2 bg-gray-50">
+          Batch generation processes each department sequentially. This may take
+          several minutes for large course catalogs.
+        </p>
+      )}
+    </div>
+  );
 }
 
 interface GenerateScheduleModalProps {
@@ -108,7 +165,57 @@ export function GenerateScheduleModal({
     processedDepartments?: number;
   } | null>(null);
 
+  const [progress, setProgress] = useState(0);
+  const [stepLabel, setStepLabel] = useState("");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressStepRef = useRef(0);
+
   const activeDeptCode = hodDeptCode || departmentCode;
+
+  const stopTimers = () => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current);
+      elapsedTimerRef.current = null;
+    }
+  };
+
+  const startProgress = (isBatch: boolean) => {
+    const steps = isBatch ? BATCH_STEPS : SINGLE_STEPS;
+    progressStepRef.current = 0;
+    setProgress(0);
+    setElapsedSeconds(0);
+    setStepLabel(steps[0] ?? "");
+
+    const stepDurationMs = isBatch ? 4000 : 1200;
+    const maxAutoProgress = 88;
+
+    progressTimerRef.current = setInterval(() => {
+      progressStepRef.current += 1;
+      const stepIndex = Math.min(progressStepRef.current, steps.length - 1);
+      setStepLabel(steps[stepIndex] ?? "");
+      const nextProgress = Math.min(
+        (progressStepRef.current / steps.length) * maxAutoProgress,
+        maxAutoProgress,
+      );
+      setProgress(nextProgress);
+    }, stepDurationMs);
+
+    elapsedTimerRef.current = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+  };
+
+  const finishProgress = () => {
+    stopTimers();
+    setProgress(100);
+    setStepLabel("Done");
+  };
 
   const fetchData = useCallback(async () => {
     if (!open) return;
@@ -149,8 +256,15 @@ export function GenerateScheduleModal({
   useEffect(() => {
     if (open) {
       setConfirmStep(false);
+      setResult(null);
+      setProgress(0);
+      setElapsedSeconds(0);
+      setStepLabel("");
       fetchData();
     }
+    return () => {
+      stopTimers();
+    };
   }, [open, fetchData]);
 
   useEffect(() => {
@@ -185,6 +299,7 @@ export function GenerateScheduleModal({
     setServerError("");
     setUniversityCourseCodes([]);
     const isBatch = !departmentCode && !hodDeptCode && !isHod;
+    startProgress(isBatch);
     try {
       const res = isBatch
         ? await apiClient.generateSchedulesBatch({
@@ -199,6 +314,7 @@ export function GenerateScheduleModal({
             level: (level || undefined) as Level | undefined,
             programme: programme || undefined,
           });
+      finishProgress();
       if (res.success && res.data) {
         const d = res.data as any;
         const scheduledCount = d.scheduledCourses ?? d.scheduled ?? 0;
@@ -224,6 +340,7 @@ export function GenerateScheduleModal({
         });
         onSuccess?.();
       } else {
+        stopTimers();
         const errMsg = (res as { error?: string }).error;
         const statusCode = (res as { statusCode?: number }).statusCode;
         if (statusCode === 422 && errMsg) {
@@ -250,6 +367,7 @@ export function GenerateScheduleModal({
         }
       }
     } catch (e: any) {
+      stopTimers();
       const errMsg = e?.message ?? (e as { error?: string })?.error;
       if (errMsg) {
         setServerError(errMsg);
@@ -268,10 +386,14 @@ export function GenerateScheduleModal({
   };
 
   const handleClose = () => {
+    stopTimers();
     setResult(null);
     setConfirmStep(false);
     setProgramme("");
     setUniversityCourseCodes([]);
+    setProgress(0);
+    setElapsedSeconds(0);
+    setStepLabel("");
     onOpenChange(false);
   };
 
@@ -508,6 +630,15 @@ export function GenerateScheduleModal({
     </>
   );
 
+  const renderProgress = () => (
+    <GenerateProgressPanel
+      isBatch={isBatch}
+      elapsedSeconds={elapsedSeconds}
+      progress={progress}
+      stepLabel={stepLabel}
+    />
+  );
+
   const renderResult = () => {
     if (!result) return null;
     if (result.success) {
@@ -704,18 +835,29 @@ export function GenerateScheduleModal({
     );
   };
 
+  const dialogTitle = loading
+    ? "Generating Schedules..."
+    : result
+      ? result.success
+        ? "Generation Complete"
+        : "Generation Failed"
+      : confirmStep
+        ? "Confirm Generation"
+        : "Generate Schedules";
+
   return (
     <>
       <Dialog
         open={open}
-        onOpenChange={(o) =>
-          !loading &&
-          (result || confirmStep
-            ? result
-              ? handleClose()
-              : setConfirmStep(false)
-            : onOpenChange(o))
-        }
+        onOpenChange={(o) => {
+          if (loading) return;
+          if (result || confirmStep) {
+            if (result) handleClose();
+            else setConfirmStep(false);
+          } else {
+            onOpenChange(o);
+          }
+        }}
       >
         <DialogContent
           className="sm:max-w-[520px]"
@@ -730,15 +872,7 @@ export function GenerateScheduleModal({
           }}
         >
           <DialogHeader>
-            <DialogTitle>
-              {result
-                ? result.success
-                  ? "Generation Complete"
-                  : "Generation Failed"
-                : confirmStep
-                  ? "Confirm Generation"
-                  : "Generate Schedules"}
-            </DialogTitle>
+            <DialogTitle>{dialogTitle}</DialogTitle>
           </DialogHeader>
           {fetchError ? (
             <>
@@ -750,6 +884,8 @@ export function GenerateScheduleModal({
                 </Button>
               </div>
             </>
+          ) : loading ? (
+            renderProgress()
           ) : result ? (
             renderResult()
           ) : confirmStep ? (
