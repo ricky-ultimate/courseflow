@@ -436,6 +436,10 @@ export default function SchedulePageContent() {
                   level: effectiveLevel,
                   day: selectedDay,
                   searchTerm,
+                  sessionId: selectedSessionId || activeSession?.id,
+                  semester:
+                    selectedSemester !== "all" ? selectedSemester : undefined,
+                  lecturerId: myClassesOnly && user?.id ? user.id : undefined,
                 }}
                 fallbackSchedules={filteredSchedules}
               />
