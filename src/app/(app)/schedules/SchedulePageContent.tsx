@@ -13,7 +13,7 @@ import { ErrorState } from "@/components/state/error-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useScheduleData, useSchedules } from "@/hooks/use-schedules";
 import { apiClient } from "@/lib/api";
-import { DayOfWeek, Schedule, Semester } from "@/types";
+import { DayOfWeek, Level, Schedule, Semester } from "@/types";
 import { GenerateScheduleModal } from "@/components/dashboard/generate-schedule-modal";
 import { TimetableGrid } from "@/components/schedules/timetable-grid";
 import { MobileTimetable } from "@/components/schedules/mobile-timetable";
@@ -28,9 +28,14 @@ import {
 import { ScheduleAgendaView } from "@/components/schedules/schedule-agenda-view";
 import { ScheduleExportMenu } from "@/components/schedules/schedule-export-menu";
 
+const DEFAULT_DEPARTMENT = "CSC";
+const DEFAULT_LEVEL = Level.LEVEL_300;
+const DEFAULT_SEMESTER = Semester.FIRST;
+
 export default function SchedulePageContent() {
   const searchParams = useSearchParams();
-  const { isAdmin, isCollegeAdmin, isHod, isLecturer, user } = useAuth();
+  const { isAdmin, isCollegeAdmin, isHod, isLecturer, isAuthenticated, user } =
+    useAuth();
   const canMutateSchedules = isAdmin || isCollegeAdmin || isHod;
 
   const { toast } = useToast();
@@ -42,19 +47,22 @@ export default function SchedulePageContent() {
     activeSession,
     selectedSessionId,
     setSelectedSessionId,
+    ready,
   } = useScheduleData();
 
   const [viewMode, setViewMode] = useState<"timetable" | "agenda">("agenda");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<string>(DEFAULT_DEPARTMENT);
   const [selectedProgramme, setSelectedProgramme] = useState<string>("all");
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>(DEFAULT_LEVEL);
   const [selectedDay, setSelectedDay] = useState<string>("all");
-  const [selectedSemester, setSelectedSemester] = useState<string>("FIRST");
+  const [selectedSemester, setSelectedSemester] =
+    useState<string>(DEFAULT_SEMESTER);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [unscheduledKey, setUnscheduledKey] = useState(0);
-  const [myClassesOnly, setMyClassesOnly] = useState(true);
+  const [myClassesOnly, setMyClassesOnly] = useState(false);
   const myClassesDefaultSet = useRef(false);
 
   const [programmes] = useState<Programme[]>([]);
@@ -81,12 +89,6 @@ export default function SchedulePageContent() {
     }
   }, [user, isTeacher]);
 
-  useEffect(() => {
-    if (activeSession && selectedSessionId !== activeSession.id) {
-      setSelectedSessionId(activeSession.id);
-    }
-  }, [activeSession, selectedSessionId, setSelectedSessionId]);
-
   const handleDepartmentChange = (dept: string) => {
     setSelectedDepartment(dept);
     setSelectedProgramme("all");
@@ -94,7 +96,6 @@ export default function SchedulePageContent() {
   };
 
   const scheduleLimit = myClassesOnly ? 500 : limit;
-
   const effectiveLevel = myClassesOnly ? "all" : selectedLevel;
 
   const {
@@ -116,6 +117,7 @@ export default function SchedulePageContent() {
     sessionId: selectedSessionId,
     page: currentPage,
     limit: scheduleLimit,
+    enabled: ready,
   });
 
   usePageLoadReporter(loading);
@@ -195,22 +197,33 @@ export default function SchedulePageContent() {
 
   const handleReset = () => {
     setSearchTerm("");
-    setSelectedDepartment("all");
+    setSelectedDepartment(DEFAULT_DEPARTMENT);
     setSelectedProgramme("all");
-    setSelectedLevel("all");
+    setSelectedLevel(DEFAULT_LEVEL);
     setSelectedDay("all");
-    setSelectedSemester("all");
-    setSelectedSessionId("");
+    setSelectedSemester(DEFAULT_SEMESTER);
+    if (activeSession) {
+      setSelectedSessionId(activeSession.id);
+    }
     setMyClassesOnly(false);
     setCurrentPage(1);
   };
 
+  const isDefaultFilter =
+    selectedDepartment === DEFAULT_DEPARTMENT &&
+    selectedLevel === DEFAULT_LEVEL &&
+    selectedSemester === DEFAULT_SEMESTER &&
+    selectedProgramme === "all" &&
+    selectedDay === "all" &&
+    !myClassesOnly &&
+    (!selectedSessionId || selectedSessionId === activeSession?.id);
+
   const filterCount = [
+    selectedDepartment !== DEFAULT_DEPARTMENT,
+    selectedSemester !== DEFAULT_SEMESTER,
+    selectedLevel !== DEFAULT_LEVEL,
     selectedSessionId && selectedSessionId !== activeSession?.id,
-    selectedSemester !== "all",
-    selectedDepartment !== "all",
     selectedProgramme !== "all",
-    selectedLevel !== "all",
     viewMode === "timetable" && selectedDay !== "all",
     myClassesOnly,
   ].filter(Boolean).length;
@@ -337,7 +350,7 @@ export default function SchedulePageContent() {
         onClear={handleReset}
         myClassesOnly={myClassesOnly}
         onMyClassesOnlyChange={setMyClassesOnly}
-        showMyClassesFilter={isTeacher && !!user?.id}
+        showMyClassesFilter={isAuthenticated && isTeacher && !!user?.id}
       />
 
       <GenerateScheduleModal
@@ -457,6 +470,15 @@ export default function SchedulePageContent() {
                   ? "You have no classes scheduled. When courses are assigned and schedules are generated, they will appear here."
                   : "No classes scheduled for the selected parameters. Adjust your filters or generate a new timetable."}
               </p>
+              {!isDefaultFilter && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={handleReset}
+                >
+                  Reset to defaults
+                </Button>
+              )}
             </div>
           ) : viewMode === "agenda" ? (
             <ScheduleAgendaView

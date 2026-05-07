@@ -14,9 +14,11 @@ export function useScheduleData() {
     null,
   );
   const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      setReady(false);
       try {
         const [deptRes, sessRes, activeRes] = await Promise.all([
           apiClient.getDepartments({ limit: 10000 }),
@@ -36,6 +38,8 @@ export function useScheduleData() {
         }
       } catch (e) {
         console.error("Failed to fetch schedule data:", e);
+      } finally {
+        setReady(true);
       }
     };
     fetchData();
@@ -47,6 +51,7 @@ export function useScheduleData() {
     activeSession,
     selectedSessionId,
     setSelectedSessionId,
+    ready,
   };
 }
 
@@ -60,6 +65,7 @@ export interface ScheduleFilters {
   sessionId: string;
   page: number;
   limit: number;
+  enabled?: boolean;
 }
 
 export function useSchedules(filters: ScheduleFilters) {
@@ -72,6 +78,7 @@ export function useSchedules(filters: ScheduleFilters) {
   const hasFetchedRef = useRef(false);
 
   const fetchSchedules = useCallback(async () => {
+    if (filters.enabled === false) return;
     try {
       if (!hasFetchedRef.current) setLoading(true);
       else setRefetching(true);
@@ -112,6 +119,7 @@ export function useSchedules(filters: ScheduleFilters) {
       hasFetchedRef.current = true;
     }
   }, [
+    filters.enabled,
     filters.page,
     filters.limit,
     filters.departmentCode,
