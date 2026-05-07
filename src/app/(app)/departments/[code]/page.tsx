@@ -21,6 +21,7 @@ import { DepartmentInfoCards } from "@/components/departments/department-info-ca
 import { DepartmentCoursesSection } from "@/components/departments/department-courses-section";
 import { DepartmentEditModal } from "@/components/departments/department-edit-modal";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
+import { CreateCourseModal } from "@/components/courses/create-course-modal";
 import { COLLEGE_BADGE } from "@/lib/constants";
 
 export default function DepartmentDetailsPage() {
@@ -40,6 +41,7 @@ export default function DepartmentDetailsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deleteCourse, setDeleteCourse] = useState<Course | null>(null);
@@ -74,7 +76,9 @@ export default function DepartmentDetailsPage() {
           }
           setDepartment(dept);
           setCourses(
-            Array.isArray((dept as any).courses) ? (dept as any).courses : [],
+            Array.isArray((dept as unknown as { courses?: Course[] }).courses)
+              ? (dept as unknown as { courses: Course[] }).courses
+              : [],
           );
         } else {
           setFetchError(response.error || "Failed to fetch department details");
@@ -151,7 +155,7 @@ export default function DepartmentDetailsPage() {
           d ? { ...d, isScheduleLocked: prevLocked } : null,
         );
         toast({
-          title: (res as any).error ?? "Failed",
+          title: (res as { error?: string }).error ?? "Failed",
           variant: "destructive",
         });
       }
@@ -174,7 +178,10 @@ export default function DepartmentDetailsPage() {
         fetchDetails();
         return true;
       }
-      toast({ title: (res as any).error ?? "Failed", variant: "destructive" });
+      toast({
+        title: (res as { error?: string }).error ?? "Failed",
+        variant: "destructive",
+      });
       return false;
     } catch {
       toast({ title: "Delete failed", variant: "destructive" });
@@ -264,6 +271,7 @@ export default function DepartmentDetailsPage() {
         onView={openDetail}
         onDelete={setDeleteCourse}
         onGenerateSchedule={() => setGenerateModalOpen(true)}
+        onAddCourse={canAddCourse ? () => setCreateCourseOpen(true) : undefined}
       />
 
       <GenerateScheduleModal
@@ -281,7 +289,16 @@ export default function DepartmentDetailsPage() {
         onSuccess={fetchDetails}
       />
 
-      {/* Course detail sheet */}
+      <CreateCourseModal
+        open={createCourseOpen}
+        onOpenChange={setCreateCourseOpen}
+        onSuccess={() => {
+          setCreateCourseOpen(false);
+          fetchDetails();
+        }}
+        defaultDepartmentCode={code}
+      />
+
       <Sheet
         open={!!detailCourse}
         onOpenChange={(o) => !o && setDetailCourse(null)}
