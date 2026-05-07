@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +15,6 @@ import {
   Eye,
   Lock,
   MoreVertical,
-  Pencil,
   Plus,
   RefreshCw,
   Trash2,
@@ -35,11 +33,11 @@ interface DepartmentCoursesSectionProps {
   onView: (c: Course) => void;
   onDelete: (c: Course) => void;
   onGenerateSchedule: () => void;
+  onAddCourse?: () => void;
 }
 
 export function DepartmentCoursesSection({
   courses,
-  departmentCode,
   isAdmin,
   canAddCourse,
   canGenerateSchedule,
@@ -47,9 +45,8 @@ export function DepartmentCoursesSection({
   onView,
   onDelete,
   onGenerateSchedule,
+  onAddCourse,
 }: DepartmentCoursesSectionProps) {
-  const router = useRouter();
-
   return (
     <div className="mt-8">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -61,13 +58,8 @@ export function DepartmentCoursesSection({
               Generate Schedule
             </Button>
           )}
-          {canAddCourse && (
-            <Button
-              size="sm"
-              onClick={() =>
-                router.push(`/courses/create?department=${departmentCode}`)
-              }
-            >
+          {canAddCourse && onAddCourse && (
+            <Button size="sm" onClick={onAddCourse}>
               <Plus className="h-4 w-4 mr-2" />
               Add Course
             </Button>
@@ -82,13 +74,8 @@ export function DepartmentCoursesSection({
             <p className="text-muted-foreground">
               No courses in this department
             </p>
-            {canAddCourse && (
-              <Button
-                className="mt-4"
-                onClick={() =>
-                  router.push(`/courses/create?department=${departmentCode}`)
-                }
-              >
+            {canAddCourse && onAddCourse && (
+              <Button className="mt-4" onClick={onAddCourse}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Course
               </Button>
@@ -157,18 +144,6 @@ export function DepartmentCoursesSection({
                           >
                             <Eye className="h-5 w-5" />
                           </Button>
-                          {canEditCourse(c) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-11 w-11"
-                              onClick={() =>
-                                router.push(`/courses/${c.code}/edit`)
-                              }
-                            >
-                              <Pencil className="h-5 w-5" />
-                            </Button>
-                          )}
                           {isAdmin && (
                             <Button
                               size="icon"
@@ -221,15 +196,6 @@ export function DepartmentCoursesSection({
                         <DropdownMenuItem onClick={() => onView(c)}>
                           View Details
                         </DropdownMenuItem>
-                        {canEditCourse(c) && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/courses/${c.code}/edit`)
-                            }
-                          >
-                            Edit Course
-                          </DropdownMenuItem>
-                        )}
                         {isAdmin && (
                           <>
                             <DropdownMenuSeparator />
