@@ -21,8 +21,10 @@ import { ComplaintSubmitDialog } from "@/components/complaints/complaint-submit-
 import { ComplaintDetailDialog } from "@/components/complaints/complaint-detail-dialog";
 
 export default function ComplaintsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCollegeAdmin } = useAuth();
   const { toast } = useToast();
+
+  const canManageComplaints = isAdmin || isCollegeAdmin;
 
   const [activeTab, setActiveTab] = useState<"all" | ComplaintStatus>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,7 +83,7 @@ export default function ComplaintsPage() {
     }
   };
 
-  if (!isAdmin) {
+  if (!canManageComplaints) {
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -242,7 +244,7 @@ export default function ComplaintsPage() {
 
       <ComplaintDetailDialog
         complaint={detailComplaint}
-        isAdmin={!!isAdmin}
+        isAdmin={!!canManageComplaints}
         statusLoading={statusLoading}
         onClose={() => setDetailComplaint(null)}
         onStatusChange={handleStatusChange}
