@@ -32,6 +32,7 @@ import { FilterBar } from "@/components/ui/filter-bar";
 import { DepartmentCard } from "@/components/departments/department-card";
 import { DepartmentEditModal } from "@/components/departments/department-edit-modal";
 import { DepartmentUploadModal } from "@/components/departments/department-upload-modal";
+import { CreateDepartmentModal } from "@/components/departments/create-department-modal";
 
 export default function DepartmentsPage() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function DepartmentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editDept, setEditDept] = useState<Department | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     open: boolean;
@@ -140,7 +142,7 @@ export default function DepartmentsPage() {
         );
       }
       toast({
-        title: (res as any).error || "Action failed",
+        title: (res as { error?: string }).error ?? "Action failed",
         variant: "destructive",
       });
       return false;
@@ -218,7 +220,7 @@ export default function DepartmentsPage() {
               <Button
                 size="sm"
                 className="rounded-full"
-                onClick={() => router.push("/departments/create")}
+                onClick={() => setIsCreateOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Department
@@ -286,11 +288,9 @@ export default function DepartmentsPage() {
             Add your first department to get started.
           </p>
           {canManage && (
-            <Button
-              className="mt-5"
-              onClick={() => router.push("/departments/create")}
-            >
-              <Plus className="h-4 w-4 mr-2" />+ New Department
+            <Button className="mt-5" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Department
             </Button>
           )}
         </div>
@@ -426,6 +426,12 @@ export default function DepartmentsPage() {
           }}
         />
       )}
+
+      <CreateDepartmentModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={fetchDepartments}
+      />
 
       <DepartmentUploadModal
         open={isUploadOpen}
