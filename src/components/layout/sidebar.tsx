@@ -19,6 +19,7 @@ import {
   Activity,
   LogIn,
   School,
+  Users,
 } from "lucide-react";
 import { Role } from "@/types";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/lecturers",
     icon: GraduationCap,
     visibleTo: [Role.ADMIN, Role.COLLEGE_ADMIN],
+  },
+  {
+    label: "Students",
+    href: "/students",
+    icon: Users,
+    visibleTo: [Role.ADMIN],
   },
   {
     label: "Schedules",
