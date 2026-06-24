@@ -511,6 +511,13 @@ class ApiClient {
     return this.request(`/schedules/${id}/toggle-fixed`, { method: "PATCH" });
   }
 
+  recommendUniversitySlots(courseCodes: string[]) {
+    return this.request("/schedules/recommend-university-slots", {
+      method: "POST",
+      body: JSON.stringify({ courseCodes }),
+    });
+  }
+
   generateSchedules(data: GenerateScheduleData) {
     return this.request("/schedules/generate", {
       method: "POST",
