@@ -338,7 +338,7 @@ export default function RegisterPage() {
                       </FormControl>
                       <SelectContent>
                         {deptLoading ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="__loading__" disabled>
                             <span className="flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                               Loading departments…
