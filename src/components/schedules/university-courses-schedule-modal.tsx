@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
-import { CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  Wand2,
+  RotateCcw,
+} from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
 import { Course, DayOfWeek } from "@/types";
@@ -39,6 +45,15 @@ interface CourseScheduleEntry {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+  hasConflict: boolean;
+}
+
+interface RecommendedSlot {
+  courseCode: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  hasConflict: boolean;
 }
 
 interface SubmitResult {
@@ -62,6 +77,8 @@ export function UniversityCoursesScheduleModal({
 }: UniversityCoursesScheduleModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [recommending, setRecommending] = useState(false);
+  const [recommendationError, setRecommendationError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState("");
@@ -69,8 +86,8 @@ export function UniversityCoursesScheduleModal({
   const [done, setDone] = useState(false);
   const [submitResults, setSubmitResults] = useState<SubmitResult[]>([]);
 
-  const fetchCourses = useCallback(async () => {
-    if (!courseCodes.length) return;
+  const fetchCourses = useCallback(async (): Promise<CourseScheduleEntry[]> => {
+    if (!courseCodes.length) return [];
     setLoading(true);
     setFetchError(null);
     try {
@@ -90,6 +107,7 @@ export function UniversityCoursesScheduleModal({
           dayOfWeek: "",
           startTime: "",
           endTime: "",
+          hasConflict: false,
         })),
         ...missing.map((code) => ({
           courseCode: code,
@@ -98,36 +116,82 @@ export function UniversityCoursesScheduleModal({
           dayOfWeek: "",
           startTime: "",
           endTime: "",
+          hasConflict: false,
         })),
       ];
       setEntries(all);
+      return all;
     } catch {
       setFetchError(
         "Failed to load course details. You can still assign slots by course code.",
       );
-      setEntries(
-        courseCodes.map((code) => ({
-          courseCode: code,
-          courseName: "",
-          level: "",
-          dayOfWeek: "",
-          startTime: "",
-          endTime: "",
-        })),
-      );
+      const fallback = courseCodes.map((code) => ({
+        courseCode: code,
+        courseName: "",
+        level: "",
+        dayOfWeek: "",
+        startTime: "",
+        endTime: "",
+        hasConflict: false,
+      }));
+      setEntries(fallback);
+      return fallback;
     } finally {
       setLoading(false);
     }
   }, [courseCodes]);
+
+  const applyRecommendations = useCallback(
+    async (targetEntries: CourseScheduleEntry[]) => {
+      if (!targetEntries.length) return;
+      setRecommending(true);
+      setRecommendationError("");
+      try {
+        const res = await apiClient.recommendUniversitySlots(
+          targetEntries.map((e) => e.courseCode),
+        );
+        if (res.success && Array.isArray(res.data)) {
+          const recommended = res.data as RecommendedSlot[];
+          setEntries((prev) =>
+            prev.map((entry) => {
+              const match = recommended.find(
+                (r) => r.courseCode === entry.courseCode,
+              );
+              if (!match || match.hasConflict) {
+                return { ...entry, hasConflict: !!match?.hasConflict };
+              }
+              return {
+                ...entry,
+                dayOfWeek: match.dayOfWeek,
+                startTime: match.startTime,
+                endTime: match.endTime,
+                hasConflict: false,
+              };
+            }),
+          );
+        } else {
+          setRecommendationError("Failed to generate recommended slots.");
+        }
+      } catch {
+        setRecommendationError("Failed to generate recommended slots.");
+      } finally {
+        setRecommending(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (open) {
       setDone(false);
       setSubmitResults([]);
       setValidationError("");
-      fetchCourses();
+      setRecommendationError("");
+      fetchCourses().then((all) => {
+        applyRecommendations(all);
+      });
     }
-  }, [open, fetchCourses]);
+  }, [open, fetchCourses, applyRecommendations]);
 
   const updateEntry = (
     index: number,
@@ -137,7 +201,8 @@ export function UniversityCoursesScheduleModal({
     setEntries((prev) => {
       const next = [...prev];
       const entry = { ...next[index]! };
-      entry[field] = value;
+      entry[field] = value as never;
+      entry.hasConflict = false;
       if (field === "dayOfWeek") {
         entry.startTime = "";
         entry.endTime = "";
@@ -145,6 +210,19 @@ export function UniversityCoursesScheduleModal({
       if (field === "startTime") {
         entry.endTime = "";
       }
+      next[index] = entry;
+      return next;
+    });
+  };
+
+  const clearEntry = (index: number) => {
+    setEntries((prev) => {
+      const next = [...prev];
+      const entry = { ...next[index]! };
+      entry.dayOfWeek = "";
+      entry.startTime = "";
+      entry.endTime = "";
+      entry.hasConflict = false;
       next[index] = entry;
       return next;
     });
@@ -170,6 +248,8 @@ export function UniversityCoursesScheduleModal({
   const allComplete =
     entries.length > 0 &&
     entries.every((e) => e.dayOfWeek && e.startTime && e.endTime);
+
+  const conflictCount = entries.filter((e) => e.hasConflict).length;
 
   const handleSubmit = async () => {
     const incomplete = entries.filter(
@@ -244,8 +324,9 @@ export function UniversityCoursesScheduleModal({
           <DialogTitle>Schedule University-Wide Courses</DialogTitle>
           <DialogDescription>
             These courses require a manually assigned time slot before
-            auto-generation can proceed. Each course will be pinned to prevent
-            future auto-generation from overwriting the assignment.
+            auto-generation can proceed. Recommended non-clashing slots are
+            pre-filled below where possible. Each course will be pinned to
+            prevent future auto-generation from overwriting the assignment.
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +390,45 @@ export function UniversityCoursesScheduleModal({
                 {fetchError}
               </div>
             )}
+            {recommendationError && (
+              <ServerErrorBanner message={recommendationError} />
+            )}
             {validationError && <ServerErrorBanner message={validationError} />}
+
+            {conflictCount > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  {conflictCount} course{conflictCount !== 1 ? "s" : ""} could
+                  not be auto-assigned a conflict-free Friday slot. Choose a
+                  time manually for the highlighted course
+                  {conflictCount !== 1 ? "s" : ""} below.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                Recommended slots are pre-filled below. Accept, edit, or clear
+                any entry.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => applyRecommendations(entries)}
+                disabled={recommending || submitting}
+              >
+                {recommending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Generate Recommended Slots
+                  </>
+                )}
+              </Button>
+            </div>
 
             <div className="space-y-3">
               <div className="hidden md:grid grid-cols-12 gap-3 px-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -322,9 +441,13 @@ export function UniversityCoursesScheduleModal({
               {entries.map((entry, idx) => (
                 <div
                   key={entry.courseCode}
-                  className="rounded-xl border border-gray-200 bg-white p-4 space-y-3 md:space-y-0 md:grid md:grid-cols-12 md:gap-3 md:items-center"
+                  className={`rounded-xl border p-4 space-y-3 md:space-y-0 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
+                    entry.hasConflict
+                      ? "border-amber-300 bg-amber-50/40"
+                      : "border-gray-200 bg-white"
+                  }`}
                 >
-                  <div className="md:col-span-3 space-y-0.5">
+                  <div className="md:col-span-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                         {entry.courseCode}
@@ -337,12 +460,26 @@ export function UniversityCoursesScheduleModal({
                           {entry.level.replace("LEVEL_", "")}L
                         </Badge>
                       )}
+                      {entry.hasConflict && (
+                        <Badge className="bg-amber-100 text-amber-800 text-xs">
+                          Conflict
+                        </Badge>
+                      )}
                     </div>
                     {entry.courseName && (
                       <p className="text-xs text-gray-500 truncate md:hidden">
                         {entry.courseName}
                       </p>
                     )}
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+                      onClick={() => clearEntry(idx)}
+                      disabled={submitting}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Clear
+                    </button>
                   </div>
 
                   <div className="md:col-span-3">
@@ -447,7 +584,7 @@ export function UniversityCoursesScheduleModal({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !allComplete}
+                disabled={submitting || recommending || !allComplete}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 {submitting ? (
