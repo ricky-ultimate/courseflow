@@ -69,6 +69,10 @@ interface UniversityCoursesScheduleModalProps {
   onSuccess: () => void;
 }
 
+const MANUAL_SCHEDULING_DAYS = WEEKDAYS.filter(
+  (day) => day !== DayOfWeek.FRIDAY,
+);
+
 export function UniversityCoursesScheduleModal({
   open,
   onOpenChange,
@@ -495,7 +499,7 @@ export function UniversityCoursesScheduleModal({
                         <SelectValue placeholder="Select day" />
                       </SelectTrigger>
                       <SelectContent>
-                        {WEEKDAYS.map((d) => (
+                        {MANUAL_SCHEDULING_DAYS.map((d) => (
                           <SelectItem key={d} value={d}>
                             {DAY_LABELS[d]}
                           </SelectItem>
