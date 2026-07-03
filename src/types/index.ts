@@ -336,6 +336,22 @@ export interface BulkOperationResult<T> {
   };
 }
 
+export interface FileBulkResult<T> {
+  fileName: string;
+  result: BulkOperationResult<T>;
+}
+
+export interface MultiFileBulkOperationResult<T> {
+  success: boolean;
+  files: FileBulkResult<T>[];
+  summary: {
+    totalFiles: number;
+    totalRows: number;
+    successCount: number;
+    errorCount: number;
+  };
+}
+
 export interface LoginData {
   email: string;
   password: string;

@@ -214,6 +214,60 @@ class ApiClient {
     }
   }
 
+  private async uploadFiles(
+    endpoint: string,
+    files: File[],
+  ): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: "POST",
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const message = Array.isArray(errorData.message)
+          ? errorData.message.join(", ")
+          : errorData.message || errorData.error || "Upload failed";
+        if (response.status === 401 && this.on401) {
+          this.on401();
+        }
+        if (response.status === 403 && this.on403) {
+          this.on403();
+        }
+        return {
+          success: false,
+          error: message,
+          statusCode: response.status,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      const data = await response.json();
+      return this.normalizeResponse(data);
+    } catch (error) {
+      if (this.onNetworkError) {
+        const retry = () => this.uploadFiles(endpoint, files);
+        this.onNetworkError(retry);
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+        statusCode: 0,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   async downloadFile(endpoint: string): Promise<ApiResponse<string>> {
     const headers: Record<string, string> = {};
     if (this.token) {
@@ -450,6 +504,10 @@ class ApiClient {
 
   uploadCoursesBulk(file: File) {
     return this.uploadFile("/courses/bulk/upload", file);
+  }
+
+  uploadCoursesBulkMulti(files: File[]) {
+    return this.uploadFiles("/courses/bulk/upload-multi", files);
   }
 
   getCourseAliases() {
