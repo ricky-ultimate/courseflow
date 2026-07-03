@@ -328,6 +328,7 @@ export interface BulkOperationResult<T> {
     value: any;
     message: string;
   }>;
+  aliasWarnings?: string[];
   summary: {
     totalRows: number;
     successCount: number;
