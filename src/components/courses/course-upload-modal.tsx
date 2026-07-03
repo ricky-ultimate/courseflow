@@ -10,12 +10,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileUp, X } from "lucide-react";
+import {
+  Loader2,
+  FileUp,
+  X,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { BulkOperationResult, Course } from "@/types";
+import { Course, MultiFileBulkOperationResult } from "@/types";
 
 const FILE_SIZE_LIMIT = 5 * 1024 * 1024;
+const MAX_FILES = 20;
+
+type FileStatus = "pending" | "uploading";
+
+interface SelectedFileEntry {
+  file: File;
+  status: FileStatus;
+}
 
 interface CourseUploadModalProps {
   open: boolean;
@@ -23,27 +38,16 @@ interface CourseUploadModalProps {
   onSuccess: () => void;
 }
 
-type UploadResult = {
-  type: "success" | "mixed" | "failed";
-  summary: { totalRows: number; successCount: number; errorCount: number };
-  errors?: Array<{
-    row: number;
-    field: string;
-    value: unknown;
-    message: string;
-  }>;
-  aliasWarnings?: string[];
-} | null;
-
 export function CourseUploadModal({
   open,
   onOpenChange,
   onSuccess,
 }: CourseUploadModalProps) {
   const { toast } = useToast();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFileEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<UploadResult>(null);
+  const [uploadReport, setUploadReport] =
+    useState<MultiFileBulkOperationResult<Course> | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -51,13 +55,60 @@ export function CourseUploadModal({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleFileSelect = (file: File | null) => {
-    if (file && file.size > FILE_SIZE_LIMIT) {
-      toast({ title: "File too large. Max 5MB.", variant: "destructive" });
-      return;
+  const addFiles = (fileList: FileList | File[]) => {
+    const incoming = Array.from(fileList);
+    const csvFiles = incoming.filter((f) =>
+      f.name.toLowerCase().endsWith(".csv"),
+    );
+    const rejectedType = incoming.length - csvFiles.length;
+
+    const existingNames = new Set(selectedFiles.map((e) => e.file.name));
+    const oversized = csvFiles.filter((f) => f.size > FILE_SIZE_LIMIT);
+    const duplicates = csvFiles.filter(
+      (f) => f.size <= FILE_SIZE_LIMIT && existingNames.has(f.name),
+    );
+    const additions = csvFiles.filter(
+      (f) => f.size <= FILE_SIZE_LIMIT && !existingNames.has(f.name),
+    );
+
+    const combined = [
+      ...selectedFiles,
+      ...additions.map((f) => ({ file: f, status: "pending" as FileStatus })),
+    ];
+    const truncated = combined.length > MAX_FILES;
+    const finalList = truncated ? combined.slice(0, MAX_FILES) : combined;
+
+    setSelectedFiles(finalList);
+    setUploadReport(null);
+
+    if (rejectedType > 0) {
+      toast({
+        title: `${rejectedType} file(s) skipped: only CSV files are accepted.`,
+        variant: "destructive",
+      });
     }
-    setSelectedFile(file);
-    setUploadResult(null);
+    if (oversized.length > 0) {
+      toast({
+        title: `${oversized.length} file(s) exceed the 5MB limit and were skipped.`,
+        variant: "destructive",
+      });
+    }
+    if (duplicates.length > 0) {
+      toast({
+        title: `${duplicates.length} file(s) were already added.`,
+        variant: "destructive",
+      });
+    }
+    if (truncated) {
+      toast({
+        title: `A maximum of ${MAX_FILES} files can be uploaded at once.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeFile = (name: string) => {
+    setSelectedFiles((prev) => prev.filter((e) => e.file.name !== name));
   };
 
   const handleDownloadTemplate = async () => {
@@ -83,48 +134,43 @@ export function CourseUploadModal({
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
-    if (selectedFile.size > FILE_SIZE_LIMIT) {
-      toast({ title: "File too large. Max 5MB.", variant: "destructive" });
-      return;
-    }
-    try {
-      setIsUploading(true);
-      setUploadResult(null);
-      const res = await apiClient.uploadCoursesBulk(selectedFile);
-      const data = res.data as BulkOperationResult<Course> | undefined;
-      const sum = data?.summary;
+    if (selectedFiles.length === 0) return;
 
-      if (!data || !sum) {
+    setIsUploading(true);
+    setUploadReport(null);
+    setSelectedFiles((prev) =>
+      prev.map((entry) => ({ ...entry, status: "uploading" as FileStatus })),
+    );
+
+    try {
+      const res = await apiClient.uploadCoursesBulkMulti(
+        selectedFiles.map((entry) => entry.file),
+      );
+
+      const report = res.data as
+        | MultiFileBulkOperationResult<Course>
+        | undefined;
+
+      if (!res.success || !report) {
         toast({
           title: (res as { error?: string }).error || "Upload failed",
           variant: "destructive",
         });
+        setSelectedFiles((prev) =>
+          prev.map((entry) => ({ ...entry, status: "pending" as FileStatus })),
+        );
         return;
       }
 
-      if (sum.totalRows === 0) {
-        setUploadResult({ type: "failed", summary: sum, errors: [] });
-      } else if (sum.successCount === 0 && sum.errorCount > 0) {
-        setUploadResult({ type: "failed", summary: sum, errors: data.errors });
-      } else if (sum.errorCount > 0) {
-        setUploadResult({
-          type: "mixed",
-          summary: sum,
-          errors: data.errors,
-          aliasWarnings: data.aliasWarnings,
-        });
-        onSuccess();
-      } else {
-        setUploadResult({
-          type: "success",
-          summary: sum,
-          aliasWarnings: data.aliasWarnings,
-        });
+      setUploadReport(report);
+      if (report.summary.successCount > 0) {
         onSuccess();
       }
     } catch {
       toast({ title: "Upload failed", variant: "destructive" });
+      setSelectedFiles((prev) =>
+        prev.map((entry) => ({ ...entry, status: "pending" as FileStatus })),
+      );
     } finally {
       setIsUploading(false);
     }
@@ -132,8 +178,13 @@ export function CourseUploadModal({
 
   const close = () => {
     onOpenChange(false);
-    setSelectedFile(null);
-    setUploadResult(null);
+    setSelectedFiles([]);
+    setUploadReport(null);
+  };
+
+  const reset = () => {
+    setSelectedFiles([]);
+    setUploadReport(null);
   };
 
   return (
@@ -142,98 +193,119 @@ export function CourseUploadModal({
       onOpenChange={(o) => {
         onOpenChange(o);
         if (!o) {
-          setSelectedFile(null);
-          setUploadResult(null);
+          setSelectedFiles([]);
+          setUploadReport(null);
         }
       }}
     >
-      <DialogContent className="sm:max-w-[480px]" onSwipeDown={() => close()}>
+      <DialogContent className="sm:max-w-[560px]" onSwipeDown={() => close()}>
         <DialogHeader>
           <DialogTitle>Upload Courses CSV</DialogTitle>
           <DialogDescription>
-            Drop your CSV file here or click to browse. Accept .csv only. Max
-            5MB.
+            Select one or more CSV files. Each file can contain courses for a
+            different department or college. CSV only, max 5MB per file, up to{" "}
+            {MAX_FILES} files.
           </DialogDescription>
         </DialogHeader>
 
-        {uploadResult ? (
+        {uploadReport ? (
           <div className="space-y-4 py-2">
-            {uploadResult.type === "success" && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
-                <p className="font-medium">
-                  {uploadResult.summary.successCount} course
-                  {uploadResult.summary.successCount === 1 ? "" : "s"} created
-                  successfully.
-                </p>
-              </div>
-            )}
+            <div
+              className={`rounded-lg border p-4 ${
+                uploadReport.summary.errorCount === 0
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : uploadReport.summary.successCount === 0
+                    ? "border-red-200 bg-red-50 text-red-800"
+                    : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              <p className="font-medium">
+                {uploadReport.summary.successCount} course
+                {uploadReport.summary.successCount === 1 ? "" : "s"} created
+                across {uploadReport.summary.totalFiles} file
+                {uploadReport.summary.totalFiles === 1 ? "" : "s"}.
+                {uploadReport.summary.errorCount > 0
+                  ? ` ${uploadReport.summary.errorCount} row${uploadReport.summary.errorCount === 1 ? "" : "s"} failed.`
+                  : ""}
+              </p>
+            </div>
 
-            {uploadResult.type === "mixed" && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
-                <p className="font-medium">
-                  {uploadResult.summary.successCount} created,{" "}
-                  {uploadResult.summary.errorCount} failed.
-                </p>
-              </div>
-            )}
-
-            {uploadResult.type === "failed" && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                <p className="font-medium">
-                  {uploadResult.summary.totalRows === 0
-                    ? "The CSV file contains no data rows."
-                    : `No courses were created. ${uploadResult.summary.errorCount} row${uploadResult.summary.errorCount === 1 ? "" : "s"} failed validation.`}
-                </p>
-              </div>
-            )}
-
-            {uploadResult.errors && uploadResult.errors.length > 0 && (
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="max-h-[240px] overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        {["Row", "Field", "Value", "Error Message"].map((h) => (
-                          <th key={h} className="p-2 text-left font-medium">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {uploadResult.errors.map((err, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="p-2">{err.row}</td>
-                          <td className="p-2">{err.field}</td>
-                          <td className="p-2 truncate max-w-[80px]">
-                            {String(err.value ?? "—")}
-                          </td>
-                          <td className="p-2 text-red-600">{err.message}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="space-y-3 max-h-[360px] overflow-y-auto">
+              {uploadReport.files.map((fileResult) => (
+                <div
+                  key={fileResult.fileName}
+                  className="rounded-lg border border-gray-200 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                      <span className="text-sm font-medium truncate">
+                        {fileResult.fileName}
+                      </span>
+                    </div>
+                    {fileResult.result.summary.errorCount === 0 ? (
+                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                    )}
+                  </div>
+                  <div className="px-3 py-2 text-xs text-gray-600">
+                    {fileResult.result.summary.successCount} created,{" "}
+                    {fileResult.result.summary.errorCount} failed of{" "}
+                    {fileResult.result.summary.totalRows} rows
+                  </div>
+                  {fileResult.result.errors.length > 0 && (
+                    <div className="max-h-[160px] overflow-y-auto border-t">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            {["Row", "Field", "Value", "Error"].map((h) => (
+                              <th key={h} className="p-2 text-left font-medium">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fileResult.result.errors.map((err, i) => (
+                            <tr key={i} className="border-t">
+                              <td className="p-2">{err.row}</td>
+                              <td className="p-2">{err.field}</td>
+                              <td className="p-2 truncate max-w-[80px]">
+                                {String(err.value ?? "—")}
+                              </td>
+                              <td className="p-2 text-red-600">
+                                {err.message}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {fileResult.result.aliasWarnings &&
+                    fileResult.result.aliasWarnings.length > 0 && (
+                      <div className="border-t px-3 py-2 bg-amber-50">
+                        <p className="text-xs font-medium text-amber-800 mb-1">
+                          Alias links skipped:
+                        </p>
+                        <ul className="space-y-0.5">
+                          {fileResult.result.aliasWarnings.map((w, i) => (
+                            <li key={i} className="text-xs text-amber-800">
+                              {w}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
-              </div>
-            )}
-
-            {uploadResult.aliasWarnings &&
-              uploadResult.aliasWarnings.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-xs font-medium text-amber-800 mb-1.5">
-                    Alias links skipped:
-                  </p>
-                  <ul className="space-y-1">
-                    {uploadResult.aliasWarnings.map((w, i) => (
-                      <li key={i} className="text-xs text-amber-800">
-                        {w}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              ))}
+            </div>
 
             <DialogFooter>
+              <Button variant="outline" onClick={reset}>
+                Upload More
+              </Button>
               <Button
                 className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700"
                 onClick={close}
@@ -253,9 +325,8 @@ export function CourseUploadModal({
                 onDrop={(e) => {
                   e.preventDefault();
                   if (isUploading) return;
-                  const f = e.dataTransfer.files[0];
-                  if (f?.name.toLowerCase().endsWith(".csv"))
-                    handleFileSelect(f);
+                  if (e.dataTransfer.files.length)
+                    addFiles(e.dataTransfer.files);
                 }}
                 onClick={() =>
                   document.getElementById("course-csv-input")?.click()
@@ -265,41 +336,59 @@ export function CourseUploadModal({
                   id="course-csv-input"
                   type="file"
                   accept=".csv"
+                  multiple
                   className="hidden"
                   disabled={isUploading}
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFileSelect(f);
+                    if (e.target.files?.length) addFiles(e.target.files);
+                    e.target.value = "";
                   }}
                 />
-                {selectedFile ? (
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-gray-800">
-                      {selectedFile.name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      ({formatFileSize(selectedFile.size)})
-                    </span>
-                    <button
-                      type="button"
-                      className="text-gray-400 hover:text-gray-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedFile(null);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <FileUp className="h-8 w-8 text-gray-400" />
-                    <p className="text-sm text-gray-500">
-                      Drop a CSV file here or click to browse
-                    </p>
-                  </div>
-                )}
+                <div className="flex flex-col items-center gap-2">
+                  <FileUp className="h-8 w-8 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    Drop CSV files here or click to browse
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Multiple files supported
+                  </p>
+                </div>
               </div>
+
+              {selectedFiles.length > 0 && (
+                <div className="mt-3 space-y-2 max-h-[220px] overflow-y-auto">
+                  {selectedFiles.map((entry) => (
+                    <div
+                      key={entry.file.name}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                        <span className="text-sm font-medium truncate">
+                          {entry.file.name}
+                        </span>
+                        <span className="text-xs text-gray-400 shrink-0">
+                          ({formatFileSize(entry.file.size)})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {entry.status === "uploading" ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={() => removeFile(entry.file.name)}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <p className="text-xs text-gray-500 mt-2">
                 <button
                   type="button"
@@ -316,10 +405,12 @@ export function CourseUploadModal({
               </Button>
               <Button
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={selectedFiles.length === 0 || isUploading}
               >
                 {isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : selectedFiles.length > 0 ? (
+                  `Upload ${selectedFiles.length} File${selectedFiles.length === 1 ? "" : "s"}`
                 ) : (
                   "Upload"
                 )}
