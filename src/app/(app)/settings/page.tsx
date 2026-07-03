@@ -96,15 +96,15 @@ const SEED_ACTIONS: SeedAction[] = [
   },
   {
     key: "courses",
-    label: "Seed courses",
+    label: "Seed university courses",
     description:
-      "Inserts built-in courses for departments that are already present. Existing records are left untouched.",
+      "Inserts built-in university-wide courses (GST, PIF, ENT, SDN, ESM) that do not already exist. Departmental courses are no longer seeded here — upload them as CSV files from the Courses page. Existing records are left untouched.",
   },
   {
     key: "all",
     label: "Seed all data",
     description:
-      "Seeds departments first, then courses. Idempotent — safe to run multiple times.",
+      "Seeds departments first, then university-wide courses. Departmental courses are not included — upload them as CSV files from the Courses page. Idempotent — safe to run multiple times.",
   },
 ];
 
@@ -228,8 +228,10 @@ export default function SettingsPage() {
             Data Seeding
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Populate the database with built-in departments and courses. Safe to
-            run on an existing database — already-present records are skipped.
+            Populate the database with built-in departments and university-wide
+            courses. Departmental courses are uploaded separately as CSV files
+            from the Courses page. Safe to run on an existing database —
+            already-present records are skipped.
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
