@@ -46,22 +46,19 @@ export function ScheduleAgendaView({
                 className="group bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500 rounded-l-2xl opacity-80" />
-                <div className="flex justify-between items-start mb-2">
-                  <span
-                    className={`text-xs font-mono font-semibold ${style.label} flex items-center gap-1.5`}
-                  >
-                    {s.course?.code ?? s.courseCode}
+                <div className="flex justify-between items-start mb-3 pl-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                      {s.startTime} – {s.endTime}
+                    </span>
                     {s.sessionType === SessionType.PRACTICAL && (
-                      <span className="text-[9px] font-bold text-violet-600 bg-violet-100 rounded px-1">
-                        P
+                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                        Practical
                       </span>
                     )}
-                  </span>
+                  </div>
                   {s.isManualOverride && (
-                    <span className="text-amber-600 text-xs flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      Manual
-                    </span>
+                    <div className="h-2 w-2 rounded-full bg-amber-400 mt-1" />
                   )}
                 </div>
                 <div className="pl-2">
