@@ -9,7 +9,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import { AcademicSession, Department, Level, Semester } from "@/types";
+import {
+  AcademicSession,
+  Department,
+  Level,
+  Semester,
+  SessionType,
+} from "@/types";
 
 const LEVEL_OPTIONS = [
   { value: Level.LEVEL_100, label: "100 Level" },
@@ -37,6 +43,8 @@ interface ScheduleFilterBarProps {
   onProgrammeChange: (v: string) => void;
   selectedLevel: string;
   onLevelChange: (v: string) => void;
+  selectedSessionType: string;
+  onSessionTypeChange: (v: string) => void;
   sessions: AcademicSession[];
   departments: Department[];
   programmes: Programme[];
@@ -60,6 +68,8 @@ export function ScheduleFilterBar({
   onProgrammeChange,
   selectedLevel,
   onLevelChange,
+  selectedSessionType,
+  onSessionTypeChange,
   sessions,
   departments,
   programmes,
@@ -169,6 +179,17 @@ export function ScheduleFilterBar({
                 {lvl.label}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedSessionType} onValueChange={onSessionTypeChange}>
+          <SelectTrigger className="border-0 shadow-none bg-transparent hover:bg-slate-50 focus:ring-0 w-[150px]">
+            <SelectValue placeholder="Session Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Theory & Practical</SelectItem>
+            <SelectItem value={SessionType.THEORY}>Theory</SelectItem>
+            <SelectItem value={SessionType.PRACTICAL}>Practical</SelectItem>
           </SelectContent>
         </Select>
 
