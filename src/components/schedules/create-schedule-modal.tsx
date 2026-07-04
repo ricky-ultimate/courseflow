@@ -34,10 +34,11 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
-import { Course, DayOfWeek, Schedule } from "@/types";
+import { Course, DayOfWeek, Schedule, SessionType } from "@/types";
 import {
   WEEKDAYS,
   DAY_LABELS,
+  SESSION_TYPE_LABELS,
   SLOT_MAP,
   WEDNESDAY_SLOT_MAP,
 } from "@/lib/constants";
@@ -48,6 +49,7 @@ const scheduleModalSchema = z
     dayOfWeek: z.string().min(1, "Day of week is required"),
     startTime: z.string().min(1, "Start time is required"),
     endTime: z.string().min(1, "End time is required"),
+    sessionType: z.nativeEnum(SessionType),
     isFixed: z.boolean(),
   })
   .superRefine((data, ctx) => {
@@ -101,6 +103,7 @@ export function CreateScheduleModal({
       dayOfWeek: "",
       startTime: "",
       endTime: "",
+      sessionType: SessionType.THEORY,
       isFixed: false,
     },
   });
@@ -136,6 +139,7 @@ export function CreateScheduleModal({
         dayOfWeek: editSchedule.dayOfWeek,
         startTime: editSchedule.startTime,
         endTime: editSchedule.endTime,
+        sessionType: editSchedule.sessionType,
         isFixed: editSchedule.isFixed ?? false,
       });
     } else if (
@@ -147,6 +151,7 @@ export function CreateScheduleModal({
         dayOfWeek: prefill.dayOfWeek ?? "",
         startTime: prefill.startTime ?? "",
         endTime: "",
+        sessionType: SessionType.THEORY,
         isFixed: false,
       });
     }
@@ -163,6 +168,7 @@ export function CreateScheduleModal({
   const startTime = form.watch("startTime");
   const endTime = form.watch("endTime");
   const courseCode = form.watch("courseCode");
+  const sessionType = form.watch("sessionType");
 
   const availableEndTimes: string[] = (() => {
     if (!startTime) return [];
@@ -200,6 +206,7 @@ export function CreateScheduleModal({
           dayOfWeek: data.dayOfWeek as DayOfWeek,
           startTime: data.startTime,
           endTime: data.endTime,
+          sessionType: data.sessionType,
           isFixed: data.isFixed,
         });
         if (res.success) {
@@ -217,6 +224,7 @@ export function CreateScheduleModal({
           dayOfWeek: data.dayOfWeek as DayOfWeek,
           startTime: data.startTime,
           endTime: data.endTime,
+          sessionType: data.sessionType,
           isFixed: data.isFixed,
         });
         if (res.success) {
@@ -244,6 +252,7 @@ export function CreateScheduleModal({
       dayOfWeek: "",
       startTime: "",
       endTime: "",
+      sessionType: SessionType.THEORY,
       isFixed: false,
     });
     setQuery("");
@@ -338,6 +347,41 @@ export function CreateScheduleModal({
                       )}
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sessionType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Session Type</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={loading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={SessionType.THEORY}>
+                        {SESSION_TYPE_LABELS[SessionType.THEORY]}
+                      </SelectItem>
+                      <SelectItem value={SessionType.PRACTICAL}>
+                        {SESSION_TYPE_LABELS[SessionType.PRACTICAL]}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-400">
+                    Most courses only need Theory. Use Practical for the
+                    hands-on session of courses that run both, such as
+                    GST401/402/501/502.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -463,11 +507,13 @@ export function CreateScheduleModal({
               existingSchedules.some(
                 (s) =>
                   s.courseCode === courseCode &&
-                  s.sessionId === activeSessionId,
+                  s.sessionId === activeSessionId &&
+                  s.sessionType === sessionType,
               ) && (
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  This course already has a schedule. Creating will add an
-                  additional slot.
+                  This course already has a{" "}
+                  {SESSION_TYPE_LABELS[sessionType].toLowerCase()} schedule this
+                  session. Creating another will conflict.
                 </p>
               )}
 
