@@ -16,7 +16,7 @@ import {
   Building2,
 } from "lucide-react";
 import { Schedule, Semester } from "@/types";
-import { DAY_LABELS, LEVEL_PILL } from "@/lib/constants";
+import { DAY_LABELS, LEVEL_PILL, SESSION_TYPE_LABELS } from "@/lib/constants";
 import { useState } from "react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -139,6 +139,12 @@ export function ScheduleDetailSheet({
                 Auto-generated
               </Badge>
             )}
+            <Badge
+              variant="secondary"
+              className="bg-violet-100 text-violet-700"
+            >
+              {SESSION_TYPE_LABELS[schedule.sessionType]}
+            </Badge>
             <Badge variant="secondary" className="bg-slate-100 text-slate-600">
               {schedule.semester === Semester.FIRST
                 ? "First Semester"
