@@ -28,6 +28,7 @@ interface ScheduleExportMenuProps {
     searchTerm: string;
     sessionId?: string;
     semester?: string;
+    sessionType?: string;
     lecturerId?: string;
   };
   fallbackSchedules: Schedule[];
@@ -57,6 +58,8 @@ export function ScheduleExportMenu({
       if (filters.sessionId) params.sessionId = filters.sessionId;
       if (filters.semester && filters.semester !== "all")
         params.semester = filters.semester;
+      if (filters.sessionType && filters.sessionType !== "all")
+        params.sessionType = filters.sessionType;
 
       const response = await apiClient.getSchedules(params);
       const result = getItemsFromResponse<Schedule>(response);

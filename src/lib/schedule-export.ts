@@ -1,5 +1,5 @@
 import type { Schedule } from "@/types";
-import { DayOfWeek } from "@/types";
+import { DayOfWeek, SessionType } from "@/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -49,7 +49,10 @@ export function buildExportData(allSchedules: Schedule[]) {
     const ts = `${s.startTime}-${s.endTime}`;
     if (!grid[s.dayOfWeek]) grid[s.dayOfWeek] = {};
     if (!grid[s.dayOfWeek]![ts]) grid[s.dayOfWeek]![ts] = [];
-    grid[s.dayOfWeek]![ts]!.push({ code: s.course?.code ?? "N/A" });
+    const code = s.course?.code ?? "N/A";
+    const label =
+      s.sessionType === SessionType.PRACTICAL ? `${code} (P)` : code;
+    grid[s.dayOfWeek]![ts]!.push({ code: label });
   });
 
   const timeHeaders = [
