@@ -62,6 +62,7 @@ export interface ScheduleFilters {
   level: string;
   day: string;
   semester: string;
+  sessionType: string;
   sessionId: string;
   page: number;
   limit: number;
@@ -101,6 +102,8 @@ export function useSchedules(filters: ScheduleFilters) {
       if (filters.day && filters.day !== "all") params.dayOfWeek = filters.day;
       if (filters.semester && filters.semester !== "all")
         params.semester = filters.semester;
+      if (filters.sessionType && filters.sessionType !== "all")
+        params.sessionType = filters.sessionType;
       if (filters.sessionId && filters.sessionId !== "all")
         params.sessionId = filters.sessionId;
 
@@ -127,6 +130,7 @@ export function useSchedules(filters: ScheduleFilters) {
     filters.level,
     filters.day,
     filters.semester,
+    filters.sessionType,
     filters.sessionId,
   ]);
 
