@@ -1,4 +1,11 @@
-import { College, DayOfWeek, Level, Role, VenueType } from "@/types";
+import {
+  College,
+  DayOfWeek,
+  Level,
+  Role,
+  SessionType,
+  VenueType,
+} from "@/types";
 
 export const LEVEL_PILL: Record<Level, string> = {
   [Level.LEVEL_100]: "bg-slate-100 text-slate-700",
@@ -27,6 +34,11 @@ export const LEVEL_OPTIONS = [
   { value: Level.LEVEL_400, label: "400 Level" },
   { value: Level.LEVEL_500, label: "500 Level" },
 ];
+
+export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+  [SessionType.THEORY]: "Theory",
+  [SessionType.PRACTICAL]: "Practical",
+};
 
 export const VENUE_LABELS: Record<VenueType, string> = {
   [VenueType.UNIVERSITY_ICT_CENTER]: "University ICT Centre",
