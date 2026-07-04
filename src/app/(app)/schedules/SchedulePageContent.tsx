@@ -59,6 +59,7 @@ export default function SchedulePageContent() {
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedSemester, setSelectedSemester] =
     useState<string>(DEFAULT_SEMESTER);
+  const [selectedSessionType, setSelectedSessionType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [unscheduledKey, setUnscheduledKey] = useState(0);
@@ -114,6 +115,7 @@ export default function SchedulePageContent() {
     level: effectiveLevel,
     day: selectedDay,
     semester: selectedSemester,
+    sessionType: selectedSessionType,
     sessionId: selectedSessionId,
     page: currentPage,
     limit: scheduleLimit,
@@ -202,6 +204,7 @@ export default function SchedulePageContent() {
     setSelectedLevel(DEFAULT_LEVEL);
     setSelectedDay("all");
     setSelectedSemester(DEFAULT_SEMESTER);
+    setSelectedSessionType("all");
     if (activeSession) {
       setSelectedSessionId(activeSession.id);
     }
@@ -215,6 +218,7 @@ export default function SchedulePageContent() {
     selectedSemester === DEFAULT_SEMESTER &&
     selectedProgramme === "all" &&
     selectedDay === "all" &&
+    selectedSessionType === "all" &&
     !myClassesOnly &&
     (!selectedSessionId || selectedSessionId === activeSession?.id);
 
@@ -225,6 +229,7 @@ export default function SchedulePageContent() {
     selectedSessionId && selectedSessionId !== activeSession?.id,
     selectedProgramme !== "all",
     viewMode === "timetable" && selectedDay !== "all",
+    selectedSessionType !== "all",
     myClassesOnly,
   ].filter(Boolean).length;
 
@@ -343,6 +348,8 @@ export default function SchedulePageContent() {
         }}
         selectedLevel={selectedLevel}
         onLevelChange={setSelectedLevel}
+        selectedSessionType={selectedSessionType}
+        onSessionTypeChange={setSelectedSessionType}
         sessions={sessions}
         departments={departments}
         programmes={programmes}
@@ -452,6 +459,10 @@ export default function SchedulePageContent() {
                   sessionId: selectedSessionId || activeSession?.id,
                   semester:
                     selectedSemester !== "all" ? selectedSemester : undefined,
+                  sessionType:
+                    selectedSessionType !== "all"
+                      ? selectedSessionType
+                      : undefined,
                   lecturerId: myClassesOnly && user?.id ? user.id : undefined,
                 }}
                 fallbackSchedules={filteredSchedules}
