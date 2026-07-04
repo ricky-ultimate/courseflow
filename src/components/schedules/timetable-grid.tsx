@@ -1,6 +1,6 @@
 "use client";
 
-import { DayOfWeek, Schedule } from "@/types";
+import { DayOfWeek, Schedule, SessionType } from "@/types";
 import { WEEKDAYS, TIME_SLOTS, getDeptStyle } from "@/lib/constants";
 import { getStartHour } from "@/lib/utils";
 import { Lock } from "lucide-react";
@@ -133,7 +133,15 @@ export function TimetableGrid({
                 >
                   {s.course?.departmentCode ?? s.courseCode?.slice(0, 3) ?? "—"}
                 </span>
-                <span className="flex gap-1 shrink-0">
+                <span className="flex items-center gap-1 shrink-0">
+                  {s.sessionType === SessionType.PRACTICAL && (
+                    <span
+                      className="text-[9px] font-bold text-violet-600 bg-violet-100 rounded px-1"
+                      title="Practical session"
+                    >
+                      P
+                    </span>
+                  )}
                   {s.isFixed && <Lock className="h-3 w-3 text-slate-500" />}
                   {s.isManualOverride && (
                     <span
