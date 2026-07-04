@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { DayOfWeek, Schedule } from "@/types";
+import { DayOfWeek, Schedule, SessionType } from "@/types";
 import {
   WEEKDAYS,
   DAY_MEDIUM_LABELS,
@@ -117,6 +117,14 @@ export function MobileTimetable({
                         "—"}
                     </span>
                     <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                      {s.sessionType === SessionType.PRACTICAL && (
+                        <span
+                          className="text-[9px] font-bold text-violet-600 bg-violet-100 rounded px-1"
+                          title="Practical session"
+                        >
+                          P
+                        </span>
+                      )}
                       {s.isManualOverride && (
                         <span
                           className="w-2 h-2 rounded-full bg-amber-400 shrink-0"
