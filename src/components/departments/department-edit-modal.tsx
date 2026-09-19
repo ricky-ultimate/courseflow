@@ -96,9 +96,8 @@ export function DepartmentEditModal({
     setSaving(true);
     try {
       const res = await apiClient.updateDepartment(dept.code, {
-        name: data.name,
-        code: data.code,
-        description: data.description || undefined,
+        name: data.name.trim(),
+        description: data.description?.trim() || undefined,
         college: data.college,
         hodId: data.hodId || undefined,
       });
@@ -155,14 +154,10 @@ export function DepartmentEditModal({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        className="font-mono"
-                        disabled={saving}
+                        className="font-mono bg-gray-50 text-gray-500"
+                        readOnly
+                        disabled
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value.toUpperCase().slice(0, 4),
-                          )
-                        }
                       />
                     </FormControl>
                     <FormMessage />

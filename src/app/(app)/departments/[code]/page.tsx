@@ -134,10 +134,9 @@ export default function DepartmentDetailsPage() {
     );
     setLockLoading(true);
     try {
-      const fn = prevLocked
-        ? apiClient.unlockDepartmentSchedule
-        : apiClient.lockDepartmentSchedule;
-      const res = await fn(department.code);
+      const res = prevLocked
+        ? await apiClient.unlockDepartmentSchedule(department.code)
+        : await apiClient.lockDepartmentSchedule(department.code);
       if (res.success) {
         toast({
           title: prevLocked
