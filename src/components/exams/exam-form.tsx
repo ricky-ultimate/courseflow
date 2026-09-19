@@ -278,6 +278,7 @@ export function ExamForm({
                   <SelectContent>
                     <SelectItem value={College.CBAS}>CBAS</SelectItem>
                     <SelectItem value={College.CHMS}>CHMS</SelectItem>
+                    <SelectItem value={College.CAHS}>CAHS</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

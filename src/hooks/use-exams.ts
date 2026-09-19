@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { getItemsFromResponse } from "@/lib/utils";
@@ -22,6 +22,8 @@ interface UseExamsOptions {
   departmentCode?: string | null;
 }
 
+const EXAM_FETCH_PAGE_SIZE = 1000;
+
 export function useExams({
   sessionId,
   semester,
@@ -31,15 +33,33 @@ export function useExams({
   departmentCode,
 }: UseExamsOptions) {
   const { toast } = useToast();
-  const [exams, setExams] = useState<Exam[]>([]);
+  const [allExams, setAllExams] = useState<Exam[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
+
+  const fetchAllExams = useCallback(async (): Promise<Exam[]> => {
+    const first = await apiClient.getExams({
+      page: 1,
+      limit: EXAM_FETCH_PAGE_SIZE,
+    });
+    const firstResult = getItemsFromResponse<Exam>(first);
+    if (!firstResult) throw new Error(first.error ?? "Failed to load exams");
+    let items = firstResult.items;
+    for (let p = 2; p <= firstResult.totalPages; p++) {
+      const next = await apiClient.getExams({
+        page: p,
+        limit: EXAM_FETCH_PAGE_SIZE,
+      });
+      const nextResult = getItemsFromResponse<Exam>(next);
+      if (!nextResult) throw new Error(next.error ?? "Failed to load exams");
+      items = items.concat(nextResult.items);
+    }
+    return items;
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,29 +67,17 @@ export function useExams({
       else setRefetching(true);
       setFetchError(null);
 
-      const params: Record<string, unknown> = { page, limit };
-      if (sessionId) params.sessionId = sessionId;
-      if (semester && semester !== "all") params.semester = semester;
-      if (isStudent && departmentCode)
-        params.departmentCode = departmentCode;
-
-      const [examsRes, coursesRes, sessRes] = await Promise.all([
-        apiClient.getExams(params),
+      const [examItems, coursesRes, sessRes] = await Promise.all([
+        fetchAllExams(),
         apiClient.getCourses({ limit: 500 }),
         apiClient.getAcademicSessions({ limit: 50 }),
       ]);
 
-      const examR = getItemsFromResponse<Exam>(examsRes);
-      const courseR = getItemsFromResponse<Course>(coursesRes);
-      const sessR = getItemsFromResponse<AcademicSession>(sessRes);
-
-      if (examR) {
-        setExams(examR.items);
-        setTotal(examR.total);
-        setTotalPages(examR.totalPages);
-      }
-      if (courseR) setCourses(courseR.items);
-      if (sessR) setSessions(sessR.items);
+      setAllExams(examItems);
+      const courseResult = getItemsFromResponse<Course>(coursesRes);
+      const sessionResult = getItemsFromResponse<AcademicSession>(sessRes);
+      if (courseResult) setCourses(courseResult.items);
+      if (sessionResult) setSessions(sessionResult.items);
     } catch {
       setFetchError("Failed to load exams");
       toast({ title: "Failed to load exams", variant: "destructive" });
@@ -78,11 +86,36 @@ export function useExams({
       setRefetching(false);
       hasFetchedRef.current = true;
     }
-  }, [sessionId, semester, page, limit, isStudent, departmentCode, toast]);
+  }, [fetchAllExams, toast]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const filtered = useMemo(
+    () =>
+      allExams.filter((exam) => {
+        if (sessionId && exam.sessionId !== sessionId) return false;
+        if (semester && semester !== "all" && exam.semester !== semester) {
+          return false;
+        }
+        if (isStudent && departmentCode) {
+          const course = exam.course;
+          if (!course) return false;
+          return course.departmentCode === departmentCode || course.isGeneral;
+        }
+        return true;
+      }),
+    [allExams, sessionId, semester, isStudent, departmentCode],
+  );
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const exams = useMemo(
+    () =>
+      isStudent ? filtered : filtered.slice((page - 1) * limit, page * limit),
+    [filtered, isStudent, page, limit],
+  );
 
   return {
     exams,
@@ -101,7 +134,7 @@ export function useExamMutations(
   refetch: () => void,
   exams: Exam[],
   page: number,
-  onPageChange: (p: number) => void
+  onPageChange: (p: number) => void,
 ) {
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
@@ -115,7 +148,7 @@ export function useExamMutations(
     async (
       exam: Exam,
       resetForm: (values: any) => void,
-      setEditExam: (e: Exam) => void
+      setEditExam: (e: Exam) => void,
     ) => {
       openForEditExamIdRef.current = exam.id;
       setEditExam(exam);
@@ -157,15 +190,11 @@ export function useExamMutations(
           toast({ title: "Failed to load exam", variant: "destructive" });
       }
     },
-    [toast]
+    [toast],
   );
 
   const handleCreate = useCallback(
-    async (
-      data: any,
-      selectedCourse: Course | null,
-      onSuccess: () => void
-    ) => {
+    async (data: any, selectedCourse: Course | null, onSuccess: () => void) => {
       setCreateError("");
       try {
         setCreating(true);
@@ -193,7 +222,7 @@ export function useExamMutations(
           refetch();
         } else {
           setCreateError(
-            (res as { error?: string }).error ?? "Failed to schedule"
+            (res as { error?: string }).error ?? "Failed to schedule",
           );
         }
       } catch {
@@ -202,7 +231,7 @@ export function useExamMutations(
         setCreating(false);
       }
     },
-    [toast, refetch]
+    [toast, refetch],
   );
 
   const handleEditSubmit = useCallback(
@@ -210,7 +239,7 @@ export function useExamMutations(
       editExam: Exam,
       data: any,
       editSelectedCourse: Course | null,
-      onSuccess: () => void
+      onSuccess: () => void,
     ) => {
       setEditError("");
       try {
@@ -238,9 +267,7 @@ export function useExamMutations(
           onSuccess();
           refetch();
         } else {
-          setEditError(
-            (res as { error?: string }).error ?? "Failed to update"
-          );
+          setEditError((res as { error?: string }).error ?? "Failed to update");
         }
       } catch {
         setEditError("Failed to update exam");
@@ -248,7 +275,7 @@ export function useExamMutations(
         setEditLoading(false);
       }
     },
-    [toast, refetch]
+    [toast, refetch],
   );
 
   const handleDelete = useCallback(
@@ -272,7 +299,7 @@ export function useExamMutations(
         setActionLoading(false);
       }
     },
-    [toast, refetch, exams.length, page, onPageChange]
+    [toast, refetch, exams.length, page, onPageChange],
   );
 
   return {
