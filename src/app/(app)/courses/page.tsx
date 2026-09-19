@@ -204,7 +204,7 @@ export default function CoursesPage() {
         fetchCourses();
         return true;
       }
-      toast({ title: (res as any).error, variant: "destructive" });
+      toast({ title: res.error ?? "Delete failed", variant: "destructive" });
       return false;
     } catch {
       toast({ title: "Delete failed", variant: "destructive" });

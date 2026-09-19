@@ -74,7 +74,7 @@ export default function ComplaintsPage() {
         setDetailComplaint((c) => (c?.id === id ? { ...c, status } : c));
         refetch();
       } else {
-        toast({ title: (res as any).error, variant: "destructive" });
+        toast({ title: res.error ?? "Update failed", variant: "destructive" });
       }
     } catch {
       toast({ title: "Update failed", variant: "destructive" });

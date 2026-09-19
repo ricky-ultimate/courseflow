@@ -77,7 +77,7 @@ export default function DashboardPage() {
       setDepartment((d: Department | null) =>
         d ? { ...d, isScheduleLocked: prevLocked } : null,
       );
-      toast({ title: (res as any).error, variant: "destructive" });
+      toast({ title: res.error ?? "Failed to update", variant: "destructive" });
       return false;
     } catch {
       setDepartment((d: Department | null) =>

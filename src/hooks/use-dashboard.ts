@@ -64,7 +64,7 @@ export function useDashboard() {
     if (sessionRes.success && sessionRes.data)
       setActiveSession(sessionRes.data as AcademicSession);
     if (pendingRes.success && Array.isArray(pendingRes.data))
-      setPendingCount((pendingRes.data as unknown[]).length);
+      setPendingCount(pendingRes.data.length);
     else if (pendingRes.success && (pendingRes.data as any)?.data?.length)
       setPendingCount((pendingRes.data as any).data.length);
   }, []);
@@ -87,7 +87,7 @@ export function useDashboard() {
     if (sessionRes.success && sessionRes.data)
       setActiveSession(sessionRes.data as AcademicSession);
     if (pendingRes.success && Array.isArray(pendingRes.data))
-      setPendingCount((pendingRes.data as unknown[]).length);
+      setPendingCount(pendingRes.data.length);
     else if (pendingRes.success && (pendingRes.data as any)?.data?.length)
       setPendingCount((pendingRes.data as any).data.length);
   }, []);

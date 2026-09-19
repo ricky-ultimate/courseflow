@@ -156,7 +156,7 @@ export default function AcademicSessionsPage() {
         if (action === "activate" || action === "archive") invalidateActiveSession();
         return true;
       }
-      toast({ title: (res as any).error || "Action failed", variant: "destructive" });
+      toast({ title: res.error || "Action failed", variant: "destructive" });
       return false;
     } catch { toast({ title: "Action failed", variant: "destructive" }); return false; }
     finally { setActionLoading(false); }

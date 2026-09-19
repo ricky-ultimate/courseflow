@@ -31,13 +31,7 @@ export function CourseAliasPanel({
     setLoading(true);
     try {
       const res = await apiClient.getCourseAliasesForCourse(courseCode);
-      if (res.success && Array.isArray(res.data)) {
-        setAliases(res.data as CourseAlias[]);
-      } else if (res.success && (res.data as any)?.data) {
-        setAliases((res.data as any).data as CourseAlias[]);
-      } else {
-        setAliases([]);
-      }
+      setAliases(res.success && Array.isArray(res.data) ? res.data : []);
     } catch {
       setAliases([]);
     } finally {
@@ -84,7 +78,7 @@ export function CourseAliasPanel({
         fetchAliases();
       } else {
         toast({
-          title: (res as any).error ?? "Failed",
+          title: res.error ?? "Failed",
           variant: "destructive",
         });
       }

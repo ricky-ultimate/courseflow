@@ -82,10 +82,18 @@ export default function ProfilePage() {
       if (response.success) {
         setPasswordResetSent(true);
       } else {
-        toast({ title: "Error", description: response.error || "Failed to send reset link", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: response.error || "Failed to send reset link",
+          variant: "destructive",
+        });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to send reset link", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to send reset link",
+        variant: "destructive",
+      });
     }
   };
 
@@ -102,8 +110,12 @@ export default function ProfilePage() {
           >
             {getInitials(user.name, user.email)}
           </div>
-          <p className="text-[22px] font-bold mt-4">{user.name || user.email}</p>
-          <Badge variant="secondary" className="mt-2">{user.role}</Badge>
+          <p className="text-[22px] font-bold mt-4">
+            {user.name || user.email}
+          </p>
+          <Badge variant="secondary" className="mt-2">
+            {user.role}
+          </Badge>
           <p className="text-sm text-gray-500 mt-2">{user.email}</p>
         </div>
       </Card>
@@ -114,7 +126,10 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="p-0">
           <Form {...form}>
-            <form onSubmit={handleSave} className={`space-y-4 transition-opacity ${saving ? "opacity-60" : ""}`}>
+            <form
+              onSubmit={handleSave}
+              className={`space-y-4 transition-opacity ${saving ? "opacity-60" : ""}`}
+            >
               {serverError && <ServerErrorBanner message={serverError} />}
               <FormField
                 control={form.control}
@@ -131,7 +146,10 @@ export default function ProfilePage() {
               />
               <div className="space-y-2">
                 <FormLabel>Email</FormLabel>
-                <div className="flex items-center gap-2" title="Email cannot be changed here.">
+                <div
+                  className="flex items-center gap-2"
+                  title="Email cannot be changed here."
+                >
                   <Lock className="h-4 w-4 text-gray-400 shrink-0" />
                   <span className="text-sm text-gray-500">{user.email}</span>
                 </div>
@@ -150,8 +168,16 @@ export default function ProfilePage() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={saving} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Save Changes"
+                  )}
                 </Button>
               </div>
             </form>
@@ -162,13 +188,21 @@ export default function ProfilePage() {
       <Card className="rounded-xl border mt-4 p-6">
         <CardHeader className="p-0 pb-4">
           <CardTitle>Change Password</CardTitle>
-          <p className="text-sm text-gray-500 mt-1">We&apos;ll send a reset link to your email address.</p>
+          <p className="text-sm text-gray-500 mt-1">
+            We&apos;ll send a reset link to your email address.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           {passwordResetSent ? (
-            <p className="text-sm text-green-600">A password reset link has been sent to {user.email}.</p>
+            <p className="text-sm text-green-600">
+              A password reset link has been sent to {user.email}.
+            </p>
           ) : (
-            <Button variant="outline" onClick={handlePasswordReset} className="w-full md:w-auto">
+            <Button
+              variant="outline"
+              onClick={handlePasswordReset}
+              className="w-full md:w-auto"
+            >
               Send Reset Link
             </Button>
           )}
@@ -180,10 +214,26 @@ export default function ProfilePage() {
           <CardTitle>Account Details</CardTitle>
         </CardHeader>
         <CardContent className="p-0 space-y-2 text-sm">
-          <p><span className="text-gray-500">Department:</span> {user.departmentCode || "—"}</p>
-          <p><span className="text-gray-500">Matric/Staff No:</span> {user.matricNO}</p>
-          <p><span className="text-gray-500">Account created:</span> {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}</p>
-          <p><span className="text-gray-500">Last login:</span> {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "Never"}</p>
+          <p>
+            <span className="text-gray-500">Department:</span>{" "}
+            {user.departmentCode || "—"}
+          </p>
+          <p>
+            <span className="text-gray-500">Matric/Staff No:</span>{" "}
+            {user.matricNO}
+          </p>
+          <p>
+            <span className="text-gray-500">Account created:</span>{" "}
+            {user.createdAt
+              ? new Date(user.createdAt).toLocaleDateString()
+              : "—"}
+          </p>
+          {user.lastLoginAt && (
+            <p>
+              <span className="text-gray-500">Last login:</span>{" "}
+              {new Date(user.lastLoginAt).toLocaleString()}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -48,8 +48,7 @@ export function useComplaints(
         );
       } else {
         const res = await apiClient.getMyComplaints();
-        const data = (res as any)?.data;
-        setComplaints(Array.isArray(data) ? data : (data?.data ?? []));
+        setComplaints(res.success && Array.isArray(res.data) ? res.data : []);
       }
     } catch {
       setFetchError("Failed to load complaints");
