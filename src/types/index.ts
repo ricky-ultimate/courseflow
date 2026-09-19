@@ -1,28 +1,26 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   timestamp?: string;
   error?: string;
+  errorCode?: string;
   statusCode?: number;
 }
 
-export interface PaginatedResponse<T> {
-  success: boolean;
-  data: {
-    items: T[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-  };
+export interface PageResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
-export interface ArrayResponse<T> extends ApiResponse<T[]> {}
+export type ListResult<T> = PageResult<T> | T[];
+
+export interface MessageResponse {
+  message: string;
+}
 
 export enum Role {
   STUDENT = "STUDENT",
@@ -123,16 +121,28 @@ export type Lecturer = User & {
   departmentCode: string;
 };
 
+export type CurrentUser = Omit<User, "isActive" | "department"> & {
+  isActive?: boolean;
+  department?: Pick<Department, "name" | "code"> | null;
+};
+
+export interface AuthUser extends Pick<User, "id" | "email" | "name" | "role"> {
+  matricNO?: string;
+  departmentCode?: string | null;
+  collegeCode?: College | null;
+  createdAt?: string;
+}
+
 export interface AuthResponse {
-  user: Pick<User, "id" | "email" | "name" | "role">;
+  user: AuthUser;
   access_token: string;
   token_type: string;
 }
-
 export interface Department {
   id: string;
   name: string;
   code: string;
+  courses?: Course[];
   description?: string | null;
   college: College;
   hodId?: string | null;
@@ -151,6 +161,7 @@ export interface Course {
   level: Level;
   credits: number;
   semester: Semester;
+  aliasWarnings?: string[];
   departmentCode: string;
   department?: Department;
   lecturerId?: string | null;
@@ -260,6 +271,7 @@ export interface GenerateExamTimetableResult {
 export interface Complaint {
   id: string;
   userId?: string | null;
+  user?: Pick<User, "id" | "name" | "email"> | null;
   name: string;
   email: string;
   department: string;
@@ -272,15 +284,57 @@ export interface Complaint {
   updatedAt: string;
 }
 
+export interface ScheduleAssignment {
+  courseCode: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  semester: Semester;
+  sessionType?: SessionType;
+}
+
+export interface UnscheduledCourse {
+  courseCode: string;
+  courseName: string;
+  departmentCode: string;
+  level: Level;
+  semester: Semester;
+  reason: string;
+}
+
+export interface DepartmentSchedulingError {
+  departmentCode: string;
+  message: string;
+}
+
 export interface GenerateScheduleResult {
   sessionId: string;
   sessionName: string;
   semester: Semester;
   departmentCode: string | null;
+  programme: string | null;
+  level: Level | null;
   totalCourses: number;
-  scheduledCourses: number;
+  scheduledCount: number;
+  failedCount: number;
   preservedOverrides: number;
   skippedLockedDepartments: number;
+  scheduledCourses: ScheduleAssignment[];
+  unscheduledCourses: UnscheduledCourse[];
+  success: boolean;
+}
+
+export interface RecommendedSlot {
+  courseCode: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  hasConflict: boolean;
+}
+
+export interface Programme {
+  programme: string;
+  count: number;
 }
 
 export interface SessionStatistics {
@@ -331,7 +385,7 @@ export interface BulkOperationResult<T> {
   errors: Array<{
     row: number;
     field: string;
-    value: any;
+    value: unknown;
     message: string;
   }>;
   aliasWarnings?: string[];
@@ -363,14 +417,15 @@ export interface LoginData {
   password: string;
 }
 
+export type SelfRegistrationRole = Role.STUDENT | Role.LECTURER;
+
 export interface RegisterData {
   matricNO: string;
   email: string;
   password: string;
   name?: string;
-  role?: Role;
-  verificationCode?: string;
-  departmentCode?: string;
+  role?: SelfRegistrationRole;
+  departmentCode: string;
   phone?: string;
 }
 
@@ -423,13 +478,18 @@ export interface BatchGenerateScheduleResult {
   sessionId: string;
   sessionName: string;
   semester: Semester;
+  programme: string | null;
   totalDepartments: number;
   processedDepartments: number;
   skippedLockedDepartments: number;
   totalCourses: number;
-  scheduledCourses: number;
+  scheduledCount: number;
+  failedCount: number;
   preservedOverrides: number;
-  errors: Array<{ departmentCode: string; message: string }>;
+  scheduledCourses: ScheduleAssignment[];
+  unscheduledCourses: UnscheduledCourse[];
+  errors: DepartmentSchedulingError[];
+  success: boolean;
 }
 
 export interface CreateAcademicSessionData {
@@ -519,6 +579,7 @@ export interface ScheduleFilterParams extends QueryParams {
   sessionId?: string;
   dayOfWeek?: DayOfWeek;
   sessionType?: SessionType;
+  programme?: string;
   startTime?: string;
   endTime?: string;
 }
@@ -530,3 +591,92 @@ export interface DepartmentFilterParams extends QueryParams {
 }
 
 export interface ExamFilterParams extends QueryParams {}
+
+export interface LecturerSummary {
+  id: string;
+  name: string | null;
+  email: string;
+  departmentCode: string | null;
+}
+
+export interface LecturerCourses {
+  lecturer: LecturerSummary;
+  courses: Course[];
+}
+
+export interface LecturerSchedule {
+  lecturer: LecturerSummary;
+  activeSession: { id: string; name: string } | null;
+  schedulesByDay: Record<DayOfWeek, Schedule[]>;
+  totalSchedules: number;
+}
+
+export interface HealthMemoryStat {
+  status: "up" | "down";
+  used: number;
+  limit: number;
+}
+
+export interface HealthCheckResult {
+  status: string;
+  info: {
+    database: { status: string };
+    memory_heap: HealthMemoryStat;
+    memory_rss: HealthMemoryStat;
+  };
+  error: Record<string, unknown>;
+  details: Record<string, { status: string }>;
+}
+
+export interface SimpleHealth {
+  status: string;
+  timestamp: string;
+  uptime: number;
+  environment: string;
+  version: string;
+}
+
+export interface DatabaseHealthTables {
+  departments: number;
+  courses: number;
+  schedules: number;
+  users: number;
+}
+
+export interface DatabaseHealth {
+  status: "ok" | "error";
+  database?: {
+    connected: boolean;
+    responseTime: number;
+    tables: DatabaseHealthTables;
+  };
+  error?: string;
+}
+
+export interface ReadinessCheck {
+  status: "ready";
+  checks: { database: boolean; dependencies: boolean };
+}
+
+export interface LivenessCheck {
+  status: "alive";
+  timestamp: string;
+}
+
+export interface AdminDeleteResult {
+  deleted: number;
+}
+
+export interface AdminDeleteAllResult {
+  deleted: Record<string, number>;
+}
+
+export interface AdminSeedResult {
+  created: number;
+  skipped: number;
+}
+
+export interface AdminSeedAllResult {
+  departments: AdminSeedResult;
+  courses: AdminSeedResult;
+}
