@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, AlertTriangle, Database, RefreshCw } from "lucide-react";
+import type { AdminDeleteAllResult, AdminDeleteResult } from "@/types";
 
 type ActionKey =
   | "schedules"
@@ -39,6 +40,17 @@ interface SeedAction {
   key: SeedKey;
   label: string;
   description: string;
+}
+
+function describeDeletion(
+  data: AdminDeleteResult | AdminDeleteAllResult,
+): string {
+  if (typeof data.deleted === "number") {
+    return `${data.deleted} ${data.deleted === 1 ? "record" : "records"} removed.`;
+  }
+  return Object.entries(data.deleted)
+    .map(([name, count]) => `${name}: ${count}`)
+    .join(", ");
 }
 
 const DANGER_ACTIONS: DangerAction[] = [
@@ -67,7 +79,7 @@ const DANGER_ACTIONS: DangerAction[] = [
     key: "courses",
     label: "Delete all courses",
     description:
-      "Permanently deletes every course, along with all linked schedules and exam schedules. This cannot be undone.",
+      "Permanently deletes all departments, courses, schedules, exam schedules, complaints and every non-administrator user (students, lecturers and HODs). Administrator and college administrator accounts and academic sessions are preserved. This cannot be undone.",
     confirmPhrase: "delete all courses",
   },
   {
@@ -143,21 +155,24 @@ export default function SettingsPage() {
     const { action } = confirmState;
     setDangerLoading(action.key);
     try {
-      let res: { success?: boolean; data?: any; error?: string };
-      if (action.key === "schedules")
-        res = await apiClient.deleteAllSchedules();
-      else if (action.key === "exam-schedules")
-        res = await apiClient.deleteAllExamSchedules();
-      else if (action.key === "schedules-except-general")
-        res = await apiClient.deleteAllSchedulesExceptGeneral();
-      else if (action.key === "courses")
-        res = await apiClient.deleteAllCourses();
-      else if (action.key === "departments")
-        res = await apiClient.deleteAllDepartments();
-      else res = await apiClient.deleteAllData();
+      const res =
+        action.key === "schedules"
+          ? await apiClient.deleteAllSchedules()
+          : action.key === "schedules-except-general"
+            ? await apiClient.deleteAllSchedulesExceptGeneral()
+            : action.key === "exam-schedules"
+              ? await apiClient.deleteAllExamSchedules()
+              : action.key === "courses"
+                ? await apiClient.deleteAllCourses()
+                : action.key === "departments"
+                  ? await apiClient.deleteAllDepartments()
+                  : await apiClient.deleteAllData();
 
-      if (res.success) {
-        toast({ title: `${action.label} completed successfully.` });
+      if (res.success && res.data) {
+        toast({
+          title: `${action.label} completed. ${describeDeletion(res.data)}`,
+          variant: "success",
+        });
         setConfirmState(null);
       } else {
         toast({
@@ -176,24 +191,31 @@ export default function SettingsPage() {
     setSeedLoading(seedAction.key);
     setSeedResults((prev) => ({ ...prev, [seedAction.key]: "" }));
     try {
-      let res: { success?: boolean; data?: any; error?: string };
-      if (seedAction.key === "departments")
-        res = await apiClient.seedDepartments();
-      else if (seedAction.key === "courses")
-        res = await apiClient.seedCourses();
-      else res = await apiClient.seedAll();
-
-      if (res.success && res.data) {
-        const data = res.data as any;
-        if (seedAction.key === "all") {
-          const summary = `Departments: ${data.departments.created} created, ${data.departments.skipped} skipped. Courses: ${data.courses.created} created, ${data.courses.skipped} skipped.`;
-          setSeedResults((prev) => ({ ...prev, [seedAction.key]: summary }));
-          toast({ title: "Seed completed." });
+      if (seedAction.key === "all") {
+        const res = await apiClient.seedAll();
+        if (res.success && res.data) {
+          const { departments, courses } = res.data;
+          setSeedResults((prev) => ({
+            ...prev,
+            all: `Departments: ${departments.created} created, ${departments.skipped} skipped. Courses: ${courses.created} created, ${courses.skipped} skipped.`,
+          }));
+          toast({ title: "Seed completed.", variant: "success" });
         } else {
-          const summary = `${data.created} created, ${data.skipped} skipped.`;
-          setSeedResults((prev) => ({ ...prev, [seedAction.key]: summary }));
-          toast({ title: `${seedAction.label} completed.` });
+          toast({ title: res.error ?? "Seed failed", variant: "destructive" });
         }
+        return;
+      }
+
+      const res =
+        seedAction.key === "departments"
+          ? await apiClient.seedDepartments()
+          : await apiClient.seedCourses();
+      if (res.success && res.data) {
+        setSeedResults((prev) => ({
+          ...prev,
+          [seedAction.key]: `${res.data?.created} created, ${res.data?.skipped} skipped.`,
+        }));
+        toast({ title: `${seedAction.label} completed.`, variant: "success" });
       } else {
         toast({ title: res.error ?? "Seed failed", variant: "destructive" });
       }
