@@ -42,7 +42,7 @@ const registerSchema = z
       .min(1, "Password is required")
       .min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    role: z.nativeEnum(Role),
+    role: z.union([z.literal(Role.STUDENT), z.literal(Role.LECTURER)]),
     departmentCode: z.string(),
     phone: z.string(),
   })
@@ -51,7 +51,7 @@ const registerSchema = z
     path: ["confirmPassword"],
   })
   .superRefine((data, ctx) => {
-    if (data.role !== Role.ADMIN && !data.departmentCode?.trim()) {
+    if (!data.departmentCode?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Please select your department",
@@ -90,8 +90,7 @@ export default function RegisterPage() {
   });
 
   const role = form.watch("role");
-  const needsDepartment = role !== Role.ADMIN;
-  const needsPhone = role === Role.LECTURER || role === Role.HOD;
+  const needsPhone = role === Role.LECTURER;
 
   const fetchDepartments = async () => {
     setDeptError(null);
@@ -112,9 +111,6 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
-    if (role === Role.ADMIN) {
-      form.setValue("departmentCode", "");
-    }
     form.setValue("phone", "");
   }, [role, form]);
 
@@ -128,7 +124,7 @@ export default function RegisterPage() {
         password: data.password,
         name: data.name.trim() || undefined,
         role: data.role,
-        departmentCode: needsDepartment ? data.departmentCode : undefined,
+        departmentCode: data.departmentCode,
         phone: data.phone.trim() || undefined,
       };
       const result = await register(payload);
@@ -287,8 +283,6 @@ export default function RegisterPage() {
                   <SelectContent>
                     <SelectItem value={Role.STUDENT}>Student</SelectItem>
                     <SelectItem value={Role.LECTURER}>Lecturer</SelectItem>
-                    <SelectItem value={Role.HOD}>HOD</SelectItem>
-                    <SelectItem value={Role.ADMIN}>Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -296,76 +290,69 @@ export default function RegisterPage() {
             )}
           />
 
-          <div
-            className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-            style={{ gridTemplateRows: needsDepartment ? "1fr" : "0fr" }}
-          >
-            <div className="overflow-hidden">
-              <FormField
-                control={form.control}
-                name="departmentCode"
-                render={({ field }) => (
-                  <FormItem className="pt-0">
-                    <FormLabel>Department *</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(v) => {
-                        if (v === "__retry__") {
-                          fetchDepartments();
-                          return;
-                        }
-                        field.onChange(v);
-                      }}
-                      disabled={deptLoading || isLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="text-base min-h-[44px]">
-                          {deptLoading ? (
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                              Loading departments…
-                            </span>
-                          ) : (
-                            <SelectValue
-                              placeholder={
-                                deptError
-                                  ? "Failed to load departments. Retry."
-                                  : "Select department..."
-                              }
-                            />
-                          )}
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {deptLoading ? (
-                          <SelectItem value="__loading__" disabled>
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                              Loading departments…
-                            </span>
-                          </SelectItem>
-                        ) : deptError ? (
-                          <SelectItem
-                            value="__retry__"
-                            className="text-indigo-600 font-medium cursor-pointer"
-                          >
-                            Failed to load departments. Retry.
-                          </SelectItem>
-                        ) : (
-                          departments.map((d) => (
-                            <SelectItem key={d.code} value={d.code}>
-                              {d.name} ({d.code})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+          <FormField
+            control={form.control}
+            name="departmentCode"
+            render={({ field }) => (
+              <FormItem className="pt-0">
+                <FormLabel>Department *</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(v) => {
+                    if (v === "__retry__") {
+                      fetchDepartments();
+                      return;
+                    }
+                    field.onChange(v);
+                  }}
+                  disabled={deptLoading || isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger className="text-base min-h-[44px]">
+                      {deptLoading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                          Loading departments…
+                        </span>
+                      ) : (
+                        <SelectValue
+                          placeholder={
+                            deptError
+                              ? "Failed to load departments. Retry."
+                              : "Select department..."
+                          }
+                        />
+                      )}
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {deptLoading ? (
+                      <SelectItem value="__loading__" disabled>
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                          Loading departments…
+                        </span>
+                      </SelectItem>
+                    ) : deptError ? (
+                      <SelectItem
+                        value="__retry__"
+                        className="text-indigo-600 font-medium cursor-pointer"
+                      >
+                        Failed to load departments. Retry.
+                      </SelectItem>
+                    ) : (
+                      departments.map((d) => (
+                        <SelectItem key={d.code} value={d.code}>
+                          {d.name} ({d.code})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div
             className="grid transition-[grid-template-rows] duration-300 ease-in-out"

@@ -9,17 +9,26 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { User, AuthResponse, LoginData, RegisterData, Role } from "@/types";
+import {
+  AuthResponse,
+  CurrentUser,
+  LoginData,
+  RegisterData,
+  Role,
+} from "@/types";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: CurrentUser | null;
   loading: boolean;
-  login: (data: LoginData) => Promise<{ success: boolean; error?: string }>;
-  register: (
-    data: RegisterData,
-  ) => Promise<{ success: boolean; error?: string }>;
+  login: (data: LoginData) => Promise<AuthResult>;
+  register: (data: RegisterData) => Promise<AuthResult>;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -51,10 +60,15 @@ function isAuthPath(pathname: string): boolean {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+
+  const persistUser = useCallback((next: CurrentUser) => {
+    setUser(next);
+    localStorage.setItem("user", JSON.stringify(next));
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -70,9 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isPublicPath(currentPath) || isAuthPath(currentPath)) return;
       setUser(null);
       apiClient.setToken(null);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("user");
-      }
+      localStorage.removeItem("user");
       toast({
         title: "Your session has expired. Please sign in again.",
         variant: "warning",
@@ -90,51 +102,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           try {
-            const parsedUser = JSON.parse(storedUser) as User;
+            const parsedUser = JSON.parse(storedUser) as CurrentUser;
             if (parsedUser && parsedUser.id) {
               setUser(parsedUser);
             }
-          } catch {}
+          } catch {
+            localStorage.removeItem("user");
+          }
         }
         try {
           const response = await apiClient.getCurrentUserSilent();
-          let userData: User | null = null;
-          if (response.success && response.data != null) {
-            const raw = response.data as { user?: User } | User;
-            userData = (raw as { user?: User }).user ?? (raw as User);
-            if (userData && "id" in userData) {
-              setUser(userData);
-              localStorage.setItem("user", JSON.stringify(userData));
-            } else {
-              if (!storedUser) {
-                logout();
-              }
-            }
-          }
-        } catch {
-          if (!storedUser) {
+          if (response.success && response.data) {
+            persistUser(response.data);
+          } else if (response.statusCode === 401 || !storedUser) {
             logout();
           }
+        } catch {
+          if (!storedUser) logout();
         }
       }
       setLoading(false);
     };
 
     validateToken();
-  }, [logout]);
+  }, [logout, persistUser]);
 
-  const login = async (
-    data: LoginData,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const completeAuthentication = async (auth: AuthResponse): Promise<void> => {
+    apiClient.setToken(auth.access_token);
+    const profile = await apiClient.getCurrentUserSilent();
+    persistUser(
+      profile.success && profile.data
+        ? profile.data
+        : (auth.user as CurrentUser),
+    );
+  };
+
+  const login = async (data: LoginData): Promise<AuthResult> => {
     try {
       setLoading(true);
       const response = await apiClient.login(data.email, data.password);
       if (response.success && response.data) {
-        const authData = response.data as AuthResponse;
-        const userData = authData.user as User;
-        setUser(userData);
-        apiClient.setToken(authData.access_token);
-        localStorage.setItem("user", JSON.stringify(userData));
+        await completeAuthentication(response.data);
         return { success: true };
       }
       return { success: false, error: response.error || "Invalid credentials" };
@@ -145,18 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (
-    data: RegisterData,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const register = async (data: RegisterData): Promise<AuthResult> => {
     try {
       setLoading(true);
       const response = await apiClient.register(data);
       if (response.success && response.data) {
-        const authData = response.data as AuthResponse;
-        const userData = authData.user as User;
-        setUser(userData);
-        apiClient.setToken(authData.access_token);
-        localStorage.setItem("user", JSON.stringify(userData));
+        await completeAuthentication(response.data);
         return { success: true };
       }
       return { success: false, error: response.error || "Registration failed" };
