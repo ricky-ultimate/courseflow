@@ -3,6 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Building2, BookOpen, Clock, Users } from "lucide-react";
+import type {
+  DatabaseHealth,
+  DatabaseHealthTables,
+  HealthCheckResult,
+  LivenessCheck,
+  ReadinessCheck,
+} from "@/types";
 
 function bytesToMb(bytes: number): number {
   return Math.round(bytes / 1024 / 1024);
@@ -17,8 +24,8 @@ function MemBar({ used, limit }: { used: number; limit: number }) {
     pct < 70
       ? "bg-green-100 text-green-700"
       : pct < 90
-      ? "bg-amber-100 text-amber-700"
-      : "bg-red-100 text-red-700";
+        ? "bg-amber-100 text-amber-700"
+        : "bg-red-100 text-red-700";
 
   return (
     <>
@@ -29,7 +36,9 @@ function MemBar({ used, limit }: { used: number; limit: number }) {
         />
       </div>
       <div className="flex justify-between items-center mt-1">
-        <Badge variant="secondary" className={badgeColor}>{label}</Badge>
+        <Badge variant="secondary" className={badgeColor}>
+          {label}
+        </Badge>
         <span className="text-[13px] text-gray-500">
           {bytesToMb(used)} / {bytesToMb(limit)} MB
         </span>
@@ -39,20 +48,27 @@ function MemBar({ used, limit }: { used: number; limit: number }) {
 }
 
 interface MemoryPanelProps {
-  info: any;
+  info: HealthCheckResult["info"] | undefined;
   healthError: string | null;
   onRetry: () => void;
 }
 
-export function MemoryUsagePanel({ info, healthError, onRetry }: MemoryPanelProps) {
-  const memHeap = info?.memory?.heap ?? info?.heap;
-  const memRss = info?.memory?.rss ?? info?.rss;
+export function MemoryUsagePanel({
+  info,
+  healthError,
+  onRetry,
+}: MemoryPanelProps) {
+  const memHeap = info?.memory_heap;
+  const memRss = info?.memory_rss;
 
   return (
     <Card className="rounded-xl border p-5">
       <h3 className="text-base font-semibold mb-4">Memory Usage</h3>
       {healthError && !info ? (
-        <button onClick={onRetry} className="text-[13px] text-indigo-600 hover:underline">
+        <button
+          onClick={onRetry}
+          className="text-[13px] text-indigo-600 hover:underline"
+        >
           Failed to fetch — Retry
         </button>
       ) : (
@@ -80,29 +96,42 @@ export function MemoryUsagePanel({ info, healthError, onRetry }: MemoryPanelProp
 }
 
 interface DatabaseRecordsPanelProps {
-  db: any;
+  db: DatabaseHealth | null;
   dbError: string | null;
   onRetry: () => void;
 }
 
-export function DatabaseRecordsPanel({ db, dbError, onRetry }: DatabaseRecordsPanelProps) {
-  const tables = db?.database?.tables ?? db?.tables;
+const DATABASE_ROWS: Array<{
+  icon: typeof Building2;
+  label: string;
+  key: keyof DatabaseHealthTables;
+}> = [
+  { icon: Building2, label: "Departments", key: "departments" },
+  { icon: BookOpen, label: "Courses", key: "courses" },
+  { icon: Clock, label: "Schedules", key: "schedules" },
+  { icon: Users, label: "Users", key: "users" },
+];
+
+export function DatabaseRecordsPanel({
+  db,
+  dbError,
+  onRetry,
+}: DatabaseRecordsPanelProps) {
+  const tables = db?.database?.tables;
 
   return (
     <Card className="rounded-xl border p-5">
       <h3 className="text-base font-semibold mb-4">Database Records</h3>
       {dbError && !tables ? (
-        <button onClick={onRetry} className="text-[13px] text-indigo-600 hover:underline">
+        <button
+          onClick={onRetry}
+          className="text-[13px] text-indigo-600 hover:underline"
+        >
           Failed to fetch — Retry
         </button>
       ) : tables ? (
         <div className="space-y-3">
-          {[
-            { icon: Building2, label: "Departments", key: "departments" },
-            { icon: BookOpen, label: "Courses", key: "courses" },
-            { icon: Clock, label: "Schedules", key: "schedules" },
-            { icon: Users, label: "Users", key: "users" },
-          ].map(({ icon: Icon, label, key }) => (
+          {DATABASE_ROWS.map(({ icon: Icon, label, key }) => (
             <div key={key} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Icon className="h-4 w-4 text-gray-500" />
@@ -122,8 +151,8 @@ export function DatabaseRecordsPanel({ db, dbError, onRetry }: DatabaseRecordsPa
 }
 
 interface ProbeStatusPanelProps {
-  readiness: any;
-  liveness: any;
+  readiness: ReadinessCheck | null;
+  liveness: LivenessCheck | null;
   readinessError: string | null;
   livenessError: string | null;
   onRetryReadiness: () => void;
@@ -133,15 +162,25 @@ interface ProbeStatusPanelProps {
 function formatTimestamp(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-GB", {
-      day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
-  } catch { return "—"; }
+  } catch {
+    return "—";
+  }
 }
 
 export function ProbeStatusPanel({
-  readiness, liveness, readinessError, livenessError,
-  onRetryReadiness, onRetryLiveness,
+  readiness,
+  liveness,
+  readinessError,
+  livenessError,
+  onRetryReadiness,
+  onRetryLiveness,
 }: ProbeStatusPanelProps) {
   return (
     <Card className="rounded-xl border p-5">
@@ -150,16 +189,21 @@ export function ProbeStatusPanel({
         <div className="flex-1">
           <p className="text-sm font-medium mb-1">Readiness</p>
           {readinessError ? (
-            <button onClick={onRetryReadiness} className="text-[13px] text-indigo-600 hover:underline">
+            <button
+              onClick={onRetryReadiness}
+              className="text-[13px] text-indigo-600 hover:underline"
+            >
               Failed to fetch — Retry
             </button>
           ) : (
             <>
-              <Badge className={
-                readiness?.status === "ready"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }>
+              <Badge
+                className={
+                  readiness?.status === "ready"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }
+              >
                 {readiness?.status === "ready" ? "Ready" : "Not Ready"}
               </Badge>
               <p className="text-[13px] text-gray-500 mt-1">
@@ -171,16 +215,21 @@ export function ProbeStatusPanel({
         <div className="flex-1">
           <p className="text-sm font-medium mb-1">Liveness</p>
           {livenessError ? (
-            <button onClick={onRetryLiveness} className="text-[13px] text-indigo-600 hover:underline">
+            <button
+              onClick={onRetryLiveness}
+              className="text-[13px] text-indigo-600 hover:underline"
+            >
               Failed to fetch — Retry
             </button>
           ) : (
             <>
-              <Badge className={
-                liveness?.status === "alive"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }>
+              <Badge
+                className={
+                  liveness?.status === "alive"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }
+              >
                 {liveness?.status === "alive" ? "Alive" : "Dead"}
               </Badge>
               <p className="text-[13px] text-gray-500 mt-1">

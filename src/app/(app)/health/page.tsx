@@ -13,6 +13,15 @@ import {
   DatabaseRecordsPanel,
   ProbeStatusPanel,
 } from "@/components/health/health-detail-panels";
+import type {
+  DatabaseHealth,
+  HealthCheckResult,
+  LivenessCheck,
+  ReadinessCheck,
+  SimpleHealth,
+} from "@/types";
+
+const AUTO_REFRESH_MS = 30000;
 
 export default function HealthPage() {
   const { isAdmin } = useAuth();
@@ -24,132 +33,122 @@ export default function HealthPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [simple, setSimple] = useState<any>(null);
+  const [simple, setSimple] = useState<SimpleHealth | null>(null);
   const [simpleError, setSimpleError] = useState<string | null>(null);
-  const [health, setHealth] = useState<any>(null);
+  const [health, setHealth] = useState<HealthCheckResult | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [health503, setHealth503] = useState(false);
   const [healthDbMessage, setHealthDbMessage] = useState<string | null>(null);
-  const [db, setDb] = useState<any>(null);
+  const [db, setDb] = useState<DatabaseHealth | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [readiness, setReadiness] = useState<any>(null);
+  const [readiness, setReadiness] = useState<ReadinessCheck | null>(null);
   const [readinessError, setReadinessError] = useState<string | null>(null);
-  const [liveness, setLiveness] = useState<any>(null);
+  const [liveness, setLiveness] = useState<LivenessCheck | null>(null);
   const [livenessError, setLivenessError] = useState<string | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setSimpleError(null);
-    setHealthError(null);
-    setDbError(null);
-    setReadinessError(null);
-    setLivenessError(null);
-    setHealth503(false);
-    setHealthDbMessage(null);
-
-    const results = await Promise.allSettled([
-      apiClient.simpleHealthCheck(),
-      apiClient.healthCheck(),
-      apiClient.databaseHealthCheck(),
-      apiClient.readinessCheck(),
-      apiClient.livenessCheck(),
-    ]);
-    const [s, h, d, r, l] = results;
-
-    if (s.status === "fulfilled") {
-      s.value.success ? setSimple(s.value.data) : setSimpleError("Request failed");
-    } else setSimpleError("Failed to fetch");
-
-    if (h.status === "fulfilled") {
-      const res = h.value as any;
-      if (res.statusCode === 503) {
-        setHealth503(true);
-        setHealthDbMessage(res.error?.database?.message ?? "Database unavailable");
-      }
-      if (res.success && res.data) setHealth(res.data);
-      else if (!res.success) setHealthError(res.error?.database?.message ?? "Request failed");
-    } else setHealthError("Failed to fetch");
-
-    if (d.status === "fulfilled") {
-      d.value.success ? setDb(d.value.data) : setDbError((d.value as any).error?.database?.message ?? "Request failed");
-    } else setDbError("Failed to fetch");
-
-    if (r.status === "fulfilled") {
-      r.value.success ? setReadiness(r.value.data) : setReadinessError("Request failed");
-    } else setReadinessError("Failed to fetch");
-
-    if (l.status === "fulfilled") {
-      l.value.success ? setLiveness(l.value.data) : setLivenessError("Request failed");
-    } else setLivenessError("Failed to fetch");
-
-    setLastChecked(new Date());
-    setSecondsAgo(0);
-    setLoading(false);
-  }, []);
-
   const fetchSimple = useCallback(async () => {
-    setSimpleError(null);
-    try {
-      const s = await apiClient.simpleHealthCheck();
-      s.success ? setSimple(s.data) : setSimpleError("Request failed");
-    } catch { setSimpleError("Failed to fetch"); }
-  }, []);
-
-  const fetchDb = useCallback(async () => {
-    setDbError(null);
-    setHealth503(false);
-    try {
-      const d = await apiClient.databaseHealthCheck();
-      d.success ? setDb(d.data) : setDbError((d as any).error?.database?.message ?? "Request failed");
-    } catch { setDbError("Failed to fetch"); }
+    const res = await apiClient.simpleHealthCheck();
+    if (res.success && res.data) {
+      setSimple(res.data);
+      setSimpleError(null);
+      return;
+    }
+    setSimple(null);
+    setSimpleError(res.error ?? "Request failed");
   }, []);
 
   const fetchHealth = useCallback(async () => {
-    setHealthError(null);
-    try {
-      const h = await apiClient.healthCheck();
-      const res = h as any;
-      if (res.statusCode === 503) setHealth503(true);
-      if (res.success && res.data) setHealth(res.data);
-      else setHealthError(res.error?.database?.message ?? "Request failed");
-    } catch { setHealthError("Failed to fetch"); }
+    const res = await apiClient.healthCheck();
+    if (res.success && res.data) {
+      setHealth(res.data);
+      setHealthError(null);
+      setHealth503(false);
+      setHealthDbMessage(null);
+      return;
+    }
+    setHealth(null);
+    setHealthError(res.error ?? "Request failed");
+    if (res.statusCode === 503) {
+      setHealth503(true);
+      setHealthDbMessage(res.error ?? "Database unavailable");
+    }
+  }, []);
+
+  const fetchDb = useCallback(async () => {
+    const res = await apiClient.databaseHealthCheck();
+    if (res.success && res.data) {
+      if (res.data.status === "ok") {
+        setDb(res.data);
+        setDbError(null);
+      } else {
+        setDb(null);
+        setDbError(res.data.error ?? "Database connection failed");
+      }
+      return;
+    }
+    setDb(null);
+    setDbError(res.error ?? "Request failed");
   }, []);
 
   const fetchReadiness = useCallback(async () => {
-    setReadinessError(null);
-    try {
-      const r = await apiClient.readinessCheck();
-      r.success ? setReadiness(r.data) : setReadinessError("Request failed");
-    } catch { setReadinessError("Failed to fetch"); }
+    const res = await apiClient.readinessCheck();
+    if (res.success && res.data) {
+      setReadiness(res.data);
+      setReadinessError(null);
+      return;
+    }
+    setReadiness(null);
+    setReadinessError(res.error ?? "Request failed");
   }, []);
 
   const fetchLiveness = useCallback(async () => {
-    setLivenessError(null);
-    try {
-      const l = await apiClient.livenessCheck();
-      l.success ? setLiveness(l.data) : setLivenessError("Request failed");
-    } catch { setLivenessError("Failed to fetch"); }
+    const res = await apiClient.livenessCheck();
+    if (res.success && res.data) {
+      setLiveness(res.data);
+      setLivenessError(null);
+      return;
+    }
+    setLiveness(null);
+    setLivenessError(res.error ?? "Request failed");
   }, []);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchSimple(),
+      fetchHealth(),
+      fetchDb(),
+      fetchReadiness(),
+      fetchLiveness(),
+    ]);
+    setLastChecked(new Date());
+    setSecondsAgo(0);
+    setLoading(false);
+  }, [fetchSimple, fetchHealth, fetchDb, fetchReadiness, fetchLiveness]);
 
   const handleRefresh = useCallback(() => {
     fetchAll();
     if (autoRefreshRef.current) {
       clearInterval(autoRefreshRef.current);
-      autoRefreshRef.current = setInterval(fetchAll, 30000);
+      autoRefreshRef.current = setInterval(fetchAll, AUTO_REFRESH_MS);
     }
   }, [fetchAll]);
 
   useEffect(() => {
     if (!isAdmin) return;
     fetchAll();
-    autoRefreshRef.current = setInterval(fetchAll, 30000);
-    return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+    autoRefreshRef.current = setInterval(fetchAll, AUTO_REFRESH_MS);
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
   }, [isAdmin, fetchAll]);
 
   useEffect(() => {
     if (!lastChecked) return;
     intervalRef.current = setInterval(() => setSecondsAgo((p) => p + 1), 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [lastChecked]);
 
   if (!isAdmin) {
@@ -162,7 +161,8 @@ export default function HealthPage() {
   }
 
   const hasAnyData = simple || db || health || readiness || liveness;
-  const hasInitialError = !hasAnyData && (simpleError || healthError || dbError);
+  const hasInitialError =
+    !hasAnyData && (simpleError || healthError || dbError);
 
   if (hasInitialError) {
     return (
@@ -191,12 +191,7 @@ export default function HealthPage() {
   }
 
   const isDegraded =
-    !health ||
-    (health as any).info?.database?.status !== "up" ||
-    health503 ||
-    dbError;
-
-  const info = (health as any)?.info;
+    !health || health.info.database.status !== "up" || health503 || !!dbError;
 
   return (
     <div className="space-y-3 md:space-y-6 mt-6">
@@ -206,18 +201,28 @@ export default function HealthPage() {
           <span className="text-[13px] text-gray-500">
             Last checked: {lastChecked ? `${secondsAgo}s ago` : "—"}
           </span>
-          <Button variant="outline" size="default" className="h-10" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="default"
+            className="h-10"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
       </div>
 
-      <div className={`rounded-xl border p-4 px-5 flex items-center gap-3 ${
-        isDegraded
-          ? "bg-red-50 border-red-500 border-l-4"
-          : "bg-green-50 border-green-700 border-l-4"
-      }`}>
+      <div
+        className={`rounded-xl border p-4 px-5 flex items-center gap-3 ${
+          isDegraded
+            ? "bg-red-50 border-red-500 border-l-4"
+            : "bg-green-50 border-green-700 border-l-4"
+        }`}
+      >
         {isDegraded ? (
           <>
             <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
@@ -228,7 +233,9 @@ export default function HealthPage() {
         ) : (
           <>
             <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-            <span className="font-medium text-green-800">All systems operational</span>
+            <span className="font-medium text-green-800">
+              All systems operational
+            </span>
           </>
         )}
       </div>
@@ -246,15 +253,11 @@ export default function HealthPage() {
 
       <div className="grid gap-3 md:grid-cols-2 md:gap-4">
         <MemoryUsagePanel
-          info={info}
+          info={health?.info}
           healthError={healthError}
           onRetry={fetchHealth}
         />
-        <DatabaseRecordsPanel
-          db={db}
-          dbError={dbError}
-          onRetry={fetchDb}
-        />
+        <DatabaseRecordsPanel db={db} dbError={dbError} onRetry={fetchDb} />
       </div>
 
       <ProbeStatusPanel
