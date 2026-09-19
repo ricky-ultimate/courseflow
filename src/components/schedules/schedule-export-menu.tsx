@@ -17,7 +17,16 @@ import {
   exportAsCSV,
   exportAsPNG,
 } from "@/lib/schedule-export";
-import { Schedule } from "@/types";
+import {
+  DayOfWeek,
+  Level,
+  Schedule,
+  ScheduleFilterParams,
+  Semester,
+  SessionType,
+} from "@/types";
+
+const EXPORT_PAGE_SIZE = 1000;
 
 interface ScheduleExportMenuProps {
   filters: {
@@ -42,7 +51,7 @@ export function ScheduleExportMenu({
 
   const fetchAllSchedulesForExport = async (): Promise<Schedule[]> => {
     try {
-      const params: Record<string, unknown> = { page: 1, limit: 10000 };
+      const params: ScheduleFilterParams = {};
       if (filters.departmentCode && filters.departmentCode !== "all")
         params.departmentCode = filters.departmentCode;
       if (
@@ -52,18 +61,32 @@ export function ScheduleExportMenu({
       )
         params.programme = filters.programme;
       if (filters.level && filters.level !== "all")
-        params.level = filters.level;
-      if (filters.day && filters.day !== "all") params.dayOfWeek = filters.day;
-      if (filters.searchTerm) params.searchTerm = filters.searchTerm;
+        params.level = filters.level as Level;
+      if (filters.day && filters.day !== "all")
+        params.dayOfWeek = filters.day as DayOfWeek;
       if (filters.sessionId) params.sessionId = filters.sessionId;
       if (filters.semester && filters.semester !== "all")
-        params.semester = filters.semester;
+        params.semester = filters.semester as Semester;
       if (filters.sessionType && filters.sessionType !== "all")
-        params.sessionType = filters.sessionType;
+        params.sessionType = filters.sessionType as SessionType;
 
-      const response = await apiClient.getSchedules(params);
-      const result = getItemsFromResponse<Schedule>(response);
-      let allSchedules = result?.items ?? [];
+      let allSchedules: Schedule[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const response = await apiClient.getSchedules({
+          ...params,
+          page,
+          limit: EXPORT_PAGE_SIZE,
+        });
+        const result = getItemsFromResponse<Schedule>(response);
+        if (!result) {
+          throw new Error(response.error ?? "Failed to fetch schedules");
+        }
+        allSchedules = allSchedules.concat(result.items);
+        totalPages = result.totalPages;
+        page += 1;
+      } while (page <= totalPages);
 
       if (filters.lecturerId) {
         allSchedules = allSchedules.filter(
