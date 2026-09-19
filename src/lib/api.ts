@@ -1,27 +1,64 @@
-import {
+import type {
+  AcademicSession,
+  AdminDeleteAllResult,
+  AdminDeleteResult,
+  AdminSeedAllResult,
+  AdminSeedResult,
   ApiResponse,
-  CreateAcademicSessionData,
-  UpdateAcademicSessionData,
-  CreateExamData,
-  UpdateExamData,
-  CreateDepartmentData,
-  UpdateDepartmentData,
-  CreateCourseData,
-  UpdateCourseData,
-  CreateScheduleData,
-  UpdateScheduleData,
-  GenerateScheduleData,
-  CreateComplaintData,
-  CreateUserData,
-  UpdateUserData,
-  RegisterData,
-  UserFilterParams,
-  CourseFilterParams,
-  ScheduleFilterParams,
-  DepartmentFilterParams,
-  ExamFilterParams,
+  AuthResponse,
+  BatchGenerateScheduleResult,
+  BulkOperationResult,
+  Complaint,
   ComplaintStatus,
+  Course,
+  CourseAlias,
+  CourseFilterParams,
+  CourseStatistics,
+  CreateAcademicSessionData,
+  CreateComplaintData,
+  CreateCourseData,
+  CreateDepartmentData,
+  CreateExamData,
+  CreateScheduleData,
+  CreateUserData,
+  CurrentUser,
+  DatabaseHealth,
+  Department,
+  DepartmentFilterParams,
+  DepartmentStatistics,
+  Exam,
+  ExamFilterParams,
   GenerateExamTimetableData,
+  GenerateExamTimetableResult,
+  GenerateScheduleData,
+  GenerateScheduleResult,
+  HealthCheckResult,
+  LecturerCourses,
+  LecturerDashboard,
+  LecturerSchedule,
+  ListResult,
+  LivenessCheck,
+  MessageResponse,
+  MultiFileBulkOperationResult,
+  PageResult,
+  Programme,
+  QueryParams,
+  ReadinessCheck,
+  RecommendedSlot,
+  RegisterData,
+  Schedule,
+  ScheduleFilterParams,
+  ScheduleStatistics,
+  SessionStatistics,
+  SimpleHealth,
+  UpdateAcademicSessionData,
+  UpdateCourseData,
+  UpdateDepartmentData,
+  UpdateExamData,
+  UpdateScheduleData,
+  UpdateUserData,
+  User,
+  UserFilterParams,
 } from "@/types";
 
 const API_BASE_URL =
@@ -29,7 +66,48 @@ const API_BASE_URL =
 
 type On401Callback = () => void;
 type On403Callback = () => void;
-type OnNetworkErrorCallback = (retry: () => Promise<ApiResponse<any>>) => void;
+type OnNetworkErrorCallback = (
+  retry: () => Promise<ApiResponse<unknown>>,
+) => void;
+
+interface RequestOptions {
+  silent?: boolean;
+  responseType?: "json" | "text";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function collectMessages(value: unknown): string[] {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (Array.isArray(value)) return value.flatMap(collectMessages);
+  if (isRecord(value)) {
+    if (typeof value.message === "string")
+      return collectMessages(value.message);
+    return Object.values(value).flatMap(collectMessages);
+  }
+  return [];
+}
+
+function resolveErrorMessage(body: unknown, status: number): string {
+  if (isRecord(body)) {
+    const messages = collectMessages(body.message);
+    if (messages.length > 0) return Array.from(new Set(messages)).join(", ");
+    const fallback = collectMessages(body.error);
+    if (fallback.length > 0) return fallback.join(", ");
+  }
+  return `HTTP ${status}`;
+}
+
+function resolveErrorCode(body: unknown): string | undefined {
+  return isRecord(body) && typeof body.errorCode === "string"
+    ? body.errorCode
+    : undefined;
+}
 
 class ApiClient {
   private baseURL: string;
@@ -37,6 +115,13 @@ class ApiClient {
   private on401: On401Callback | null = null;
   private on403: On403Callback | null = null;
   private onNetworkError: OnNetworkErrorCallback | null = null;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+    if (typeof window !== "undefined") {
+      this.token = localStorage.getItem("token");
+    }
+  }
 
   setOn401(callback: On401Callback | null) {
     this.on401 = callback;
@@ -48,13 +133,6 @@ class ApiClient {
 
   setOnNetworkError(callback: OnNetworkErrorCallback | null) {
     this.onNetworkError = callback;
-  }
-
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-    if (typeof window !== "undefined") {
-      this.token = localStorage.getItem("token");
-    }
   }
 
   setToken(token: string | null): void {
@@ -72,138 +150,112 @@ class ApiClient {
     return this.token;
   }
 
-  private normalizeResponse(data: any): ApiResponse<any> {
-    if (data.user && data.access_token) {
-      return { success: true, data, timestamp: new Date().toISOString() };
+  private normalize<T>(payload: unknown): ApiResponse<T> {
+    const timestamp = new Date().toISOString();
+
+    if (!isRecord(payload)) {
+      return { success: true, data: payload as T, timestamp };
     }
 
-    if (data.data && Array.isArray(data.data) && data.total !== undefined) {
+    if (Array.isArray(payload.data) && typeof payload.total === "number") {
+      const items: unknown[] = payload.data;
+      const total = payload.total;
+      const limit =
+        typeof payload.limit === "number" && payload.limit > 0
+          ? payload.limit
+          : Math.max(items.length, 1);
+      const page = typeof payload.page === "number" ? payload.page : 1;
+      const totalPages =
+        typeof payload.totalPages === "number"
+          ? payload.totalPages
+          : Math.max(1, Math.ceil(total / limit));
+      const result: PageResult<unknown> = {
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+      };
+      return { success: true, data: result as T, timestamp };
+    }
+
+    if (typeof payload.success === "boolean") {
       return {
-        success: true,
-        data: {
-          data: {
-            items: data.data,
-            pagination: {
-              page: data.page || 1,
-              limit: data.limit || 10,
-              total: data.total,
-              totalPages:
-                data.totalPages || Math.ceil(data.total / (data.limit || 10)),
-              hasNext: (data.page || 1) < (data.totalPages || 1),
-              hasPrev: (data.page || 1) > 1,
-            },
-          },
-        },
-        timestamp: new Date().toISOString(),
+        success: payload.success,
+        data: payload.data as T | undefined,
+        message:
+          typeof payload.message === "string" ? payload.message : undefined,
+        timestamp,
       };
     }
 
-    if (Array.isArray(data)) {
-      return { success: true, data, timestamp: new Date().toISOString() };
-    }
-
-    if (data.success !== undefined) return data;
-
-    return { success: true, data, timestamp: new Date().toISOString() };
+    return { success: true, data: payload as T, timestamp };
   }
 
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+  private handleAuthFailure(status: number, silent: boolean): void {
+    if (status === 401) {
+      if (silent) {
+        this.setToken(null);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("user");
+        }
+      }
+      this.on401?.();
+      return;
+    }
+    if (status === 403 && !silent) {
+      this.on403?.();
+    }
+  }
 
+  private async send<T>(
+    endpoint: string,
+    init: RequestInit = {},
+    options: RequestOptions = {},
+  ): Promise<ApiResponse<T>> {
+    const silent = options.silent ?? false;
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
+      ...(init.headers as Record<string, string> | undefined),
     };
 
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    if (!(init.body instanceof FormData) && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
     }
-
-    try {
-      const response = await fetch(url, { ...options, headers });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const message = Array.isArray(errorData.message)
-          ? errorData.message.join(", ")
-          : errorData.message || errorData.error || `HTTP ${response.status}`;
-        if (response.status === 401 && this.on401) {
-          this.on401();
-        }
-        if (response.status === 403 && this.on403) {
-          this.on403();
-        }
-        return {
-          success: false,
-          error: message,
-          statusCode: response.status,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      const data = await response.json();
-      return this.normalizeResponse(data);
-    } catch (error) {
-      if (this.onNetworkError) {
-        const retry = () => this.request<T>(endpoint, options);
-        this.onNetworkError(retry);
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-        statusCode: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-
-  private async uploadFile(
-    endpoint: string,
-    file: File,
-  ): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const headers: Record<string, string> = {};
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: "POST",
-        body: formData,
+        ...init,
         headers,
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const message = Array.isArray(errorData.message)
-          ? errorData.message.join(", ")
-          : errorData.message || errorData.error || "Upload failed";
-        if (response.status === 401 && this.on401) {
-          this.on401();
-        }
-        if (response.status === 403 && this.on403) {
-          this.on403();
-        }
+        const body: unknown = await response.json().catch(() => null);
+        this.handleAuthFailure(response.status, silent);
         return {
           success: false,
-          error: message,
+          error: resolveErrorMessage(body, response.status),
+          errorCode: resolveErrorCode(body),
           statusCode: response.status,
           timestamp: new Date().toISOString(),
         };
       }
 
-      const data = await response.json();
-      return this.normalizeResponse(data);
+      if (options.responseType === "text") {
+        return {
+          success: true,
+          data: (await response.text()) as T,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      const payload: unknown = await response.json().catch(() => null);
+      return this.normalize<T>(payload);
     } catch (error) {
-      if (this.onNetworkError) {
-        const retry = () => this.uploadFile(endpoint, file);
-        this.onNetworkError(retry);
+      if (!silent && this.onNetworkError) {
+        this.onNetworkError(() => this.send<T>(endpoint, init, options));
       }
       return {
         success: false,
@@ -214,236 +266,157 @@ class ApiClient {
     }
   }
 
-  private async uploadFiles(
-    endpoint: string,
-    files: File[],
-  ): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-
-    const headers: Record<string, string> = {};
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: "POST",
-        body: formData,
-        headers,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const message = Array.isArray(errorData.message)
-          ? errorData.message.join(", ")
-          : errorData.message || errorData.error || "Upload failed";
-        if (response.status === 401 && this.on401) {
-          this.on401();
-        }
-        if (response.status === 403 && this.on403) {
-          this.on403();
-        }
-        return {
-          success: false,
-          error: message,
-          statusCode: response.status,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      const data = await response.json();
-      return this.normalizeResponse(data);
-    } catch (error) {
-      if (this.onNetworkError) {
-        const retry = () => this.uploadFiles(endpoint, files);
-        this.onNetworkError(retry);
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-        statusCode: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-
-  async downloadFile(endpoint: string): Promise<ApiResponse<string>> {
-    const headers: Record<string, string> = {};
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: "GET",
-        headers,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 401 && this.on401) {
-          this.on401();
-        }
-        if (response.status === 403 && this.on403) {
-          this.on403();
-        }
-        return {
-          success: false,
-          error: errorData.error || `HTTP ${response.status}`,
-          statusCode: response.status,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      return {
-        success: true,
-        data: await response.text(),
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      if (this.onNetworkError) {
-        const retry = () => this.downloadFile(endpoint);
-        this.onNetworkError(retry);
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-        statusCode: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-
-  private buildQuery(params?: Record<string, any>): string {
+  private buildQuery(params?: object): string {
     if (!params) return "";
-    const clean = Object.fromEntries(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== null),
-    );
-    const qs = new URLSearchParams(clean as any).toString();
-    return qs ? `?${qs}` : "";
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) {
+        search.append(key, String(value));
+      }
+    }
+    const query = search.toString();
+    return query ? `?${query}` : "";
   }
 
-  // ─── Auth ──────────────────────────────────────────────────────────────────
+  private get<T>(endpoint: string, params?: object, options?: RequestOptions) {
+    return this.send<T>(`${endpoint}${this.buildQuery(params)}`, {}, options);
+  }
+
+  private post<T>(endpoint: string, body?: unknown) {
+    return this.send<T>(endpoint, {
+      method: "POST",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  private patch<T>(endpoint: string, body?: unknown) {
+    return this.send<T>(endpoint, {
+      method: "PATCH",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  private remove<T>(endpoint: string) {
+    return this.send<T>(endpoint, { method: "DELETE" });
+  }
+
+  private upload<T>(endpoint: string, field: string, files: File[]) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append(field, file));
+    return this.send<T>(endpoint, { method: "POST", body: formData });
+  }
+
+  request<T>(endpoint: string, options: RequestInit = {}) {
+    return this.send<T>(endpoint, options);
+  }
+
+  downloadFile(endpoint: string) {
+    return this.send<string>(
+      endpoint,
+      { method: "GET" },
+      {
+        responseType: "text",
+      },
+    );
+  }
 
   login(email: string, password: string) {
-    return this.request("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    return this.post<AuthResponse>("/auth/login", { email, password });
   }
 
   register(data: RegisterData) {
-    return this.request("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<AuthResponse>("/auth/register", data);
   }
 
   getCurrentUser() {
-    return this.request("/auth/me");
+    return this.get<CurrentUser>("/auth/me");
+  }
+
+  getCurrentUserSilent() {
+    return this.get<CurrentUser>("/auth/me", undefined, { silent: true });
   }
 
   forgotPassword(email: string) {
-    return this.request("/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+    return this.post<MessageResponse>("/auth/forgot-password", { email });
   }
 
   resetPassword(token: string, newPassword: string) {
-    return this.request("/auth/reset-password", {
-      method: "POST",
-      body: JSON.stringify({ token, newPassword }),
+    return this.post<MessageResponse>("/auth/reset-password", {
+      token,
+      newPassword,
     });
   }
 
-  // ─── Users ─────────────────────────────────────────────────────────────────
-
   getUsers(params?: UserFilterParams) {
-    return this.request(`/users${this.buildQuery(params)}`);
+    return this.get<ListResult<User>>("/users", params);
   }
 
   getUserById(id: string) {
-    return this.request(`/users/${id}`);
+    return this.get<User>(`/users/${id}`);
   }
 
   createUser(data: CreateUserData) {
-    return this.request("/users", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<User>("/users", data);
   }
 
   updateUser(id: string, data: UpdateUserData) {
-    return this.request(`/users/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<User>(`/users/${id}`, data);
   }
 
   deleteUser(id: string) {
-    return this.request(`/users/${id}`, { method: "DELETE" });
+    return this.remove<User>(`/users/${id}`);
   }
 
   getLecturerDashboard() {
-    return this.request("/users/me/dashboard");
+    return this.get<LecturerDashboard>("/users/me/dashboard");
   }
 
   getLecturerCourses() {
-    return this.request("/users/me/courses");
+    return this.get<LecturerCourses>("/users/me/courses");
   }
 
   getLecturerSchedule() {
-    return this.request("/users/me/schedule");
+    return this.get<LecturerSchedule>("/users/me/schedule");
   }
 
-  // ─── Departments ───────────────────────────────────────────────────────────
-
   getDepartments(params?: DepartmentFilterParams) {
-    return this.request(`/departments${this.buildQuery(params)}`);
+    return this.get<ListResult<Department>>("/departments", params);
   }
 
   getDepartmentByCode(code: string) {
-    return this.request(`/departments/${code}`);
+    return this.get<Department>(`/departments/${code}`);
   }
 
   getDepartmentFullDetails(code: string) {
-    return this.request(`/departments/${code}/full-details`);
+    return this.get<Department>(`/departments/${code}/full-details`);
   }
 
   getDepartmentStatistics() {
-    return this.request("/departments/statistics");
+    return this.get<DepartmentStatistics>("/departments/statistics");
+  }
+
+  getDepartmentProgrammes(code: string) {
+    return this.get<Programme[]>(`/departments/${code}/programmes`);
   }
 
   createDepartment(data: CreateDepartmentData) {
-    return this.request("/departments", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<Department>("/departments", data);
   }
 
   updateDepartment(code: string, data: UpdateDepartmentData) {
-    return this.request(`/departments/${code}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<Department>(`/departments/${code}`, data);
   }
 
   deleteDepartment(code: string) {
-    return this.request(`/departments/${code}`, { method: "DELETE" });
+    return this.remove<Department>(`/departments/${code}`);
   }
 
   lockDepartmentSchedule(code: string) {
-    return this.request(`/departments/${code}/schedule/lock`, {
-      method: "PATCH",
-    });
+    return this.patch<Department>(`/departments/${code}/schedule/lock`);
   }
 
   unlockDepartmentSchedule(code: string) {
-    return this.request(`/departments/${code}/schedule/unlock`, {
-      method: "PATCH",
-    });
+    return this.patch<Department>(`/departments/${code}/schedule/unlock`);
   }
 
   getDepartmentsBulkTemplate() {
@@ -451,51 +424,47 @@ class ApiClient {
   }
 
   uploadDepartmentsBulk(file: File) {
-    return this.uploadFile("/departments/bulk/upload", file);
+    return this.upload<BulkOperationResult<Department>>(
+      "/departments/bulk/upload",
+      "file",
+      [file],
+    );
   }
-
-  getDepartmentProgrammes(code: string) {
-    return this.request(`/departments/${code}/programmes`);
-  }
-
-  // ─── Courses ───────────────────────────────────────────────────────────────
 
   getCourses(params?: CourseFilterParams) {
-    return this.request(`/courses${this.buildQuery(params)}`);
+    return this.get<ListResult<Course>>("/courses", params);
   }
 
   getCourseByCode(code: string) {
-    return this.request(`/courses/${code}`);
+    return this.get<Course>(`/courses/${code}`);
   }
 
   getCoursesWithoutSchedules() {
-    return this.request("/courses/without-schedules");
+    return this.get<Course[]>("/courses/without-schedules");
+  }
+
+  getUniversityCoursesWithoutSchedules() {
+    return this.get<Course[]>("/courses/without-schedules/university");
   }
 
   getCoursesWithoutExams() {
-    return this.request("/exams/without-exams");
+    return this.get<Course[]>("/exams/without-exams");
   }
 
   getCourseStatistics() {
-    return this.request("/courses/statistics");
+    return this.get<CourseStatistics>("/courses/statistics");
   }
 
   createCourse(data: CreateCourseData) {
-    return this.request("/courses", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<Course>("/courses", data);
   }
 
   updateCourse(code: string, data: UpdateCourseData) {
-    return this.request(`/courses/${code}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<Course>(`/courses/${code}`, data);
   }
 
   deleteCourse(code: string) {
-    return this.request(`/courses/${code}`, { method: "DELETE" });
+    return this.remove<Course>(`/courses/${code}`);
   }
 
   getCoursesBulkTemplate() {
@@ -503,314 +472,223 @@ class ApiClient {
   }
 
   uploadCoursesBulk(file: File) {
-    return this.uploadFile("/courses/bulk/upload", file);
+    return this.upload<BulkOperationResult<Course>>(
+      "/courses/bulk/upload",
+      "file",
+      [file],
+    );
   }
 
   uploadCoursesBulkMulti(files: File[]) {
-    return this.uploadFiles("/courses/bulk/upload-multi", files);
+    return this.upload<MultiFileBulkOperationResult<Course>>(
+      "/courses/bulk/upload-multi",
+      "files",
+      files,
+    );
   }
 
   getCourseAliases() {
-    return this.request("/course-aliases");
+    return this.get<CourseAlias[]>("/course-aliases");
   }
 
   getCourseAliasesForCourse(code: string) {
-    return this.request(`/course-aliases/course/${code}`);
+    return this.get<CourseAlias[]>(`/course-aliases/course/${code}`);
   }
 
   createCourseAlias(data: { primaryCode: string; aliasCode: string }) {
-    return this.request("/course-aliases", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<CourseAlias>("/course-aliases", data);
   }
 
   deleteCourseAlias(id: string) {
-    return this.request(`/course-aliases/${id}`, { method: "DELETE" });
+    return this.remove<CourseAlias>(`/course-aliases/${id}`);
   }
-
-  getUniversityCoursesWithoutSchedules() {
-    return this.request("/courses/without-schedules/university");
-  }
-
-  // ─── Schedules ─────────────────────────────────────────────────────────────
 
   getSchedules(params?: ScheduleFilterParams) {
-    return this.request(`/schedules${this.buildQuery(params)}`);
+    return this.get<ListResult<Schedule>>("/schedules", params);
   }
 
   getScheduleById(id: string) {
-    return this.request(`/schedules/${id}`);
+    return this.get<Schedule>(`/schedules/${id}`);
   }
 
   getScheduleStatistics() {
-    return this.request("/schedules/statistics");
+    return this.get<ScheduleStatistics>("/schedules/statistics");
   }
 
   createSchedule(data: CreateScheduleData) {
-    return this.request("/schedules", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<Schedule>("/schedules", data);
   }
 
   updateSchedule(id: string, data: UpdateScheduleData) {
-    return this.request(`/schedules/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<Schedule>(`/schedules/${id}`, data);
   }
 
   deleteSchedule(id: string) {
-    return this.request(`/schedules/${id}`, { method: "DELETE" });
+    return this.remove<Schedule>(`/schedules/${id}`);
   }
 
   toggleScheduleFixed(id: string) {
-    return this.request(`/schedules/${id}/toggle-fixed`, { method: "PATCH" });
+    return this.patch<Schedule>(`/schedules/${id}/toggle-fixed`);
   }
 
   recommendUniversitySlots(courseCodes: string[]) {
-    return this.request("/schedules/recommend-university-slots", {
-      method: "POST",
-      body: JSON.stringify({ courseCodes }),
-    });
+    return this.post<RecommendedSlot[]>(
+      "/schedules/recommend-university-slots",
+      {
+        courseCodes,
+      },
+    );
   }
 
   generateSchedules(data: GenerateScheduleData) {
-    return this.request("/schedules/generate", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<GenerateScheduleResult>("/schedules/generate", data);
   }
 
   generateSchedulesBatch(data: GenerateScheduleData) {
-    return this.request("/schedules/generate/batch", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<BatchGenerateScheduleResult>(
+      "/schedules/generate/batch",
+      data,
+    );
   }
 
-  // ─── Academic Sessions ─────────────────────────────────────────────────────
-
-  getAcademicSessions(params?: { page?: number; limit?: number }) {
-    return this.request(`/academic-sessions${this.buildQuery(params)}`);
+  getAcademicSessions(params?: QueryParams) {
+    return this.get<ListResult<AcademicSession>>("/academic-sessions", params);
   }
 
   getAcademicSessionById(id: string) {
-    return this.request(`/academic-sessions/${id}`);
+    return this.get<AcademicSession>(`/academic-sessions/${id}`);
   }
 
   getActiveAcademicSession() {
-    return this.request("/academic-sessions/active");
+    return this.get<AcademicSession | null>("/academic-sessions/active");
   }
 
   getSessionStatistics(id: string) {
-    return this.request(`/academic-sessions/${id}/statistics`);
+    return this.get<SessionStatistics>(`/academic-sessions/${id}/statistics`);
   }
 
   createAcademicSession(data: CreateAcademicSessionData) {
-    return this.request("/academic-sessions", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<AcademicSession>("/academic-sessions", data);
   }
 
   updateAcademicSession(id: string, data: UpdateAcademicSessionData) {
-    return this.request(`/academic-sessions/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<AcademicSession>(`/academic-sessions/${id}`, data);
   }
 
   activateAcademicSession(id: string) {
-    return this.request(`/academic-sessions/${id}/activate`, {
-      method: "PATCH",
-    });
+    return this.patch<AcademicSession>(`/academic-sessions/${id}/activate`);
   }
 
   archiveAcademicSession(id: string) {
-    return this.request(`/academic-sessions/${id}/archive`, {
-      method: "PATCH",
-    });
+    return this.patch<AcademicSession>(`/academic-sessions/${id}/archive`);
   }
 
   deleteAcademicSession(id: string) {
-    return this.request(`/academic-sessions/${id}`, { method: "DELETE" });
+    return this.remove<AcademicSession>(`/academic-sessions/${id}`);
   }
 
-  // ─── Exams ─────────────────────────────────────────────────────────────────
-
   getExams(params?: ExamFilterParams) {
-    return this.request(`/exams${this.buildQuery(params)}`);
+    return this.get<ListResult<Exam>>("/exams", params);
   }
 
   getExamById(id: string) {
-    return this.request(`/exams/${id}`);
+    return this.get<Exam>(`/exams/${id}`);
   }
 
   createExam(data: CreateExamData) {
-    return this.request("/exams", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<Exam>("/exams", data);
   }
 
   updateExam(id: string, data: UpdateExamData) {
-    return this.request(`/exams/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
+    return this.patch<Exam>(`/exams/${id}`, data);
   }
 
   deleteExam(id: string) {
-    return this.request(`/exams/${id}`, { method: "DELETE" });
+    return this.remove<Exam>(`/exams/${id}`);
   }
 
   generateExamTimetable(data: GenerateExamTimetableData) {
-    return this.request("/exams/generate", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<GenerateExamTimetableResult>("/exams/generate", data);
   }
 
-  // ─── Complaints ────────────────────────────────────────────────────────────
-
-  getComplaints(params?: {
-    page?: number;
-    limit?: number;
-    orderBy?: string;
-    orderDirection?: string;
-  }) {
-    return this.request(`/complaints${this.buildQuery(params)}`);
+  getComplaints(params?: QueryParams) {
+    return this.get<ListResult<Complaint>>("/complaints", params);
   }
 
   getMyComplaints() {
-    return this.request("/complaints/my-complaints");
+    return this.get<Complaint[]>("/complaints/my-complaints");
   }
 
   getPendingComplaints() {
-    return this.request("/complaints/pending");
+    return this.get<Complaint[]>("/complaints/pending");
   }
 
   getResolvedComplaints() {
-    return this.request("/complaints/resolved");
+    return this.get<Complaint[]>("/complaints/resolved");
   }
 
   createComplaint(data: CreateComplaintData) {
-    return this.request("/complaints", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.post<Complaint>("/complaints", data);
   }
 
   updateComplaintStatus(id: string, status: ComplaintStatus) {
-    return this.request(`/complaints/${id}/status?status=${status}`, {
-      method: "PATCH",
-    });
+    return this.patch<Complaint>(`/complaints/${id}/status?status=${status}`);
   }
 
-  // ─── Health ────────────────────────────────────────────────────────────────
-
   healthCheck() {
-    return this.request("/health");
+    return this.get<HealthCheckResult>("/health");
   }
 
   simpleHealthCheck() {
-    return this.request("/health/simple");
+    return this.get<SimpleHealth>("/health/simple");
   }
 
   databaseHealthCheck() {
-    return this.request("/health/database");
+    return this.get<DatabaseHealth>("/health/database");
   }
 
   readinessCheck() {
-    return this.request("/health/readiness");
+    return this.get<ReadinessCheck>("/health/readiness");
   }
 
   livenessCheck() {
-    return this.request("/health/liveness");
+    return this.get<LivenessCheck>("/health/liveness");
   }
 
-  // ──────────────────────────────────────────────────────────────
-  getCurrentUserSilent() {
-    return this.requestSilent("/auth/me");
-  }
-
-  private async requestSilent<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
-    try {
-      const response = await fetch(url, { headers });
-      if (!response.ok) {
-        if (response.status === 401) {
-          this.setToken(null);
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("user");
-          }
-          if (this.on401) {
-            this.on401();
-          }
-        }
-        const errorData = await response.json().catch(() => ({}));
-        return {
-          success: false,
-          error: errorData.message || `HTTP ${response.status}`,
-          statusCode: response.status,
-          timestamp: new Date().toISOString(),
-        };
-      }
-      const data = await response.json();
-      return this.normalizeResponse(data);
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-        statusCode: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-
-  // ───────────────────────Data Management───────────────────────────────────────
   deleteAllSchedules() {
-    return this.request("/admin/schedules", { method: "DELETE" });
+    return this.remove<AdminDeleteResult>("/admin/schedules");
   }
 
   deleteAllSchedulesExceptGeneral() {
-    return this.request("/admin/schedules-except-general", {
-      method: "DELETE",
-    });
+    return this.remove<AdminDeleteResult>("/admin/schedules-except-general");
   }
 
   deleteAllExamSchedules() {
-    return this.request("/admin/exam-schedules", { method: "DELETE" });
+    return this.remove<AdminDeleteResult>("/admin/exam-schedules");
   }
 
   deleteAllCourses() {
-    return this.request("/admin/courses", { method: "DELETE" });
+    return this.remove<AdminDeleteResult>("/admin/courses");
   }
 
   deleteAllDepartments() {
-    return this.request("/admin/departments", { method: "DELETE" });
+    return this.remove<AdminDeleteResult>("/admin/departments");
   }
 
   deleteAllData() {
-    return this.request("/admin/all", { method: "DELETE" });
+    return this.remove<AdminDeleteAllResult>("/admin/all");
   }
 
   seedDepartments() {
-    return this.request("/admin/seed/departments", { method: "POST" });
+    return this.post<AdminSeedResult>("/admin/seed/departments");
   }
 
   seedCourses() {
-    return this.request("/admin/seed/courses", { method: "POST" });
+    return this.post<AdminSeedResult>("/admin/seed/courses");
   }
 
   seedAll() {
-    return this.request("/admin/seed/all", { method: "POST" });
+    return this.post<AdminSeedAllResult>("/admin/seed/all");
   }
 }
 

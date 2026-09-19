@@ -1,57 +1,51 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ApiResponse } from "@/types";
+import type { ApiResponse, PageResult } from "@/types";
 import { AVATAR_COLORS } from "@/lib/constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getItemsFromResponse<T>(
-  response: ApiResponse<any>
-): { items: T[]; total: number; totalPages: number } | null {
-  if (!response.success || response.data == null) return null;
-  const raw = response.data;
-
-  if (Array.isArray(raw)) {
-    return { items: raw, total: raw.length, totalPages: 1 };
-  }
-
-  if (raw && typeof raw === "object" && Array.isArray((raw as any).items)) {
-    const r = raw as any;
-    const pagination = r.pagination || {};
-    return {
-      items: r.items,
-      total: r.total ?? pagination.total ?? r.items.length,
-      totalPages: r.totalPages ?? pagination.totalPages ?? 1,
-    };
-  }
-
-  const inner = raw?.data;
-  if (inner && typeof inner === "object" && Array.isArray(inner.items)) {
-    const pagination = inner.pagination || {};
-    return {
-      items: inner.items,
-      total: pagination.total ?? inner.items.length,
-      totalPages: pagination.totalPages ?? 1,
-    };
-  }
-
-  if (inner && Array.isArray(inner)) {
-    return {
-      items: inner,
-      total: raw.total ?? inner.length,
-      totalPages: raw.totalPages ?? 1,
-    };
-  }
-
-  return null;
+function isPageResult<T>(value: unknown): value is PageResult<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { items?: unknown }).items)
+  );
 }
 
-export function getInitials(name: string | null | undefined, email?: string): string {
+export function getItemsFromResponse<T>(
+  response: ApiResponse<unknown>,
+): PageResult<T> | null {
+  if (
+    !response.success ||
+    response.data === undefined ||
+    response.data === null
+  ) {
+    return null;
+  }
+  const raw = response.data;
+  if (Array.isArray(raw)) {
+    return {
+      items: raw as T[],
+      total: raw.length,
+      page: 1,
+      limit: raw.length,
+      totalPages: 1,
+    };
+  }
+  return isPageResult<T>(raw) ? raw : null;
+}
+
+export function getInitials(
+  name: string | null | undefined,
+  email?: string,
+): string {
   if (name?.trim()) {
     const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+    if (parts.length >= 2)
+      return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
     return (parts[0]![0] || "").toUpperCase();
   }
   if (email) return (email[0] || "?").toUpperCase();
@@ -61,8 +55,11 @@ export function getInitials(name: string | null | undefined, email?: string): st
 export function getAvatarColor(name: string | null, email?: string): string {
   const str = name || email || "user";
   let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? AVATAR_COLORS[0];
+  for (let i = 0; i < str.length; i++)
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return (
+    AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? AVATAR_COLORS[0]
+  );
 }
 
 export function formatRelativeDate(iso: string): string {
@@ -85,7 +82,8 @@ export function formatLastLogin(iso: string | null | undefined): string {
   const diffDays = Math.floor(diffMs / 86400000);
   if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   return d.toLocaleDateString();
 }
