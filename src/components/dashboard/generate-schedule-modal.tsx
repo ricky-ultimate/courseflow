@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -18,14 +19,32 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { apiClient } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
-import { AcademicSession, Department, Level, Semester } from "@/types";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { apiClient } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { getItemsFromResponse } from "@/lib/utils";
-import { CheckCircle, AlertCircle, Loader2, CalendarPlus } from "lucide-react";
-import Link from "next/link";
-import { UniversityCoursesScheduleModal } from "@/components/schedules/university-courses-schedule-modal";
+import {
+  ScheduleGenerationSummary,
+  applyManualScheduling,
+  formatGenerationMessage,
+  hasGenerationIssues,
+  summarizeBatchResult,
+  summarizeSingleResult,
+} from "@/lib/schedule-generation";
+import { ScheduleGenerationReport } from "@/components/schedules/schedule-generation-report";
+import { ManualScheduleModal } from "@/components/schedules/manual-schedule-modal";
+import {
+  AcademicSession,
+  Department,
+  Level,
+  Programme,
+  Role,
+  ScheduleAssignment,
+  Semester,
+  UnscheduledCourse,
+} from "@/types";
 
 const LEVEL_OPTIONS = [
   { value: Level.LEVEL_100, label: "100 Level" },
@@ -34,11 +53,6 @@ const LEVEL_OPTIONS = [
   { value: Level.LEVEL_400, label: "400 Level" },
   { value: Level.LEVEL_500, label: "500 Level" },
 ];
-
-interface Programme {
-  programme: string;
-  count: number;
-}
 
 const BATCH_STEPS = [
   "Initialising session",
@@ -55,14 +69,7 @@ const SINGLE_STEPS = [
   "Saving schedules",
 ];
 
-function parseUniversityCourseCodes(message: string): string[] {
-  const match = /university courses:\s*([^.]+)\./i.exec(message);
-  if (!match || !match[1]) return [];
-  return match[1]
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+const NO_COURSES: UnscheduledCourse[] = [];
 
 interface GenerateProgressPanelProps {
   isBatch: boolean;
@@ -102,8 +109,8 @@ function GenerateProgressPanel({
       </div>
       {isBatch && (
         <p className="text-xs text-gray-500 border border-gray-100 rounded-lg px-3 py-2 bg-gray-50">
-          Batch generation processes each department sequentially. This may take
-          several minutes for large course catalogs.
+          Batch generation processes departments concurrently in bounded groups.
+          This may take several minutes for large course catalogs.
         </p>
       )}
     </div>
@@ -128,6 +135,7 @@ export function GenerateScheduleModal({
   isHod = false,
 }: GenerateScheduleModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
@@ -142,28 +150,10 @@ export function GenerateScheduleModal({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [serverError, setServerError] = useState("");
   const [confirmStep, setConfirmStep] = useState(false);
-  const [universityCoursesModalOpen, setUniversityCoursesModalOpen] =
-    useState(false);
-  const [universityCourseCodes, setUniversityCourseCodes] = useState<string[]>(
-    [],
-  );
-  const [result, setResult] = useState<{
-    success: boolean;
-    session?: string;
-    semester?: string;
-    totalCourses?: number;
-    scheduled?: number;
-    preserved?: number;
-    skipped?: number;
-    programme?: string | null;
-    level?: string | null;
-    failedCourses?: string[];
-    message?: string;
-    isUniversityCourseError?: boolean;
-    batchErrors?: Array<{ departmentCode: string; message: string }>;
-    totalDepartments?: number;
-    processedDepartments?: number;
-  } | null>(null);
+  const [report, setReport] = useState<ScheduleGenerationSummary | null>(null);
+  const [manualCourses, setManualCourses] = useState<
+    UnscheduledCourse[] | null
+  >(null);
 
   const [progress, setProgress] = useState(0);
   const [stepLabel, setStepLabel] = useState("");
@@ -173,6 +163,11 @@ export function GenerateScheduleModal({
   const progressStepRef = useRef(0);
 
   const activeDeptCode = hodDeptCode || departmentCode;
+  const collegeCode =
+    user?.role === Role.COLLEGE_ADMIN ? (user.collegeCode ?? null) : null;
+  const visibleDepartments = collegeCode
+    ? departments.filter((d) => d.college === collegeCode)
+    : departments;
 
   const stopTimers = () => {
     if (progressTimerRef.current) {
@@ -185,25 +180,26 @@ export function GenerateScheduleModal({
     }
   };
 
-  const startProgress = (isBatch: boolean) => {
-    const steps = isBatch ? BATCH_STEPS : SINGLE_STEPS;
+  const startProgress = (isBatchRun: boolean) => {
+    const steps = isBatchRun ? BATCH_STEPS : SINGLE_STEPS;
     progressStepRef.current = 0;
     setProgress(0);
     setElapsedSeconds(0);
     setStepLabel(steps[0] ?? "");
 
-    const stepDurationMs = isBatch ? 4000 : 1200;
+    const stepDurationMs = isBatchRun ? 4000 : 1200;
     const maxAutoProgress = 88;
 
     progressTimerRef.current = setInterval(() => {
       progressStepRef.current += 1;
       const stepIndex = Math.min(progressStepRef.current, steps.length - 1);
       setStepLabel(steps[stepIndex] ?? "");
-      const nextProgress = Math.min(
-        (progressStepRef.current / steps.length) * maxAutoProgress,
-        maxAutoProgress,
+      setProgress(
+        Math.min(
+          (progressStepRef.current / steps.length) * maxAutoProgress,
+          maxAutoProgress,
+        ),
       );
-      setProgress(nextProgress);
     }, stepDurationMs);
 
     elapsedTimerRef.current = setInterval(() => {
@@ -229,14 +225,9 @@ export function GenerateScheduleModal({
       ]);
       const sess = getItemsFromResponse<AcademicSession>(sessRes);
       setSessions(sess?.items ?? []);
-      const active =
-        activeRes.success && activeRes.data
-          ? (activeRes.data as AcademicSession)
-          : null;
-      const defaultId = active?.id ?? sess?.items?.[0]?.id ?? "";
-      setActiveSessionId(defaultId);
-      if (isHod && hodDeptCode) setDepartmentCode(hodDeptCode);
-      else if (hodDeptCode) setDepartmentCode(hodDeptCode);
+      const active = activeRes.success ? (activeRes.data ?? null) : null;
+      setActiveSessionId(active?.id ?? sess?.items?.[0]?.id ?? "");
+      if (hodDeptCode) setDepartmentCode(hodDeptCode);
     } catch {
       setFetchError("Failed to load sessions");
     } finally {
@@ -245,8 +236,7 @@ export function GenerateScheduleModal({
     if (!isHod) {
       try {
         const deptRes = await apiClient.getDepartments({ limit: 100 });
-        const deptResult = getItemsFromResponse<Department>(deptRes);
-        setDepartments(deptResult?.items ?? []);
+        setDepartments(getItemsFromResponse<Department>(deptRes)?.items ?? []);
       } catch {
         setDepartments([]);
       }
@@ -256,7 +246,8 @@ export function GenerateScheduleModal({
   useEffect(() => {
     if (open) {
       setConfirmStep(false);
-      setResult(null);
+      setReport(null);
+      setManualCourses(null);
       setProgress(0);
       setElapsedSeconds(0);
       setStepLabel("");
@@ -268,22 +259,15 @@ export function GenerateScheduleModal({
   }, [open, fetchData]);
 
   useEffect(() => {
-    const deptCode = activeDeptCode;
-    if (!deptCode || deptCode === "__all__") {
+    if (!activeDeptCode || activeDeptCode === "__all__") {
       setProgrammes([]);
       setProgramme("");
       return;
     }
     setLoadingProgrammes(true);
     apiClient
-      .getDepartmentProgrammes(deptCode)
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setProgrammes(res.data as Programme[]);
-        } else {
-          setProgrammes([]);
-        }
-      })
+      .getDepartmentProgrammes(activeDeptCode)
+      .then((res) => setProgrammes(res.success ? (res.data ?? []) : []))
       .catch(() => setProgrammes([]))
       .finally(() => setLoadingProgrammes(false));
   }, [activeDeptCode]);
@@ -293,104 +277,85 @@ export function GenerateScheduleModal({
     setProgramme("");
   };
 
+  const isBatch = !departmentCode && !hodDeptCode && !isHod;
+
   const handleGenerate = async () => {
     setLoading(true);
-    setResult(null);
+    setReport(null);
     setServerError("");
-    setUniversityCourseCodes([]);
-    const isBatch = !departmentCode && !hodDeptCode && !isHod;
     startProgress(isBatch);
+
     try {
-      const res = isBatch
-        ? await apiClient.generateSchedulesBatch({
-            semester,
-            sessionId: activeSessionId || undefined,
-            level: (level || undefined) as Level | undefined,
-          })
-        : await apiClient.generateSchedules({
-            semester,
-            sessionId: activeSessionId || undefined,
-            departmentCode: departmentCode || hodDeptCode || undefined,
-            level: (level || undefined) as Level | undefined,
-            programme: programme || undefined,
-          });
-      finishProgress();
-      if (res.success && res.data) {
-        const d = res.data as any;
-        const scheduledCount = d.scheduledCourses ?? d.scheduled ?? 0;
-        const batchErrors = d.errors as
-          | Array<{ departmentCode: string; message: string }>
-          | undefined;
-        setResult({
-          success: true,
-          session: d.sessionName ?? d.session ?? activeSessionId,
-          semester: d.semester ?? semester,
-          totalCourses: d.totalCourses ?? d.total,
-          scheduled: scheduledCount,
-          preserved: d.preservedOverrides ?? d.preserved,
-          skipped: d.skippedLockedDepartments ?? d.skipped,
-          programme: (d.programme ?? programme) || null,
-          level: d.level ?? null,
-          batchErrors: batchErrors?.length ? batchErrors : undefined,
-          totalDepartments: d.totalDepartments,
-          processedDepartments: d.processedDepartments,
+      const levelFilter = (level || undefined) as Level | undefined;
+      const sessionId = activeSessionId || undefined;
+      let nextReport: ScheduleGenerationSummary | null = null;
+      let errorMessage: string | null = null;
+
+      if (isBatch) {
+        const res = await apiClient.generateSchedulesBatch({
+          semester,
+          sessionId,
+          level: levelFilter,
         });
+        if (res.success && res.data) {
+          nextReport = summarizeBatchResult(res.data);
+        } else {
+          errorMessage = res.error ?? "Schedule generation failed";
+        }
+      } else {
+        const res = await apiClient.generateSchedules({
+          semester,
+          sessionId,
+          departmentCode: departmentCode || hodDeptCode || undefined,
+          level: levelFilter,
+          programme: programme || undefined,
+        });
+        if (res.success && res.data) {
+          nextReport = summarizeSingleResult(res.data);
+        } else {
+          errorMessage = res.error ?? "Schedule generation failed";
+        }
+      }
+
+      if (nextReport) {
+        finishProgress();
+        setReport(nextReport);
         toast({
-          title: `${scheduledCount} courses scheduled for ${semester === Semester.FIRST ? "First" : "Second"} semester.`,
+          title: formatGenerationMessage(nextReport),
+          variant: hasGenerationIssues(nextReport) ? "warning" : "success",
         });
         onSuccess?.();
       } else {
         stopTimers();
-        const errMsg = (res as { error?: string }).error;
-        const statusCode = (res as { statusCode?: number }).statusCode;
-        if (statusCode === 422 && errMsg) {
-          const codes = parseUniversityCourseCodes(errMsg);
-          if (codes.length > 0) {
-            setUniversityCourseCodes(codes);
-            setResult({
-              success: false,
-              message: errMsg,
-              isUniversityCourseError: true,
-            });
-          } else {
-            setResult({ success: false, message: errMsg });
-          }
-        } else if (errMsg) {
-          setServerError(errMsg);
-          setConfirmStep(false);
-        } else {
-          const failed = (res as any).data?.failedCourses ?? [];
-          setResult({
-            success: false,
-            failedCourses: Array.isArray(failed) ? failed : [],
-          });
-        }
+        setServerError(errorMessage ?? "Schedule generation failed");
       }
-    } catch (e: any) {
+    } catch {
       stopTimers();
-      const errMsg = e?.message ?? (e as { error?: string })?.error;
-      if (errMsg) {
-        setServerError(errMsg);
-        setConfirmStep(false);
-      } else {
-        const failed = e?.data?.failedCourses ?? [];
-        setResult({
-          success: false,
-          failedCourses: Array.isArray(failed) ? failed : [],
-        });
-      }
+      setServerError("An unexpected error occurred");
     } finally {
       setLoading(false);
       setConfirmStep(false);
     }
   };
 
+  const handleManualScheduled = (assignments: ScheduleAssignment[]) => {
+    setReport((prev) =>
+      prev ? applyManualScheduling(prev, assignments) : prev,
+    );
+    onSuccess?.();
+  };
+
+  const canScheduleCourse = (course: UnscheduledCourse): boolean => {
+    if (isHod) return user?.departmentCode === course.departmentCode;
+    return true;
+  };
+
   const handleClose = () => {
     stopTimers();
-    setResult(null);
+    setReport(null);
+    setManualCourses(null);
     setConfirmStep(false);
     setProgramme("");
-    setUniversityCourseCodes([]);
     setProgress(0);
     setElapsedSeconds(0);
     setStepLabel("");
@@ -398,7 +363,6 @@ export function GenerateScheduleModal({
   };
 
   const levelLabel = LEVEL_OPTIONS.find((l) => l.value === level)?.label;
-  const isBatch = !departmentCode && !hodDeptCode && !isHod;
   const showProgrammeSelect =
     !isBatch && !!activeDeptCode && programmes.length > 1;
 
@@ -409,9 +373,10 @@ export function GenerateScheduleModal({
       >
         {isBatch ? (
           <div className="rounded-lg border-l-[3px] border-blue-500 bg-blue-50 py-3 px-4 text-sm text-blue-800">
-            System-wide generation processes each department independently.
-            University courses are scheduled first, then departmental courses in
-            sequence.
+            System-wide generation processes departments independently.
+            University courses are scheduled first, then departmental courses.
+            Courses that cannot be placed are reported so you can schedule them
+            manually.
           </div>
         ) : (
           <div className="rounded-lg border-l-[3px] border-amber-500 bg-amber-50 py-3 px-4 text-sm text-amber-800">
@@ -480,7 +445,7 @@ export function GenerateScheduleModal({
                   <SelectItem value="__all__">
                     All Unlocked Departments (Batched)
                   </SelectItem>
-                  {departments.map((d) => (
+                  {visibleDepartments.map((d) => (
                     <SelectItem key={d.code} value={d.code}>
                       {d.name}
                     </SelectItem>
@@ -569,7 +534,7 @@ export function GenerateScheduleModal({
       <div className="space-y-4">
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {isBatch
-            ? `This will process all unlocked departments sequentially${levelLabel ? ` for ${levelLabel}` : ""} and regenerate their auto-generated schedules. Manual overrides and fixed slots will be preserved.`
+            ? `This will process all unlocked departments${levelLabel ? ` for ${levelLabel}` : ""} and regenerate their auto-generated schedules. Manual overrides and fixed slots will be preserved.`
             : `This will delete all auto-generated schedules for the selected scope${programme ? ` (${programme} programme)` : ""}${level ? `, ${levelLabel}` : ""} and regenerate them. Manual overrides and fixed slots will be preserved.`}
         </div>
         <div className="rounded-lg border bg-gray-50 p-3 text-sm space-y-1.5">
@@ -630,206 +595,30 @@ export function GenerateScheduleModal({
     </>
   );
 
-  const renderProgress = () => (
-    <GenerateProgressPanel
-      isBatch={isBatch}
-      elapsedSeconds={elapsedSeconds}
-      progress={progress}
-      stepLabel={stepLabel}
-    />
-  );
-
   const renderResult = () => {
-    if (!result) return null;
-    if (result.success) {
-      return (
-        <>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-green-500 shrink-0" />
-              <div>
-                <p className="font-semibold text-gray-900">
-                  {result.batchErrors?.length
-                    ? "Completed with warnings"
-                    : "Schedules generated"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {result.scheduled ?? 0} courses scheduled
-                </p>
-              </div>
-            </div>
-            <div className="rounded-lg border bg-gray-50 p-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Session</span>
-                <span className="font-medium">
-                  {sessions.find((s) => s.id === activeSessionId)?.name ??
-                    result.session ??
-                    "—"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Semester</span>
-                <span className="font-medium">
-                  {semester === Semester.FIRST ? "First" : "Second"}
-                </span>
-              </div>
-              {result.totalDepartments != null && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Departments</span>
-                  <span className="font-medium">
-                    {result.processedDepartments} / {result.totalDepartments}
-                  </span>
-                </div>
-              )}
-              {result.programme && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Programme</span>
-                  <span className="font-medium">{result.programme}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-gray-500">Total Courses</span>
-                <span className="font-medium">
-                  {result.totalCourses ?? "—"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Scheduled</span>
-                <span className="font-medium">{result.scheduled ?? "—"}</span>
-              </div>
-              {result.preserved != null && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Preserved overrides</span>
-                  <span className="font-medium">{result.preserved}</span>
-                </div>
-              )}
-              {(result.skipped ?? 0) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Skipped (locked)</span>
-                  <span className="font-medium">{result.skipped}</span>
-                </div>
-              )}
-            </div>
-            {result.batchErrors && result.batchErrors.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1 max-h-32 overflow-y-auto">
-                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-1">
-                  Departments with errors ({result.batchErrors.length})
-                </p>
-                {result.batchErrors.map((e) => (
-                  <div
-                    key={e.departmentCode}
-                    className="flex items-start gap-2 text-xs text-amber-800"
-                  >
-                    <span className="font-mono font-semibold shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">
-                      {e.departmentCode}
-                    </span>
-                    <span>{e.message}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleClose}>
-              Close
-            </Button>
-            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-              <Link
-                href="/schedules"
-                onClick={() => {
-                  onSuccess?.();
-                  handleClose();
-                }}
-              >
-                View Schedules
-              </Link>
-            </Button>
-          </DialogFooter>
-        </>
-      );
-    }
-
-    if (result.isUniversityCourseError && universityCourseCodes.length > 0) {
-      return (
-        <>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-8 w-8 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-gray-900">
-                  Manual assignment required
-                </p>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  The following university-wide courses need a time slot before
-                  generation can proceed.
-                </p>
-              </div>
-            </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <div className="flex flex-wrap gap-2">
-                {universityCourseCodes.map((code) => (
-                  <span
-                    key={code}
-                    className="text-xs font-mono font-semibold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded"
-                  >
-                    {code}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <p className="text-sm text-gray-500">
-              Assign a day and time to each course. They will be pinned so
-              auto-generation respects them as occupied slots. Once scheduled,
-              retry generation.
-            </p>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleClose}>
-              Close
-            </Button>
-            <Button variant="outline" onClick={() => setResult(null)}>
-              Try Again
-            </Button>
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-              onClick={() => setUniversityCoursesModalOpen(true)}
-            >
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Schedule These Courses
-            </Button>
-          </DialogFooter>
-        </>
-      );
-    }
-
+    if (!report) return null;
     return (
       <>
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-8 w-8 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-gray-900">Scheduling failed</p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {result.message ||
-                  `Could not find valid time slots for ${result.failedCourses?.length ?? 0} course(s).`}
-              </p>
-            </div>
-          </div>
-          {result.failedCourses && result.failedCourses.length > 0 && (
-            <div className="max-h-32 overflow-y-auto rounded-lg border p-3 space-y-1">
-              {result.failedCourses.map((c, i) => (
-                <div key={i} className="text-sm font-mono">
-                  {c}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ScheduleGenerationReport
+          summary={report}
+          canScheduleCourse={canScheduleCourse}
+          onScheduleCourses={setManualCourses}
+        />
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={handleClose}>
             Close
           </Button>
-          <Button onClick={() => setResult(null)}>Try Again</Button>
+          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+            <Link
+              href="/schedules"
+              onClick={() => {
+                onSuccess?.();
+                handleClose();
+              }}
+            >
+              View Schedules
+            </Link>
+          </Button>
         </DialogFooter>
       </>
     );
@@ -837,10 +626,10 @@ export function GenerateScheduleModal({
 
   const dialogTitle = loading
     ? "Generating Schedules..."
-    : result
-      ? result.success
-        ? "Generation Complete"
-        : "Generation Failed"
+    : report
+      ? hasGenerationIssues(report)
+        ? "Generation Completed with Warnings"
+        : "Generation Complete"
       : confirmStep
         ? "Confirm Generation"
         : "Generate Schedules";
@@ -851,22 +640,25 @@ export function GenerateScheduleModal({
         open={open}
         onOpenChange={(o) => {
           if (loading) return;
-          if (result || confirmStep) {
-            if (result) handleClose();
-            else setConfirmStep(false);
-          } else {
-            onOpenChange(o);
+          if (report) {
+            handleClose();
+            return;
           }
+          if (confirmStep) {
+            setConfirmStep(false);
+            return;
+          }
+          onOpenChange(o);
         }}
       >
         <DialogContent
-          className="sm:max-w-[520px]"
+          className="sm:max-w-[560px]"
           onPointerDownOutside={(e) =>
-            (result || loading) && e.preventDefault()
+            (report || loading) && e.preventDefault()
           }
           onSwipeDown={() => {
             if (loading) return;
-            if (result) handleClose();
+            if (report) handleClose();
             else if (confirmStep) setConfirmStep(false);
             else onOpenChange(false);
           }}
@@ -875,18 +667,21 @@ export function GenerateScheduleModal({
             <DialogTitle>{dialogTitle}</DialogTitle>
           </DialogHeader>
           {fetchError ? (
-            <>
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
-                <p className="text-sm text-gray-600">{fetchError}</p>
-                <Button variant="outline" onClick={fetchData} className="mt-4">
-                  Retry
-                </Button>
-              </div>
-            </>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
+              <p className="text-sm text-gray-600">{fetchError}</p>
+              <Button variant="outline" onClick={fetchData} className="mt-4">
+                Retry
+              </Button>
+            </div>
           ) : loading ? (
-            renderProgress()
-          ) : result ? (
+            <GenerateProgressPanel
+              isBatch={isBatch}
+              elapsedSeconds={elapsedSeconds}
+              progress={progress}
+              stepLabel={stepLabel}
+            />
+          ) : report ? (
             renderResult()
           ) : confirmStep ? (
             renderConfirm()
@@ -896,15 +691,13 @@ export function GenerateScheduleModal({
         </DialogContent>
       </Dialog>
 
-      <UniversityCoursesScheduleModal
-        open={universityCoursesModalOpen}
-        onOpenChange={setUniversityCoursesModalOpen}
-        courseCodes={universityCourseCodes}
-        onSuccess={() => {
-          setUniversityCoursesModalOpen(false);
-          setResult(null);
-          onSuccess?.();
+      <ManualScheduleModal
+        open={manualCourses !== null}
+        onOpenChange={(o) => {
+          if (!o) setManualCourses(null);
         }}
+        courses={manualCourses ?? NO_COURSES}
+        onScheduled={handleManualScheduled}
       />
     </>
   );

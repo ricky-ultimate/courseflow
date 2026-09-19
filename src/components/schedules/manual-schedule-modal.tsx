@@ -20,36 +20,30 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ServerErrorBanner } from "@/components/ui/server-error-banner";
 import {
+  AlertCircle,
   CheckCircle,
   Loader2,
-  AlertCircle,
-  Wand2,
   RotateCcw,
+  Wand2,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { getItemsFromResponse } from "@/lib/utils";
-import { Course, DayOfWeek } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 import {
+  DayOfWeek,
+  ScheduleAssignment,
+  SessionType,
+  UnscheduledCourse,
+} from "@/types";
+import {
+  DAY_LABELS,
+  LEVEL_PILL,
   SLOT_MAP,
   WEDNESDAY_SLOT_MAP,
-  DAY_LABELS,
   WEEKDAYS,
-  LEVEL_PILL,
 } from "@/lib/constants";
-import { useToast } from "@/hooks/use-toast";
 
-interface CourseScheduleEntry {
-  courseCode: string;
-  courseName: string;
-  level: string;
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
-  hasConflict: boolean;
-}
-
-interface RecommendedSlot {
-  courseCode: string;
+interface ManualEntry {
+  course: UnscheduledCourse;
   dayOfWeek: string;
   startTime: string;
   endTime: string;
@@ -62,197 +56,135 @@ interface SubmitResult {
   error?: string;
 }
 
-interface UniversityCoursesScheduleModalProps {
+interface ManualScheduleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  courseCodes: string[];
-  onSuccess: () => void;
+  courses: UnscheduledCourse[];
+  onScheduled: (assignments: ScheduleAssignment[]) => void;
 }
 
 const MANUAL_SCHEDULING_DAYS = WEEKDAYS.filter(
   (day) => day !== DayOfWeek.FRIDAY,
 );
 
-export function UniversityCoursesScheduleModal({
+function toEntry(course: UnscheduledCourse): ManualEntry {
+  return {
+    course,
+    dayOfWeek: "",
+    startTime: "",
+    endTime: "",
+    hasConflict: false,
+  };
+}
+
+function getStartTimes(dayOfWeek: string): string[] {
+  if (!dayOfWeek) return [];
+  const map = dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
+  return Object.keys(map);
+}
+
+function getEndTimes(dayOfWeek: string, startTime: string): string[] {
+  if (!dayOfWeek || !startTime) return [];
+  const map = dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
+  return map[startTime] ?? [];
+}
+
+export function ManualScheduleModal({
   open,
   onOpenChange,
-  courseCodes,
-  onSuccess,
-}: UniversityCoursesScheduleModalProps) {
+  courses,
+  onScheduled,
+}: ManualScheduleModalProps) {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [entries, setEntries] = useState<ManualEntry[]>([]);
   const [recommending, setRecommending] = useState(false);
   const [recommendationError, setRecommendationError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState("");
-  const [entries, setEntries] = useState<CourseScheduleEntry[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [submitResults, setSubmitResults] = useState<SubmitResult[]>([]);
 
-  const fetchCourses = useCallback(async (): Promise<CourseScheduleEntry[]> => {
-    if (!courseCodes.length) return [];
-    setLoading(true);
-    setFetchError(null);
+  const requestRecommendations = useCallback(async (codes: string[]) => {
+    if (codes.length === 0) return;
+    setRecommending(true);
+    setRecommendationError("");
     try {
-      const res = await apiClient.getCourses({ limit: 500, isGeneral: true });
-      const r = getItemsFromResponse<Course>(res);
-      const found = (r?.items ?? []).filter((c) =>
-        courseCodes.includes(c.code),
-      );
-      const missing = courseCodes.filter(
-        (code) => !found.some((c) => c.code === code),
-      );
-      const all: CourseScheduleEntry[] = [
-        ...found.map((c) => ({
-          courseCode: c.code,
-          courseName: c.name,
-          level: c.level,
-          dayOfWeek: "",
-          startTime: "",
-          endTime: "",
-          hasConflict: false,
-        })),
-        ...missing.map((code) => ({
-          courseCode: code,
-          courseName: "",
-          level: "",
-          dayOfWeek: "",
-          startTime: "",
-          endTime: "",
-          hasConflict: false,
-        })),
-      ];
-      setEntries(all);
-      return all;
-    } catch {
-      setFetchError(
-        "Failed to load course details. You can still assign slots by course code.",
-      );
-      const fallback = courseCodes.map((code) => ({
-        courseCode: code,
-        courseName: "",
-        level: "",
-        dayOfWeek: "",
-        startTime: "",
-        endTime: "",
-        hasConflict: false,
-      }));
-      setEntries(fallback);
-      return fallback;
-    } finally {
-      setLoading(false);
-    }
-  }, [courseCodes]);
-
-  const applyRecommendations = useCallback(
-    async (targetEntries: CourseScheduleEntry[]) => {
-      if (!targetEntries.length) return;
-      setRecommending(true);
-      setRecommendationError("");
-      try {
-        const res = await apiClient.recommendUniversitySlots(
-          targetEntries.map((e) => e.courseCode),
+      const res = await apiClient.recommendUniversitySlots(codes);
+      const slots = res.data;
+      if (res.success && slots) {
+        setEntries((prev) =>
+          prev.map((entry) => {
+            const match = slots.find(
+              (slot) => slot.courseCode === entry.course.courseCode,
+            );
+            if (!match) return entry;
+            if (match.hasConflict) return { ...entry, hasConflict: true };
+            return {
+              ...entry,
+              dayOfWeek: match.dayOfWeek,
+              startTime: match.startTime,
+              endTime: match.endTime,
+              hasConflict: false,
+            };
+          }),
         );
-        if (res.success && Array.isArray(res.data)) {
-          const recommended = res.data as RecommendedSlot[];
-          setEntries((prev) =>
-            prev.map((entry) => {
-              const match = recommended.find(
-                (r) => r.courseCode === entry.courseCode,
-              );
-              if (!match || match.hasConflict) {
-                return { ...entry, hasConflict: !!match?.hasConflict };
-              }
-              return {
-                ...entry,
-                dayOfWeek: match.dayOfWeek,
-                startTime: match.startTime,
-                endTime: match.endTime,
-                hasConflict: false,
-              };
-            }),
-          );
-        } else {
-          setRecommendationError("Failed to generate recommended slots.");
-        }
-      } catch {
-        setRecommendationError("Failed to generate recommended slots.");
-      } finally {
-        setRecommending(false);
+      } else {
+        setRecommendationError(
+          res.error ?? "Failed to generate recommended slots.",
+        );
       }
-    },
-    [],
-  );
+    } catch {
+      setRecommendationError("Failed to generate recommended slots.");
+    } finally {
+      setRecommending(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (open) {
-      setDone(false);
-      setSubmitResults([]);
-      setValidationError("");
-      setRecommendationError("");
-      fetchCourses().then((all) => {
-        applyRecommendations(all);
-      });
-    }
-  }, [open, fetchCourses, applyRecommendations]);
+    if (!open) return;
+    const initial = courses.map(toEntry);
+    setEntries(initial);
+    setDone(false);
+    setSubmitResults([]);
+    setValidationError("");
+    setRecommendationError("");
+    void requestRecommendations(
+      initial.map((entry) => entry.course.courseCode),
+    );
+  }, [open, courses, requestRecommendations]);
 
   const updateEntry = (
     index: number,
-    field: keyof CourseScheduleEntry,
+    field: "dayOfWeek" | "startTime" | "endTime",
     value: string,
   ) => {
-    setEntries((prev) => {
-      const next = [...prev];
-      const entry = { ...next[index]! };
-      entry[field] = value as never;
-      entry.hasConflict = false;
-      if (field === "dayOfWeek") {
-        entry.startTime = "";
-        entry.endTime = "";
-      }
-      if (field === "startTime") {
-        entry.endTime = "";
-      }
-      next[index] = entry;
-      return next;
-    });
+    setEntries((prev) =>
+      prev.map((entry, i) => {
+        if (i !== index) return entry;
+        const next: ManualEntry = {
+          ...entry,
+          [field]: value,
+          hasConflict: false,
+        };
+        if (field === "dayOfWeek") {
+          next.startTime = "";
+          next.endTime = "";
+        }
+        if (field === "startTime") next.endTime = "";
+        return next;
+      }),
+    );
   };
 
   const clearEntry = (index: number) => {
-    setEntries((prev) => {
-      const next = [...prev];
-      const entry = { ...next[index]! };
-      entry.dayOfWeek = "";
-      entry.startTime = "";
-      entry.endTime = "";
-      entry.hasConflict = false;
-      next[index] = entry;
-      return next;
-    });
-  };
-
-  const getAvailableStartTimes = (dayOfWeek: string): string[] => {
-    if (!dayOfWeek) return [];
-    const map =
-      dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
-    return Object.keys(map);
-  };
-
-  const getAvailableEndTimes = (
-    dayOfWeek: string,
-    startTime: string,
-  ): string[] => {
-    if (!dayOfWeek || !startTime) return [];
-    const map =
-      dayOfWeek === DayOfWeek.WEDNESDAY ? WEDNESDAY_SLOT_MAP : SLOT_MAP;
-    return map[startTime] ?? [];
+    setEntries((prev) =>
+      prev.map((entry, i) => (i === index ? toEntry(entry.course) : entry)),
+    );
   };
 
   const allComplete =
     entries.length > 0 &&
     entries.every((e) => e.dayOfWeek && e.startTime && e.endTime);
-
   const conflictCount = entries.filter((e) => e.hasConflict).length;
 
   const handleSubmit = async () => {
@@ -261,7 +193,7 @@ export function UniversityCoursesScheduleModal({
     );
     if (incomplete.length > 0) {
       setValidationError(
-        `Complete all fields before submitting. ${incomplete.length} course${incomplete.length !== 1 ? "s" : ""} still need${incomplete.length === 1 ? "s" : ""} a time slot.`,
+        `Complete all fields before submitting. ${incomplete.length} ${incomplete.length === 1 ? "course still needs" : "courses still need"} a time slot.`,
       );
       return;
     }
@@ -269,28 +201,36 @@ export function UniversityCoursesScheduleModal({
     setSubmitting(true);
 
     const results: SubmitResult[] = [];
+    const assignments: ScheduleAssignment[] = [];
 
     for (const entry of entries) {
       try {
         const res = await apiClient.createSchedule({
-          courseCode: entry.courseCode,
+          courseCode: entry.course.courseCode,
           dayOfWeek: entry.dayOfWeek as DayOfWeek,
           startTime: entry.startTime,
           endTime: entry.endTime,
-          isFixed: true,
         });
         if (res.success) {
-          results.push({ code: entry.courseCode, success: true });
+          results.push({ code: entry.course.courseCode, success: true });
+          assignments.push({
+            courseCode: entry.course.courseCode,
+            dayOfWeek: entry.dayOfWeek as DayOfWeek,
+            startTime: entry.startTime,
+            endTime: entry.endTime,
+            semester: entry.course.semester,
+            sessionType: SessionType.THEORY,
+          });
         } else {
           results.push({
-            code: entry.courseCode,
+            code: entry.course.courseCode,
             success: false,
-            error: (res as any).error ?? "Failed to create schedule",
+            error: res.error ?? "Failed to create schedule",
           });
         }
       } catch {
         results.push({
-          code: entry.courseCode,
+          code: entry.course.courseCode,
           success: false,
           error: "Request failed",
         });
@@ -301,17 +241,28 @@ export function UniversityCoursesScheduleModal({
     setSubmitting(false);
     setDone(true);
 
-    const successCount = results.filter((r) => r.success).length;
-    if (successCount > 0) {
+    if (assignments.length > 0) {
       toast({
-        title: `${successCount} university course${successCount !== 1 ? "s" : ""} scheduled successfully.`,
+        title: `${assignments.length} ${assignments.length === 1 ? "course" : "courses"} scheduled manually.`,
+        variant: "success",
       });
-      onSuccess();
+      onScheduled(assignments);
     }
   };
 
+  const handleRetryFailed = () => {
+    const failedCodes = new Set(
+      submitResults.filter((r) => !r.success).map((r) => r.code),
+    );
+    setEntries((prev) =>
+      prev.filter((entry) => failedCodes.has(entry.course.courseCode)),
+    );
+    setSubmitResults([]);
+    setDone(false);
+  };
+
   const successCount = submitResults.filter((r) => r.success).length;
-  const failureCount = submitResults.filter((r) => !r.success).length;
+  const failureCount = submitResults.length - successCount;
 
   return (
     <Dialog
@@ -325,12 +276,12 @@ export function UniversityCoursesScheduleModal({
         onSwipeDown={() => !submitting && onOpenChange(false)}
       >
         <DialogHeader>
-          <DialogTitle>Schedule University-Wide Courses</DialogTitle>
+          <DialogTitle>Schedule Courses Manually</DialogTitle>
           <DialogDescription>
-            These courses require a manually assigned time slot before
-            auto-generation can proceed. Recommended non-clashing slots are
-            pre-filled below where possible. Each course will be pinned to
-            prevent future auto-generation from overwriting the assignment.
+            These courses could not be placed automatically. Recommended
+            non-clashing Monday to Thursday slots are pre-filled where possible.
+            Each course is saved as a manual override and preserved by future
+            auto-generation.
           </DialogDescription>
         </DialogHeader>
 
@@ -347,18 +298,12 @@ export function UniversityCoursesScheduleModal({
                   ? "All courses scheduled"
                   : `${successCount} scheduled, ${failureCount} failed`}
               </h3>
-              {failureCount > 0 && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Review errors below. You can retry failed courses from the
-                  schedule page.
-                </p>
-              )}
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {submitResults.map((r) => (
                 <div
                   key={r.code}
-                  className={`flex items-center justify-between rounded-lg border p-3 text-sm ${
+                  className={`flex items-center justify-between gap-3 rounded-lg border p-3 text-sm ${
                     r.success
                       ? "border-green-200 bg-green-50"
                       : "border-red-200 bg-red-50"
@@ -372,28 +317,26 @@ export function UniversityCoursesScheduleModal({
                       Scheduled
                     </span>
                   ) : (
-                    <span className="text-red-700 text-xs">{r.error}</span>
+                    <span className="text-red-700 text-xs text-right">
+                      {r.error}
+                    </span>
                   )}
                 </div>
               ))}
             </div>
             <DialogFooter>
+              {failureCount > 0 && (
+                <Button variant="outline" onClick={handleRetryFailed}>
+                  Retry Failed
+                </Button>
+              )}
               <Button onClick={() => onOpenChange(false)}>
                 {failureCount === 0 ? "Done" : "Close"}
               </Button>
             </DialogFooter>
           </div>
-        ) : loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          </div>
         ) : (
           <>
-            {fetchError && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                {fetchError}
-              </div>
-            )}
             {recommendationError && (
               <ServerErrorBanner message={recommendationError} />
             )}
@@ -403,24 +346,27 @@ export function UniversityCoursesScheduleModal({
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>
-                  {conflictCount} course{conflictCount !== 1 ? "s" : ""} could
-                  not be auto-assigned a conflict-free Friday slot. Choose a
-                  time manually for the highlighted course
-                  {conflictCount !== 1 ? "s" : ""} below.
+                  {conflictCount}{" "}
+                  {conflictCount === 1 ? "course has" : "courses have"} no
+                  conflict-free recommended slot. Choose a time manually for the
+                  highlighted {conflictCount === 1 ? "course" : "courses"}.
                 </span>
               </div>
             )}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-gray-500">
-                Recommended slots are pre-filled below. Accept, edit, or clear
-                any entry.
+                Accept, edit or clear any recommended entry.
               </p>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => applyRecommendations(entries)}
+                onClick={() =>
+                  requestRecommendations(
+                    entries.map((entry) => entry.course.courseCode),
+                  )
+                }
                 disabled={recommending || submitting}
               >
                 {recommending ? (
@@ -428,7 +374,7 @@ export function UniversityCoursesScheduleModal({
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Generate Recommended Slots
+                    Recommend Slots
                   </>
                 )}
               </Button>
@@ -444,7 +390,7 @@ export function UniversityCoursesScheduleModal({
 
               {entries.map((entry, idx) => (
                 <div
-                  key={entry.courseCode}
+                  key={entry.course.courseCode}
                   className={`rounded-xl border p-4 space-y-3 md:space-y-0 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
                     entry.hasConflict
                       ? "border-amber-300 bg-amber-50/40"
@@ -454,27 +400,23 @@ export function UniversityCoursesScheduleModal({
                   <div className="md:col-span-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                        {entry.courseCode}
+                        {entry.course.courseCode}
                       </span>
-                      {entry.level && (
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${LEVEL_PILL[entry.level as keyof typeof LEVEL_PILL] ?? ""}`}
-                        >
-                          {entry.level.replace("LEVEL_", "")}L
-                        </Badge>
-                      )}
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${LEVEL_PILL[entry.course.level] ?? ""}`}
+                      >
+                        {entry.course.level.replace("LEVEL_", "")}L
+                      </Badge>
                       {entry.hasConflict && (
                         <Badge className="bg-amber-100 text-amber-800 text-xs">
                           Conflict
                         </Badge>
                       )}
                     </div>
-                    {entry.courseName && (
-                      <p className="text-xs text-gray-500 truncate md:hidden">
-                        {entry.courseName}
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-500 truncate">
+                      {entry.course.courseName}
+                    </p>
                     <button
                       type="button"
                       className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
@@ -525,7 +467,7 @@ export function UniversityCoursesScheduleModal({
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableStartTimes(entry.dayOfWeek).map((t) => (
+                        {getStartTimes(entry.dayOfWeek).map((t) => (
                           <SelectItem key={t} value={t}>
                             {t}
                           </SelectItem>
@@ -551,31 +493,25 @@ export function UniversityCoursesScheduleModal({
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableEndTimes(
-                          entry.dayOfWeek,
-                          entry.startTime,
-                        ).map((t) => {
-                          const startH = parseInt(
-                            entry.startTime.split(":")[0] ?? "0",
-                            10,
-                          );
-                          const endH = parseInt(t.split(":")[0] ?? "0", 10);
-                          return (
-                            <SelectItem key={t} value={t}>
-                              {t} ({endH - startH}hr)
-                            </SelectItem>
-                          );
-                        })}
+                        {getEndTimes(entry.dayOfWeek, entry.startTime).map(
+                          (t) => {
+                            const startH = parseInt(
+                              entry.startTime.split(":")[0] ?? "0",
+                              10,
+                            );
+                            const endH = parseInt(t.split(":")[0] ?? "0", 10);
+                            return (
+                              <SelectItem key={t} value={t}>
+                                {t} ({endH - startH}hr)
+                              </SelectItem>
+                            );
+                          },
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-              Each course will be pinned after scheduling. Auto-generation will
-              respect these slots as occupied time and will not overwrite them.
             </div>
 
             <DialogFooter className="pt-2">
@@ -594,7 +530,7 @@ export function UniversityCoursesScheduleModal({
                 {submitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  `Schedule ${entries.length} Course${entries.length !== 1 ? "s" : ""}`
+                  `Schedule ${entries.length} ${entries.length === 1 ? "Course" : "Courses"}`
                 )}
               </Button>
             </DialogFooter>
